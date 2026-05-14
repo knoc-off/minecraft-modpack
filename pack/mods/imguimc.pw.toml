@@ -1,0 +1,13 @@
+name = "ImGuiMC"
+filename = "imguimc-1.2.1+mc1.21.1.jar"
+side = "client"
+
+[update]
+[update.modrinth]
+mod-id = "qy8EtCnG"
+version = "hHN0FTHd"
+
+[download]
+url = "https://cdn.modrinth.com/data/qy8EtCnG/versions/hHN0FTHd/imguimc-neoforge-1.2.1%2Bmc1.21.1.jar"
+hash-format = "sha512"
+hash = "125ab86158f9d30d8f742ed0205f03f716b193cff69996009baf7fea03b20f8b8f69c55a20af6a50a104c8826898da825b18f4bed6106f901d2bdd1f68a020ca"

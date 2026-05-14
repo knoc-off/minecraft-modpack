@@ -1,0 +1,27 @@
+expected_mod_count = 69
+
+critical_mods = [
+  "create",
+  "sable",
+  "create-aeronautics",
+  "sodium",
+  "cc-tweaked",
+  "quark",
+  "supplementaries",
+  "jei",
+  "connector",
+  "forgified-fabric-api",
+]
+
+[rcon]
+port = 25575
+password = "testpass"
+
+[[rcon_checks]]
+command = "/list"
+expect_contains = "players online"
+description = "Server responds to /list"
+
+[[rcon_checks]]
+command = "/seed"
+description = "World is loaded and accessible"

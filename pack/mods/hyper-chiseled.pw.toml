@@ -1,0 +1,13 @@
+name = "Chiseled"
+filename = "hyper-chiseled-1.0.0-nf+1.21.1.jar"
+side = "both"
+
+[update]
+[update.modrinth]
+mod-id = "R97ceX9b"
+version = "6hq02nje"
+
+[download]
+url = "https://cdn.modrinth.com/data/R97ceX9b/versions/6hq02nje/chiseled-1.0.0-nf%2B1.21.1.jar"
+hash-format = "sha512"
+hash = "42a73c076cd032ad91c90fd81ccf7f92cd6ce2c4650aa7aff3e0e7995bc3e03d90893b607edaf928a052795b8f2a8262a779940df0481007f8e08b985924f881"

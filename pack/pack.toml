@@ -1,0 +1,13 @@
+[pack]
+name = "bricks-building-extended"
+author = ""
+version = "1.0.0"
+description = ""
+
+[versions]
+minecraft = "1.21.1"
+neoforge = "21.1.172"
+
+[pack.index]
+file = "index.toml"
+hash-format = "sha256"

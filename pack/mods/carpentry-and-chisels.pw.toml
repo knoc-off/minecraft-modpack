@@ -1,0 +1,13 @@
+name = "Carpentry & Chisels"
+filename = "carpentry-and-chisels-1.0.2.jar"
+side = "both"
+
+[update]
+[update.modrinth]
+mod-id = "ynlIbSnT"
+version = "6TeFg0Px"
+
+[download]
+url = "https://cdn.modrinth.com/data/ynlIbSnT/versions/6TeFg0Px/carpentry_and_chisels-neoforge-1.21.1-1.0.2.jar"
+hash-format = "sha512"
+hash = "bc57963e95acbdf3d33a2cf9e91dc58fae120330d0b903fa1cf44d414890d0632eb5def5c44f2960ad06f359c91bf8c79e2d0cfcd86fa7f56bb7a9115c2580a0"
