@@ -1,0 +1,26 @@
+modLoader="javafml"
+loaderVersion="[1,)"
+license="GPL-3.0-only"
+issueTrackerURL="https://github.com/yourusername/paintcraft/issues"
+
+[[mods]]
+modId="paintcraft"
+version="0.1.0"
+displayName="PaintCraft"
+description='''
+Projection-based block painting. Paint directly onto any block surface.
+'''
+
+[[dependencies.paintcraft]]
+    modId="neoforge"
+    type="required"
+    versionRange="[21.1.228,)"
+    ordering="NONE"
+    side="BOTH"
+
+[[dependencies.paintcraft]]
+    modId="minecraft"
+    type="required"
+    versionRange="[1.21.1]"
+    ordering="NONE"
+    side="BOTH"
