@@ -125,7 +125,7 @@ public final class ModNetwork {
     private static void handleOpenEditor(OpenEditorPayload payload, IPayloadContext ctx) {
         ctx.enqueueWork(() -> {
             ClientBrushHandler.openExistingEditor(
-                payload.anchor(), payload.normal(),
+                payload.anchor(), payload.normal(), payload.up(),
                 payload.widthPx() / Decal.PX_PER_BLOCK,
                 payload.heightPx() / Decal.PX_PER_BLOCK,
                 payload.pixels(), payload.id()

@@ -175,9 +175,51 @@ public final class BackgroundCapture {
         int spriteW = sprite.contents().width();
         int spriteH = sprite.contents().height();
 
-        // Clamp and sample
-        int sx = Math.clamp((int)(u * spriteW), 0, spriteW - 1);
-        int sy = Math.clamp((int)(v * spriteH), 0, spriteH - 1);
+        // Extract UV coordinates from the BakedQuad's vertex data.
+        // Vertex format (BLOCK): Position(3f) + Color(4b) + UV0(2f) + UV2(2i) + Normal(3b+1b) = 8 ints per vertex
+        int[] vertices = quad.getVertices();
+        float spriteU0 = sprite.getU0();
+        float spriteV0 = sprite.getV0();
+        float spriteURange = sprite.getU1() - spriteU0;
+        float spriteVRange = sprite.getV1() - spriteV0;
+
+        // Get the sprite-local UVs at each of the 4 quad corners
+        float[] cornerU = new float[4];
+        float[] cornerV = new float[4];
+        for (int i = 0; i < 4; i++) {
+            float atlasU = Float.intBitsToFloat(vertices[i * 8 + 4]);
+            float atlasV = Float.intBitsToFloat(vertices[i * 8 + 5]);
+            cornerU[i] = (atlasU - spriteU0) / spriteURange; // [0,1] within sprite
+            cornerV[i] = (atlasV - spriteV0) / spriteVRange;
+        }
+
+        // Compute quad parametric coordinates (s, t) from our projection's faceU/faceV.
+        // BakedQuad vertex ordering (from FaceInfo) has v0→v1 going DOWN for wall faces
+        // and v0→v3 going along the face's width. We must map our projection axes
+        // to the correct parametric axes of the quad.
+        //
+        // s interpolates along v0→v1 edge, t interpolates along v0→v3 edge.
+        float s, t;
+        switch (face) {
+            case SOUTH, EAST, UP -> { s = 1 - v; t = u; }
+            case NORTH, WEST     -> { s = 1 - v; t = 1 - u; }
+            case DOWN            -> { s = v; t = u; }
+            default              -> { s = u; t = v; }
+        }
+
+        // Bilinearly interpolate sprite UV using quad parametric coords (s, t).
+        // s=0,t=0 → vertex 0; s=1,t=0 → vertex 1; s=1,t=1 → vertex 2; s=0,t=1 → vertex 3
+        float interpU0 = cornerU[0] + (cornerU[1] - cornerU[0]) * s;
+        float interpV0 = cornerV[0] + (cornerV[1] - cornerV[0]) * s;
+        float interpU1 = cornerU[3] + (cornerU[2] - cornerU[3]) * s;
+        float interpV1 = cornerV[3] + (cornerV[2] - cornerV[3]) * s;
+
+        float finalU = interpU0 + (interpU1 - interpU0) * t;
+        float finalV = interpV0 + (interpV1 - interpV0) * t;
+
+        // Sample the sprite at the interpolated position
+        int sx = Math.clamp((int)(finalU * spriteW), 0, spriteW - 1);
+        int sy = Math.clamp((int)(finalV * spriteH), 0, spriteH - 1);
         int abgr = image.getPixelRGBA(sx, sy);
 
         // ABGR → ARGB

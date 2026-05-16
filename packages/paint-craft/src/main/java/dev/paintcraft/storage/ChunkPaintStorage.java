@@ -71,12 +71,29 @@ public class ChunkPaintStorage extends SavedData {
         Decal best = null;
         for (Decal d : decals.values()) {
             if (d.normal() != face) continue;
-            if (!d.anchor().equals(pos)) continue;
+            if (!isWithinDecal(d, pos)) continue;
             if (best == null || d.zOrder() > best.zOrder()) {
                 best = d;
             }
         }
         return Optional.ofNullable(best);
+    }
+
+    private static boolean isWithinDecal(Decal d, BlockPos pos) {
+        BlockPos anchor = d.anchor();
+        Direction right = d.right();
+        Direction up = d.up();
+
+        int dx = pos.getX() - anchor.getX();
+        int dy = pos.getY() - anchor.getY();
+        int dz = pos.getZ() - anchor.getZ();
+
+        // Project offset onto the decal's right and up axes
+        int rightDist = dx * right.getStepX() + dy * right.getStepY() + dz * right.getStepZ();
+        int upDist = dx * up.getStepX() + dy * up.getStepY() + dz * up.getStepZ();
+
+        return rightDist >= 0 && rightDist < d.widthBlocks()
+            && upDist >= 0 && upDist < d.heightBlocks();
     }
 
     public Collection<Decal> allDecals() {

@@ -5,149 +5,112 @@ import dev.paintcraft.core.Decal;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.network.chat.Component;
 
 import java.util.UUID;
 
 public final class ClientBrushHandler {
 
-    private static BlockPos pendingCorner = null;
-    private static Direction pendingFace = null;
-
     private ClientBrushHandler() {}
 
+    /** Canonical up used by BackgroundCapture for floor/ceiling faces. */
+    private static final Direction CANONICAL_UP = Direction.NORTH;
+
     public static void openNewEditor(BlockPos pos, Direction face) {
+        Direction displayUp = face.getAxis().isVertical()
+            ? Minecraft.getInstance().player.getDirection()
+            : Direction.UP;
+
         int[] background = BackgroundCapture.capture(
             Minecraft.getInstance().level, pos, face, 1, 1, 1.0f);
-        Minecraft.getInstance().setScreen(new PaintScreen(pos, face, 1, 1, null, null, background));
+
+        // Rotate background from canonical orientation to player orientation
+        if (face.getAxis().isVertical()) {
+            int rotations = clockwiseSteps(CANONICAL_UP, displayUp, face);
+            if (rotations != 0) {
+                background = rotatePixels(background, Decal.PX_PER_BLOCK, Decal.PX_PER_BLOCK, rotations);
+            }
+        }
+
+        Minecraft.getInstance().setScreen(new PaintScreen(pos, face, displayUp, 1, 1, null, null, background));
     }
 
-    public static void openExistingEditor(BlockPos anchor, Direction normal, int widthBlocks, int heightBlocks,
-                                           int[] pixels, java.util.UUID decalId) {
+    public static void openExistingEditor(BlockPos anchor, Direction normal, Direction storedUp,
+                                           int widthBlocks, int heightBlocks,
+                                           int[] pixels, UUID decalId) {
+        Direction displayUp = storedUp;
+        int[] displayPixels = pixels;
+        int displayW = widthBlocks;
+        int displayH = heightBlocks;
+
+        if (normal.getAxis().isVertical()) {
+            Direction playerDir = Minecraft.getInstance().player.getDirection();
+            int rotations = clockwiseSteps(storedUp, playerDir, normal);
+            if (rotations != 0) {
+                int wPx = widthBlocks * Decal.PX_PER_BLOCK;
+                int hPx = heightBlocks * Decal.PX_PER_BLOCK;
+                displayPixels = rotatePixels(pixels, wPx, hPx, rotations);
+                displayUp = playerDir;
+                if (rotations % 2 == 1) {
+                    displayW = heightBlocks;
+                    displayH = widthBlocks;
+                }
+            }
+        }
+
+        // Background is captured in canonical orientation, rotate to match display
         int[] background = BackgroundCapture.capture(
-            Minecraft.getInstance().level, anchor, normal, widthBlocks, heightBlocks, 1.0f);
-        Minecraft.getInstance().setScreen(new PaintScreen(anchor, normal, widthBlocks, heightBlocks, pixels, decalId, background));
-    }
+            Minecraft.getInstance().level, anchor, normal, displayW, displayH, 1.0f);
 
-    public static void handleCornerClick(BlockPos pos, Direction face) {
-        if (pendingCorner == null) {
-            // First corner
-            pendingCorner = pos;
-            pendingFace = face;
-            Minecraft.getInstance().player.displayClientMessage(
-                Component.literal("First corner set. Shift+click the opposite corner."), true);
-        } else {
-            // Second corner — validate and open editor
-            if (pendingFace != face) {
-                // Different face direction — invalid, reset
-                pendingCorner = null;
-                pendingFace = null;
-                Minecraft.getInstance().player.displayClientMessage(
-                    Component.literal("Corners must be on the same face direction. Selection cleared."), true);
-                return;
+        if (normal.getAxis().isVertical()) {
+            int bgRotations = clockwiseSteps(CANONICAL_UP, displayUp, normal);
+            if (bgRotations != 0) {
+                int bgW = displayW * Decal.PX_PER_BLOCK;
+                int bgH = displayH * Decal.PX_PER_BLOCK;
+                background = rotatePixels(background, bgW, bgH, bgRotations);
             }
+        }
 
-            // Validate same plane (face-axis coordinate must match)
-            if (!samePlane(pendingCorner, pos, face)) {
-                pendingCorner = null;
-                pendingFace = null;
-                Minecraft.getInstance().player.displayClientMessage(
-                    Component.literal("Corners must be on the same plane. Selection cleared."), true);
-                return;
+        Minecraft.getInstance().setScreen(new PaintScreen(
+            anchor, normal, displayUp, displayW, displayH, displayPixels, decalId, background));
+    }
+
+    /**
+     * Count 90° clockwise steps (around the face normal axis) from 'from' to 'to'.
+     */
+    private static int clockwiseSteps(Direction from, Direction to, Direction normal) {
+        if (from == to) return 0;
+        Direction cur = from;
+        for (int i = 1; i <= 3; i++) {
+            cur = cur.getClockWise(normal.getAxis());
+            if (cur == to) return i;
+        }
+        return 0;
+    }
+
+    /**
+     * Rotate a pixel array by the given number of 90° clockwise steps.
+     */
+    static int[] rotatePixels(int[] src, int w, int h, int rotations) {
+        rotations = ((rotations % 4) + 4) % 4;
+        if (rotations == 0) return src;
+
+        int[] result = src;
+        int curW = w, curH = h;
+
+        for (int r = 0; r < rotations; r++) {
+            int newW = curH;
+            int newH = curW;
+            int[] rotated = new int[newW * newH];
+            // 90° CW: rotated[x * newW + (newW - 1 - y)] = src[y * curW + x]
+            for (int y = 0; y < curH; y++) {
+                for (int x = 0; x < curW; x++) {
+                    rotated[x * newW + (newW - 1 - y)] = result[y * curW + x];
+                }
             }
-
-            // Compute rectangle dimensions
-            Direction up = face.getAxis().isVertical() ? Direction.NORTH : Direction.UP;
-            Direction right = up.getClockWise(face.getAxis());
-
-            int widthBlocks = extentAlongAxis(pendingCorner, pos, right.getAxis());
-            int heightBlocks = extentAlongAxis(pendingCorner, pos, up.getAxis());
-
-            // Cap at 8x8 blocks (128x128 pixels)
-            if (widthBlocks > 8 || heightBlocks > 8) {
-                pendingCorner = null;
-                pendingFace = null;
-                Minecraft.getInstance().player.displayClientMessage(
-                    Component.literal("Canvas too large (max 8x8 blocks). Selection cleared."), true);
-                return;
-            }
-
-            // Compute anchor (the corner at min-right, min-up position)
-            BlockPos anchor = computeAnchor(pendingCorner, pos, face, right, up);
-
-            // Open editor with background capture
-            int[] background = BackgroundCapture.capture(
-                Minecraft.getInstance().level, anchor, face, widthBlocks, heightBlocks);
-            Minecraft.getInstance().setScreen(new PaintScreen(
-                anchor, face, widthBlocks, heightBlocks, null, null, background
-            ));
-
-            // Clear state
-            pendingCorner = null;
-            pendingFace = null;
+            result = rotated;
+            curW = newW;
+            curH = newH;
         }
-    }
-
-    public static void clearPendingCorner() {
-        pendingCorner = null;
-        pendingFace = null;
-    }
-
-    public static boolean hasPendingCorner() {
-        return pendingCorner != null;
-    }
-
-    private static boolean samePlane(BlockPos a, BlockPos b, Direction face) {
-        return switch (face.getAxis()) {
-            case X -> a.getX() == b.getX();
-            case Y -> a.getY() == b.getY();
-            case Z -> a.getZ() == b.getZ();
-        };
-    }
-
-    private static int extentAlongAxis(BlockPos a, BlockPos b, Direction.Axis axis) {
-        return switch (axis) {
-            case X -> Math.abs(a.getX() - b.getX()) + 1;
-            case Y -> Math.abs(a.getY() - b.getY()) + 1;
-            case Z -> Math.abs(a.getZ() - b.getZ()) + 1;
-        };
-    }
-
-    private static BlockPos computeAnchor(BlockPos pos1, BlockPos pos2, Direction face,
-                                           Direction right, Direction up) {
-        int minX = Math.min(pos1.getX(), pos2.getX());
-        int minY = Math.min(pos1.getY(), pos2.getY());
-        int minZ = Math.min(pos1.getZ(), pos2.getZ());
-        int maxX = Math.max(pos1.getX(), pos2.getX());
-        int maxY = Math.max(pos1.getY(), pos2.getY());
-        int maxZ = Math.max(pos1.getZ(), pos2.getZ());
-
-        // For each axis: if the direction is positive, anchor at min; if negative, anchor at max.
-        // The face-normal axis uses the clicked position.
-        int ax = chooseComponent(right, up, Direction.Axis.X, minX, maxX, pos1.getX());
-        int ay = chooseComponent(right, up, Direction.Axis.Y, minY, maxY, pos1.getY());
-        int az = chooseComponent(right, up, Direction.Axis.Z, minZ, maxZ, pos1.getZ());
-
-        // Override the face-normal axis with the clicked block position
-        switch (face.getAxis()) {
-            case X -> ax = pos1.getX();
-            case Y -> ay = pos1.getY();
-            case Z -> az = pos1.getZ();
-        }
-
-        return new BlockPos(ax, ay, az);
-    }
-
-    private static int chooseComponent(Direction right, Direction up, Direction.Axis axis, int min, int max, int fallback) {
-        // Check if "right" direction affects this axis
-        if (right.getAxis() == axis) {
-            return right.getAxisDirection() == Direction.AxisDirection.POSITIVE ? min : max;
-        }
-        // Check if "up" direction affects this axis
-        if (up.getAxis() == axis) {
-            return up.getAxisDirection() == Direction.AxisDirection.POSITIVE ? min : max;
-        }
-        // This axis is the face normal axis — will be overridden
-        return fallback;
+        return result;
     }
 }

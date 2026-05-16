@@ -1,7 +1,6 @@
 package dev.paintcraft.item;
 
 import dev.paintcraft.PaintCraft;
-import dev.paintcraft.client.ClientBrushHandler;
 import dev.paintcraft.core.Decal;
 import dev.paintcraft.network.OpenEditorPayload;
 import dev.paintcraft.storage.ChunkPaintStorage;
@@ -38,11 +37,7 @@ public class BrushItem extends Item {
         if (level.getBlockState(pos).isAir()) return InteractionResult.PASS;
 
         if (level.isClientSide) {
-            if (player.isShiftKeyDown()) {
-                // Multi-block corner selection (client-side only)
-                ClientBrushHandler.handleCornerClick(pos, face);
-            }
-            // Non-shift: wait for server to send OpenEditorPayload
+            // Wait for server to send OpenEditorPayload
             return InteractionResult.SUCCESS;
         }
 
@@ -68,7 +63,8 @@ public class BrushItem extends Item {
             PaintCraft.LOGGER.debug("Sent decal {} to client for editing", existing.get().id());
         } else {
             // New 1x1: send blank editor signal
-            Direction up = face.getAxis().isVertical() ? Direction.NORTH : Direction.UP;
+            // For floor/ceiling, orient the canvas based on player's facing direction
+            Direction up = face.getAxis().isVertical() ? player.getDirection() : Direction.UP;
             OpenEditorPayload payload = OpenEditorPayload.blank(
                 UUID.randomUUID(), pos, face, up,
                 Decal.PX_PER_BLOCK, Decal.PX_PER_BLOCK, 1.0f
