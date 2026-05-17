@@ -3,6 +3,7 @@ package dev.paintcraft.client;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import dev.paintcraft.core.Decal;
+import dev.paintcraft.core.FaceFrame;
 import dev.paintcraft.projection.ResolvedSurface;
 import dev.paintcraft.projection.SurfaceFragment;
 import net.minecraft.client.Minecraft;
@@ -81,8 +82,9 @@ public final class DecalRenderer {
         float[] uv = frag.uvs();
 
         BlockAndTintGetter level = Minecraft.getInstance().level;
-        Direction right = decal.right();
-        Direction up = decal.up();
+        FaceFrame frame = decal.frame();
+        Direction right = frame.right();
+        Direction up = frame.up();
 
         // Compute per-corner AO and lightmap for this block face
         float[] cornerAO = DecalLighting.computeCornerAO(level, frag.pos(), normal, right, up);

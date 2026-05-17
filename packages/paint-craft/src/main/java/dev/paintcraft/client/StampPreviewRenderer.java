@@ -3,10 +3,10 @@ package dev.paintcraft.client;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import dev.paintcraft.core.Decal;
+import dev.paintcraft.core.FaceFrame;
 import dev.paintcraft.item.StampData;
 import dev.paintcraft.item.StampItem;
 import dev.paintcraft.projection.ProjectionResolver;
-import dev.paintcraft.projection.ProjectionVolume;
 import dev.paintcraft.projection.ResolvedSurface;
 import dev.paintcraft.projection.SurfaceFragment;
 import net.minecraft.client.Minecraft;
@@ -70,10 +70,10 @@ public final class StampPreviewRenderer {
         VertexConsumer consumer = bufferSource.getBuffer(renderType);
 
         BlockAndTintGetter level = mc.level;
-        Direction right = previewDecal.right();
+        FaceFrame frame = previewDecal.frame();
 
         for (SurfaceFragment frag : previewResolved.fragments()) {
-            renderGhostFragment(consumer, matrix, previewDecal, frag, level, right, up);
+            renderGhostFragment(consumer, matrix, previewDecal, frag, level, frame.right(), frame.up());
         }
 
         poseStack.popPose();

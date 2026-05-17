@@ -1,8 +1,8 @@
 package dev.paintcraft.client;
 
 import dev.paintcraft.core.Decal;
+import dev.paintcraft.projection.Projection;
 import dev.paintcraft.projection.ProjectionResolver;
-import dev.paintcraft.projection.ProjectionVolume;
 import dev.paintcraft.projection.ResolvedSurface;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
@@ -53,7 +53,7 @@ public final class ClientDecalResolver {
                 continue;
             }
 
-            AABB bounds = ProjectionVolume.from(entry.decal()).toBoundingBox();
+            AABB bounds = Projection.fromDecal(entry.decal()).toBoundingBox();
             if (chunkOverlapsAABB(loadedChunk, bounds)) {
                 toReResolve.add(id);
             }
@@ -94,7 +94,7 @@ public final class ClientDecalResolver {
      * so we must query the ChunkSource directly with requireChunk=false.
      */
     private static boolean allChunksLoaded(Decal decal, Level level) {
-        AABB bounds = ProjectionVolume.from(decal).toBoundingBox();
+        AABB bounds = Projection.fromDecal(decal).toBoundingBox();
         int minCX = SectionPos.blockToSectionCoord((int) Math.floor(bounds.minX));
         int maxCX = SectionPos.blockToSectionCoord((int) Math.floor(bounds.maxX));
         int minCZ = SectionPos.blockToSectionCoord((int) Math.floor(bounds.minZ));

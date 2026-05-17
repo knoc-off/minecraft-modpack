@@ -1,10 +1,13 @@
 package dev.paintcraft.client.gui;
 
-import dev.paintcraft.client.ClientBrushHandler;
 import dev.paintcraft.client.EditorPrefs;
 import dev.paintcraft.client.gui.widget.BlockListWidget;
 import dev.paintcraft.client.gui.widget.ColorSquareWidget;
+import dev.paintcraft.core.ColorFormat;
 import dev.paintcraft.core.Decal;
+import dev.paintcraft.core.DisplayTransform;
+import dev.paintcraft.core.FaceFrame;
+import dev.paintcraft.core.PixelGrid;
 import dev.paintcraft.network.DecalCreatePayload;
 import com.mojang.blaze3d.platform.NativeImage;
 import net.minecraft.client.Minecraft;
@@ -13,7 +16,6 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.Block;
@@ -33,41 +35,36 @@ public class PaintScreen extends Screen {
     );
 
     private final BlockPos anchor;
-    private final Direction normal;
-    private final Direction up;
-    private final int widthBlocks;
-    private final int heightBlocks;
+    private final FaceFrame storedFrame;      // canonical stored orientation (used for saving)
+    private final DisplayTransform transform; // maps stored↔display (handles hFlip + rotation)
     private final int canvasW;
     private final int canvasH;
     private final UUID decalId;
-    private final boolean hFlip; // flip display horizontally for negative-normal faces
-    private final Direction storedUp; // original up direction for saving (never changes)
-    private final int displayRotation; // CW steps applied for display (reversed on save)
 
-    private int[] pixels;
+    private int[] canvas; // mutable working buffer in DISPLAY orientation
     private int[] backgroundPixels;
     private final List<int[]> undoStack = new ArrayList<>();
     private final List<int[]> redoStack = new ArrayList<>();
 
     // Color state
     private int selectedColor = 0xFF000000;
-    private final List<Integer> recentColors = new ArrayList<>(); // last N colors used
+    private final List<Integer> recentColors = new ArrayList<>();
 
     // Tools
     private PaintTool activeTool = PaintTool.PENCIL;
     private int brushSize = 1;
     private boolean painting = false;
 
-    // Persistent block list -- survives re-init when returning from BlockSearchScreen
+    // Persistent block list
     private final List<Block> customBlocks = new ArrayList<>();
 
     // Layout
     private int canvasX, canvasY, pixelSize;
     private BlockListWidget blockList;
     private ColorSquareWidget colorSquare;
-    private boolean colorSquareSoft = true; // persists mode across re-inits
+    private boolean colorSquareSoft = true;
 
-    // Canvas texture (rendered as a single blit instead of per-pixel fills)
+    // Canvas texture
     private DynamicTexture canvasTexture;
     private ResourceLocation canvasTextureLoc;
     private boolean canvasDirty = true;
@@ -77,31 +74,41 @@ public class PaintScreen extends Screen {
     private static final int RECENTS_BAR_Y = 4;
     private static final int MAX_RECENTS = 16;
 
-    public PaintScreen(BlockPos anchor, Direction normal, Direction up, int widthBlocks, int heightBlocks,
-                       int[] existingPixels, UUID decalId, int[] backgroundPixels,
-                       Direction storedUp, int displayRotation) {
+    /**
+     * Full constructor for re-editing existing decals (with display transform).
+     */
+    public PaintScreen(BlockPos anchor, FaceFrame storedFrame, FaceFrame displayFrame,
+                       DisplayTransform transform, int widthBlocks, int heightBlocks,
+                       int[] existingPixels, UUID decalId, int[] backgroundPixels) {
         super(Component.literal("Paint"));
         this.anchor = anchor;
-        this.normal = normal;
-        this.up = up;
-        this.widthBlocks = widthBlocks;
-        this.heightBlocks = heightBlocks;
+        this.storedFrame = storedFrame;
+        this.transform = transform;
         this.canvasW = widthBlocks * Decal.PX_PER_BLOCK;
         this.canvasH = heightBlocks * Decal.PX_PER_BLOCK;
         this.decalId = decalId != null ? decalId : UUID.randomUUID();
-        this.hFlip = normal.getAxis() != Direction.Axis.Y
-                     && normal.getAxisDirection() == Direction.AxisDirection.NEGATIVE;
         this.backgroundPixels = backgroundPixels;
-        this.storedUp = storedUp;
-        this.displayRotation = displayRotation;
 
         if (existingPixels != null && existingPixels.length == canvasW * canvasH) {
-            this.pixels = Arrays.copyOf(existingPixels, existingPixels.length);
+            this.canvas = Arrays.copyOf(existingPixels, existingPixels.length);
         } else {
-            this.pixels = new int[canvasW * canvasH];
+            this.canvas = new int[canvasW * canvasH];
         }
 
-        // Load persisted editor preferences
+        loadPrefs();
+        initCanvasTexture();
+    }
+
+    /**
+     * Convenience constructor for new decals (no rotation, identity transform).
+     */
+    public PaintScreen(BlockPos anchor, FaceFrame frame, int widthBlocks, int heightBlocks,
+                       int[] backgroundPixels) {
+        this(anchor, frame, frame, DisplayTransform.forEditor(frame, frame),
+             widthBlocks, heightBlocks, null, null, backgroundPixels);
+    }
+
+    private void loadPrefs() {
         EditorPrefs prefs = EditorPrefs.load();
         this.customBlocks.addAll(prefs.resolveBlocks(DEFAULT_BLOCKS));
         this.recentColors.addAll(prefs.recentColors);
@@ -110,47 +117,37 @@ public class PaintScreen extends Screen {
         this.brushSize = Math.max(1, Math.min(4, prefs.brushSize));
         try { this.activeTool = PaintTool.valueOf(prefs.activeTool); }
         catch (IllegalArgumentException ignored) {}
+    }
 
-        // Create canvas texture (single GPU texture, blitted each frame instead of per-pixel fills)
+    private void initCanvasTexture() {
         NativeImage canvasImage = new NativeImage(canvasW, canvasH, true);
         this.canvasTexture = new DynamicTexture(canvasImage);
         this.canvasTextureLoc = Minecraft.getInstance().getTextureManager()
             .register("paintcraft_canvas", this.canvasTexture);
     }
 
-    public PaintScreen(BlockPos anchor, Direction normal, Direction up, int widthBlocks, int heightBlocks,
-                       int[] existingPixels, UUID decalId) {
-        this(anchor, normal, up, widthBlocks, heightBlocks, existingPixels, decalId, null, up, 0);
-    }
+    // === Coordinate mapping (delegates to DisplayTransform) ===
 
-    public PaintScreen(BlockPos anchor, Direction normal, Direction up, int widthBlocks, int heightBlocks) {
-        this(anchor, normal, up, widthBlocks, heightBlocks, null, null, null, up, 0);
-    }
-
-    /** Map pixel X to display X (flips for positive-normal faces so editor matches player view) */
+    /** Map pixel X from data space to display space. */
     private int displayX(int px) {
-        return hFlip ? canvasW - 1 - px : px;
+        return transform.toDisplayX(px, canvasW);
     }
 
-    /** Map raw screen X to pixel X (reverse of displayX) */
+    /** Map raw screen X to data pixel X. */
     private int screenToPixelX(int screenX) {
         int raw = (screenX - canvasX) / pixelSize;
-        return hFlip ? canvasW - 1 - raw : raw;
+        return transform.toDataX(raw, canvasW);
     }
 
     @Override
     protected void init() {
         // Recreate canvas texture if released (e.g. returning from BlockSearchScreen)
         if (canvasTextureLoc == null) {
-            NativeImage canvasImage = new NativeImage(canvasW, canvasH, true);
-            this.canvasTexture = new DynamicTexture(canvasImage);
-            this.canvasTextureLoc = Minecraft.getInstance().getTextureManager()
-                .register("paintcraft_canvas", this.canvasTexture);
+            initCanvasTexture();
             canvasDirty = true;
         }
 
         // Layout calculations
-        // Reserve space: top (canvasY) + bottom (tool row 16 + gap 6 + done row 20 + gap 6 + margin 4 = 52)
         canvasX = 10;
         canvasY = 22;
         int rightColWidth = 120;
@@ -160,13 +157,12 @@ public class PaintScreen extends Screen {
         pixelSize = Math.min(canvasArea / canvasW, availableH / canvasH);
         pixelSize = Math.max(pixelSize, 2);
 
-        // Right column layout (capped at 1/3 screen width, right-aligned)
+        // Right column layout
         int colWidth = Math.min(this.width / 3, this.width - (canvasX + canvasW * pixelSize + 12) - 4);
         int colX = this.width - colWidth - 4;
         int curY = canvasY;
 
-        // Color square (hue x lightness picker, 1:1 aspect ratio)
-        // Always recreated here since removed() destroys it on screen transitions
+        // Color square
         int squareH = colWidth;
         colorSquare = new ColorSquareWidget(colX, curY, colWidth, squareH, this::onColorPicked);
         colorSquare.setSmooth(colorSquareSoft);
@@ -243,9 +239,6 @@ public class PaintScreen extends Screen {
         if (colorSquare != null) colorSquare.rebuild(customBlocks);
     }
 
-    // Clicking a block in the right-column list is now a no-op for color purposes
-    // since the square already shows all blocks' colors. Keep the handler as it may
-    // be useful in the future (e.g. highlighting that block's dots on the square).
     private void onBlockClicked(Block block) {
     }
 
@@ -256,7 +249,7 @@ public class PaintScreen extends Screen {
         // === Recents Bar (top, above canvas) ===
         renderColorBar(gfx, recentColors, canvasX, RECENTS_BAR_Y, mouseX, mouseY, "Recent");
 
-        // === Canvas (single texture blit — updated only when pixels change) ===
+        // === Canvas (single texture blit) ===
         if (canvasTextureLoc == null) return;
         if (canvasDirty) {
             updateCanvasTexture();
@@ -266,7 +259,7 @@ public class PaintScreen extends Screen {
         int renderH = canvasH * pixelSize;
         gfx.blit(canvasTextureLoc, canvasX, canvasY, renderW, renderH, 0f, 0f, canvasW, canvasH, canvasW, canvasH);
 
-        // === Grid lines (cheap overlay) ===
+        // === Grid lines ===
         int gridColor = 0x40000000;
         for (int px = 0; px <= canvasW; px++) {
             int sx = canvasX + px * pixelSize;
@@ -303,7 +296,7 @@ public class PaintScreen extends Screen {
 
     /**
      * Composites background + painted pixels into the canvas DynamicTexture.
-     * Only called when canvasDirty is true (on draw/undo/redo).
+     * Uses DisplayTransform for coordinate mapping.
      */
     private void updateCanvasTexture() {
         NativeImage img = canvasTexture.getPixels();
@@ -311,36 +304,26 @@ public class PaintScreen extends Screen {
 
         for (int py = 0; py < canvasH; py++) {
             for (int screenPx = 0; screenPx < canvasW; screenPx++) {
-                // Apply flip: texture is written in display order
-                int dataPx = hFlip ? canvasW - 1 - screenPx : screenPx;
+                // Map display X → data X using transform
+                int dataPx = transform.toDataX(screenPx, canvasW);
                 int idx = py * canvasW + dataPx;
 
-                // Painted pixel takes priority
-                int pixelColor = pixels[idx];
+                int pixelColor = canvas[idx];
                 int color;
-                if (((pixelColor >> 24) & 0xFF) > 0) {
+                if (ColorFormat.isOpaque(pixelColor)) {
                     color = pixelColor;
-                } else if (backgroundPixels != null && ((backgroundPixels[idx] >> 24) & 0xFF) > 0) {
+                } else if (backgroundPixels != null && ColorFormat.isOpaque(backgroundPixels[idx])) {
                     color = backgroundPixels[idx];
                 } else {
-                    // Checkerboard for transparent areas
                     boolean checker = ((dataPx / 2) + (py / 2)) % 2 == 0;
                     color = checker ? 0xFF666666 : 0xFF999999;
                 }
 
-                img.setPixelRGBA(screenPx, py, argbToAbgr(color));
+                img.setPixelRGBA(screenPx, py, ColorFormat.argbToAbgr(color));
             }
         }
 
         canvasTexture.upload();
-    }
-
-    private static int argbToAbgr(int argb) {
-        int a = argb & 0xFF000000;
-        int r = (argb >> 16) & 0xFF;
-        int g = argb & 0x0000FF00;
-        int b = (argb & 0xFF) << 16;
-        return a | b | g | r;
     }
 
     private void renderColorBar(GuiGraphics gfx, List<Integer> colors, int x, int y, int mouseX, int mouseY, String label) {
@@ -348,7 +331,7 @@ public class PaintScreen extends Screen {
         int offsetX = x + this.font.width(label) + 6;
         for (int i = 0; i < colors.size(); i++) {
             int sx = offsetX + i * (COLOR_SWATCH_SIZE + 2);
-            if (sx + COLOR_SWATCH_SIZE > this.width - 120) break; // don't overflow into block list
+            if (sx + COLOR_SWATCH_SIZE > this.width - 120) break;
             int color = colors.get(i);
             gfx.fill(sx, y, sx + COLOR_SWATCH_SIZE, y + COLOR_SWATCH_SIZE, color);
             if (color == selectedColor) {
@@ -361,15 +344,13 @@ public class PaintScreen extends Screen {
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (super.mouseClicked(mouseX, mouseY, button)) return true;
 
-        // Check recents bar click
         if (clickColorBar(recentColors, (int) mouseX, (int) mouseY, canvasX, RECENTS_BAR_Y)) return true;
 
-        // Check canvas click
         int px = screenToPixelX((int) mouseX);
         int py = ((int) mouseY - canvasY) / pixelSize;
         if (px >= 0 && px < canvasW && py >= 0 && py < canvasH) {
             pushUndo();
-            activeTool.draw(pixels, canvasW, canvasH, px, py, brushSize, selectedColor);
+            activeTool.draw(canvas, canvasW, canvasH, px, py, brushSize, selectedColor);
             canvasDirty = true;
             painting = true;
             return true;
@@ -408,7 +389,7 @@ public class PaintScreen extends Screen {
             int px = screenToPixelX((int) mouseX);
             int py = ((int) mouseY - canvasY) / pixelSize;
             if (px >= 0 && px < canvasW && py >= 0 && py < canvasH) {
-                activeTool.draw(pixels, canvasW, canvasH, px, py, brushSize, selectedColor);
+                activeTool.draw(canvas, canvasW, canvasH, px, py, brushSize, selectedColor);
                 canvasDirty = true;
             }
             return true;
@@ -424,7 +405,6 @@ public class PaintScreen extends Screen {
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
-        // Scroll over canvas adjusts brush size
         int px = screenToPixelX((int) mouseX);
         int py = ((int) mouseY - canvasY) / pixelSize;
         if (px >= 0 && px < canvasW && py >= 0 && py < canvasH) {
@@ -449,39 +429,33 @@ public class PaintScreen extends Screen {
     }
 
     private void pushUndo() {
-        undoStack.add(Arrays.copyOf(pixels, pixels.length));
+        undoStack.add(Arrays.copyOf(canvas, canvas.length));
         if (undoStack.size() > 20) undoStack.remove(0);
         redoStack.clear();
     }
 
     private void undo() {
         if (undoStack.isEmpty()) return;
-        redoStack.add(Arrays.copyOf(pixels, pixels.length));
-        pixels = undoStack.remove(undoStack.size() - 1);
+        redoStack.add(Arrays.copyOf(canvas, canvas.length));
+        canvas = undoStack.remove(undoStack.size() - 1);
         canvasDirty = true;
     }
 
     private void redo() {
         if (redoStack.isEmpty()) return;
-        undoStack.add(Arrays.copyOf(pixels, pixels.length));
-        pixels = redoStack.remove(redoStack.size() - 1);
+        undoStack.add(Arrays.copyOf(canvas, canvas.length));
+        canvas = redoStack.remove(redoStack.size() - 1);
         canvasDirty = true;
     }
 
     private void saveAndClose() {
-        int[] savePixels = pixels;
-        int saveW = canvasW, saveH = canvasH;
-        if (displayRotation != 0) {
-            // Reverse the display rotation to get back to stored orientation
-            savePixels = ClientBrushHandler.rotatePixels(pixels, canvasW, canvasH, displayRotation);
-            if (displayRotation % 2 == 1) {
-                saveW = canvasH;
-                saveH = canvasW;
-            }
-        }
+        // Transform display pixels back to stored orientation
+        PixelGrid displayGrid = PixelGrid.wrap(canvasW, canvasH, canvas);
+        PixelGrid stored = transform.toStored(displayGrid);
+
         DecalCreatePayload payload = new DecalCreatePayload(
-            decalId, 0, anchor, normal, storedUp,
-            saveW, saveH, 1.0f, (byte) 0, savePixels
+            decalId, 0, anchor, storedFrame.normal(), storedFrame.up(),
+            stored.width(), stored.height(), 1.0f, (byte) 0, stored.data()
         );
         PacketDistributor.sendToServer(payload);
         onClose();
@@ -490,7 +464,6 @@ public class PaintScreen extends Screen {
     @Override
     public void removed() {
         super.removed();
-        // Persist editor preferences
         EditorPrefs.from(customBlocks, recentColors, selectedColor,
                          colorSquareSoft, activeTool.name(), brushSize).save();
         if (colorSquare != null) {

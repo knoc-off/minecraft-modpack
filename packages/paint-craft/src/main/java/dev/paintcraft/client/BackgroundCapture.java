@@ -2,7 +2,8 @@ package dev.paintcraft.client;
 
 import com.mojang.blaze3d.platform.NativeImage;
 import dev.paintcraft.core.Decal;
-import dev.paintcraft.projection.ProjectionVolume;
+import dev.paintcraft.core.FaceFrame;
+import dev.paintcraft.projection.Projection;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.block.model.BakedQuad;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
@@ -38,27 +39,10 @@ public final class BackgroundCapture {
         int hPx = heightBlocks * Decal.PX_PER_BLOCK;
         int[] background = new int[wPx * hPx];
 
-        // Build a ProjectionVolume matching what the renderer uses
+        // Build projection using FaceFrame (centralized origin computation)
         Direction up = face.getAxis().isVertical() ? captureUp : Direction.UP;
-        Direction right = up.getClockWise(face.getAxis());
-
-        Vec3 rightVec = Vec3.atLowerCornerOf(right.getNormal());
-        Vec3 upVec = Vec3.atLowerCornerOf(up.getNormal());
-        Vec3 forwardVec = Vec3.atLowerCornerOf(face.getNormal()).scale(-1);
-
-        Vec3 orig = Vec3.atLowerCornerOf(anchor);
-        if (face.getAxisDirection() == Direction.AxisDirection.POSITIVE) {
-            orig = orig.add(Vec3.atLowerCornerOf(face.getNormal()));
-        }
-        if (right.getStepX() < 0) orig = orig.add(1, 0, 0);
-        if (right.getStepY() < 0) orig = orig.add(0, 1, 0);
-        if (right.getStepZ() < 0) orig = orig.add(0, 0, 1);
-        if (up.getStepX() < 0) orig = orig.add(1, 0, 0);
-        if (up.getStepY() < 0) orig = orig.add(0, 1, 0);
-        if (up.getStepZ() < 0) orig = orig.add(0, 0, 1);
-
-        ProjectionVolume vol = new ProjectionVolume(orig, rightVec, upVec, forwardVec,
-            widthBlocks, heightBlocks, depth);
+        FaceFrame frame = new FaceFrame(face, up);
+        Projection vol = new Projection(frame, anchor, widthBlocks, heightBlocks, depth);
 
         // Collect face candidates (same as ProjectionResolver)
         AABB bounds = vol.toBoundingBox();
@@ -144,7 +128,7 @@ public final class BackgroundCapture {
         return background;
     }
 
-    private static float computeFaceU(FaceHit hit, int px, int wPx, ProjectionVolume vol) {
+    private static float computeFaceU(FaceHit hit, int px, int wPx, Projection vol) {
         // pixel center in local projection coords
         float localU = (px + 0.5f) / wPx * vol.width();
         // position within the face's local U extent
@@ -153,7 +137,7 @@ public final class BackgroundCapture {
         return (localU - hit.u0) / faceWidth;
     }
 
-    private static float computeFaceV(FaceHit hit, int py, int hPx, ProjectionVolume vol) {
+    private static float computeFaceV(FaceHit hit, int py, int hPx, Projection vol) {
         float localV = (py + 0.5f) / hPx * vol.height();
         float faceHeight = hit.v1 - hit.v0;
         if (faceHeight < 0.001f) return 0.5f;
@@ -248,7 +232,7 @@ public final class BackgroundCapture {
         return (a << 24) | (r << 16) | (g << 8) | b;
     }
 
-    private static void collectFaces(ProjectionVolume vol, AABB worldBox,
+    private static void collectFaces(Projection vol, AABB worldBox,
                                       BlockPos blockPos, Direction projNormal,
                                       List<FaceHit> out) {
         for (Direction face : Direction.values()) {

@@ -94,6 +94,10 @@ public class Decal {
         return up.getClockWise(normal.getAxis());
     }
 
+    public FaceFrame frame() {
+        return new FaceFrame(normal, up);
+    }
+
     public CompoundTag save() {
         CompoundTag tag = new CompoundTag();
         tag.putUUID("id", id);

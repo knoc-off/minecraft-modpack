@@ -1,6 +1,7 @@
 package dev.paintcraft.client;
 
 import com.mojang.blaze3d.platform.NativeImage;
+import dev.paintcraft.core.ColorFormat;
 import dev.paintcraft.core.Decal;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.DynamicTexture;
@@ -40,12 +41,7 @@ public class DecalTexture implements AutoCloseable {
         for (int y = 0; y < img.getHeight(); y++) {
             for (int x = 0; x < img.getWidth(); x++) {
                 int c = argb[y * width + x];
-                // ARGB → ABGR for NativeImage
-                int a = c & 0xFF000000;
-                int r = (c >> 16) & 0xFF;
-                int g = c & 0x0000FF00;
-                int b = (c & 0xFF) << 16;
-                img.setPixelRGBA(x, y, a | b | g | r);
+                img.setPixelRGBA(x, y, ColorFormat.argbToAbgr(c));
             }
         }
     }

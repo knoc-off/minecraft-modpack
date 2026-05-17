@@ -1,6 +1,7 @@
 package dev.paintcraft.projection;
 
 import dev.paintcraft.core.Decal;
+import dev.paintcraft.core.FaceFrame;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.BlockGetter;
@@ -19,7 +20,7 @@ public final class ProjectionResolver {
     private ProjectionResolver() {}
 
     public static ResolvedSurface resolve(Decal decal, BlockGetter level) {
-        ProjectionVolume vol = ProjectionVolume.from(decal);
+        Projection vol = Projection.fromDecal(decal);
         AABB bounds = vol.toBoundingBox();
         int wPx = decal.widthPx();
         int hPx = decal.heightPx();
@@ -133,7 +134,7 @@ public final class ProjectionResolver {
         return new ResolvedSurface(fragments, null, depthBuf, minDepth);
     }
 
-    private static void collectFaces(ProjectionVolume vol, AABB worldBox,
+    private static void collectFaces(Projection vol, AABB worldBox,
                                      BlockPos blockPos, Direction projNormal,
                                      List<FaceCandidate> out) {
         // for each face of this AABB, check if it faces the projector
@@ -202,7 +203,7 @@ public final class ProjectionResolver {
         }
     }
 
-    private static float[] buildQuadVertices(ProjectionVolume vol, FaceCandidate c) {
+    private static float[] buildQuadVertices(Projection vol, FaceCandidate c) {
         // reconstruct world-space quad from the (potentially clipped) face
         // the face is flat on one axis (determined by faceNormal)
         float x0 = (float) c.worldMinX, y0 = (float) c.worldMinY, z0 = (float) c.worldMinZ;
@@ -234,7 +235,7 @@ public final class ProjectionResolver {
      * Build world-space quad vertices for a sub-region of pixels within the projection volume.
      * Uses localToWorld to convert pixel edges back to world positions at the given depth.
      */
-    private static float[] buildSubQuadVertices(ProjectionVolume vol, float depth,
+    private static float[] buildSubQuadVertices(Projection vol, float depth,
                                                  int subPx0, int subPy0, int subPx1, int subPy1,
                                                  int wPx, int hPx) {
         double u0 = (double) subPx0 / wPx * vol.width();

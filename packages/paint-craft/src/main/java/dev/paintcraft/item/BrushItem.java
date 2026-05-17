@@ -2,6 +2,7 @@ package dev.paintcraft.item;
 
 import dev.paintcraft.PaintCraft;
 import dev.paintcraft.core.Decal;
+import dev.paintcraft.core.FaceFrame;
 import dev.paintcraft.network.DecalSelectionPayload;
 import dev.paintcraft.network.OpenEditorPayload;
 import dev.paintcraft.storage.ChunkPaintStorage;
@@ -62,7 +63,8 @@ public class BrushItem extends Item {
 
         if (overlapping.isEmpty()) {
             // New 1x1: send blank editor signal
-            Direction up = face.getAxis().isVertical() ? player.getDirection() : Direction.UP;
+            FaceFrame frame = FaceFrame.forFace(face, player.getDirection());
+            Direction up = frame.up();
             OpenEditorPayload payload = OpenEditorPayload.blank(
                 UUID.randomUUID(), pos, face, up,
                 Decal.PX_PER_BLOCK, Decal.PX_PER_BLOCK, 1.0f

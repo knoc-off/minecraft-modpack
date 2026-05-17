@@ -4,6 +4,7 @@ import com.mojang.blaze3d.platform.NativeImage;
 import dev.paintcraft.client.color.BlockColorCache;
 import dev.paintcraft.client.color.Delaunay2D;
 import dev.paintcraft.client.color.OkHsl;
+import dev.paintcraft.core.ColorFormat;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
@@ -227,7 +228,7 @@ public class ColorSquareWidget extends AbstractWidget {
                         int idx = py * TEX_W + px;
                         pixelColors[idx] = argb;
                         covered[idx] = true;
-                        img.setPixelRGBA(px, py, argbToAbgr(argb));
+                        img.setPixelRGBA(px, py, ColorFormat.argbToAbgr(argb));
                     }
                 }
             }
@@ -243,7 +244,7 @@ public class ColorSquareWidget extends AbstractWidget {
                     SeedColor nearest = findNearestIn(h, l, seeds);
                     int argb = nearest != null ? nearest.argb : 0xFF1A1A1A;
                     pixelColors[idx] = argb;
-                    img.setPixelRGBA(px, py, argbToAbgr(argb));
+                    img.setPixelRGBA(px, py, ColorFormat.argbToAbgr(argb));
                 }
             }
         }
@@ -258,7 +259,7 @@ public class ColorSquareWidget extends AbstractWidget {
                     int py = cy + dy;
                     if (px >= 0 && px < TEX_W && py >= 0 && py < TEX_H) {
                         if (dx == 0 && dy == 0) {
-                            img.setPixelRGBA(px, py, argbToAbgr(seed.argb));
+                            img.setPixelRGBA(px, py, ColorFormat.argbToAbgr(seed.argb));
                         } else {
                             img.setPixelRGBA(px, py, 0xFFFFFFFF); // white border (ABGR)
                         }
@@ -284,7 +285,7 @@ public class ColorSquareWidget extends AbstractWidget {
                 int argb = nearest != null ? nearest.argb : 0xFF1A1A1A;
                 int idx = py * TEX_W + px;
                 pixelColors[idx] = argb;
-                img.setPixelRGBA(px, py, argbToAbgr(argb));
+                img.setPixelRGBA(px, py, ColorFormat.argbToAbgr(argb));
             }
         }
 
@@ -298,7 +299,7 @@ public class ColorSquareWidget extends AbstractWidget {
                     int py = cy + dy;
                     if (px >= 0 && px < TEX_W && py >= 0 && py < TEX_H) {
                         if (dx == 0 && dy == 0) {
-                            img.setPixelRGBA(px, py, argbToAbgr(seed.argb));
+                            img.setPixelRGBA(px, py, ColorFormat.argbToAbgr(seed.argb));
                         } else {
                             img.setPixelRGBA(px, py, 0xFFFFFFFF);
                         }
@@ -409,14 +410,6 @@ public class ColorSquareWidget extends AbstractWidget {
                 img.setPixelRGBA(x, y, abgr);
             }
         }
-    }
-
-    private static int argbToAbgr(int argb) {
-        int a = argb & 0xFF000000;
-        int r = (argb >> 16) & 0xFF;
-        int g = argb & 0x0000FF00;
-        int b = (argb & 0xFF) << 16;
-        return a | b | g | r;
     }
 
     @Override

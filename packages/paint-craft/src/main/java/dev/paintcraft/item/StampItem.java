@@ -2,6 +2,7 @@ package dev.paintcraft.item;
 
 import dev.paintcraft.PaintCraft;
 import dev.paintcraft.core.Decal;
+import dev.paintcraft.core.FaceFrame;
 import dev.paintcraft.network.DecalCreatePayload;
 import dev.paintcraft.storage.ChunkPaintStorage;
 import net.minecraft.core.BlockPos;
@@ -62,7 +63,8 @@ public class StampItem extends Item {
         if (data == null) return;
 
         // Auto-orient: same logic as new decal creation
-        Direction up = face.getAxis().isVertical() ? player.getDirection() : Direction.UP;
+        FaceFrame frame = FaceFrame.forFace(face, player.getDirection());
+        Direction up = frame.up();
 
         // Create decal via the normal pipeline
         DecalCreatePayload payload = new DecalCreatePayload(

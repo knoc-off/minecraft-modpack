@@ -1,5 +1,6 @@
 package dev.paintcraft.client.color;
 
+import dev.paintcraft.core.ColorFormat;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.block.BlockModelShaper;
 import net.minecraft.client.renderer.block.model.BakedQuad;
@@ -72,7 +73,7 @@ public final class BlockColorExtractor {
         for (int y = 0; y < h; y++) {
             for (int x = 0; x < w; x++) {
                 int abgr = sprite.getPixelRGBA(0, x, y);
-                int argb = abgrToArgb(abgr);
+                int argb = ColorFormat.abgrToArgb(abgr);
                 int alpha = (argb >> 24) & 0xFF;
                 if (alpha <= 2) continue;
                 colors.add(argb | 0xFF000000);
@@ -97,11 +98,4 @@ public final class BlockColorExtractor {
         return !name.contains("missingno") && !name.contains("missing");
     }
 
-    private static int abgrToArgb(int abgr) {
-        int a = (abgr >> 24) & 0xFF;
-        int b = (abgr >> 16) & 0xFF;
-        int g = (abgr >> 8) & 0xFF;
-        int r = abgr & 0xFF;
-        return (a << 24) | (r << 16) | (g << 8) | b;
-    }
 }
