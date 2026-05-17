@@ -85,7 +85,8 @@ public class PaintScreen extends Screen {
         this.canvasW = widthBlocks * Decal.PX_PER_BLOCK;
         this.canvasH = heightBlocks * Decal.PX_PER_BLOCK;
         this.decalId = decalId != null ? decalId : UUID.randomUUID();
-        this.hFlip = normal.getAxisDirection() == Direction.AxisDirection.NEGATIVE;
+        this.hFlip = normal.getAxis() != Direction.Axis.Y
+                     && normal.getAxisDirection() == Direction.AxisDirection.NEGATIVE;
         this.backgroundPixels = backgroundPixels;
 
         if (existingPixels != null && existingPixels.length == canvasW * canvasH) {

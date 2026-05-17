@@ -14,8 +14,7 @@ import net.minecraft.world.level.BlockAndTintGetter;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
 
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 public final class DecalRenderer {
@@ -43,7 +42,12 @@ public final class DecalRenderer {
         poseStack.translate(-cameraPos.x, -cameraPos.y, -cameraPos.z);
         Matrix4f matrix = poseStack.last().pose();
 
-        for (ResolvedEntry entry : resolvedCache.values()) {
+        // Sort by zOrder ascending: lower zOrder (back) renders first,
+        // higher zOrder (front) renders last and overwrites in color buffer
+        List<ResolvedEntry> sorted = new ArrayList<>(resolvedCache.values());
+        sorted.sort(Comparator.comparingLong(e -> e.decal.zOrder()));
+
+        for (ResolvedEntry entry : sorted) {
             ResolvedSurface resolved = entry.resolved;
             if (resolved.isEmpty()) continue;
 
@@ -54,7 +58,7 @@ public final class DecalRenderer {
             RenderType renderType = DecalRenderType.decal(entry.texture.location());
             VertexConsumer consumer = bufferSource.getBuffer(renderType);
 
-            float baseEpsilon = (float) (0.001 + Math.sqrt(distSq) * 0.00002);
+            float baseEpsilon = (float) (0.005 + Math.sqrt(distSq) * 0.00005);
 
             for (SurfaceFragment frag : resolved.fragments()) {
                 renderFragment(consumer, matrix, decal, frag, baseEpsilon);
@@ -68,7 +72,7 @@ public final class DecalRenderer {
                                         Decal decal, SurfaceFragment frag,
                                         float baseEpsilon) {
         Direction normal = frag.faceNormal();
-        float offset = baseEpsilon + frag.zTier() * 0.0008f;
+        float offset = baseEpsilon;
         float nx = normal.getStepX() * offset;
         float ny = normal.getStepY() * offset;
         float nz = normal.getStepZ() * offset;

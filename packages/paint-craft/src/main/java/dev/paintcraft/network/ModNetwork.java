@@ -3,6 +3,7 @@ package dev.paintcraft.network;
 import dev.paintcraft.PaintCraft;
 import dev.paintcraft.client.ClientBrushHandler;
 import dev.paintcraft.client.ClientDecalCache;
+import dev.paintcraft.client.ClientDecalResolver;
 import dev.paintcraft.client.ClientSpatialIndex;
 import dev.paintcraft.client.DecalRenderer;
 import dev.paintcraft.client.gui.DecalSelectionScreen;
@@ -119,6 +120,9 @@ public final class ModNetwork {
             if (entry != null) {
                 DecalRenderer.cacheResolved(decal.id(), decal, entry.texture(), tiered);
             }
+
+            // Track for re-resolution if not all chunks in the decal's volume are loaded yet
+            ClientDecalResolver.markPendingIfIncomplete(decal, level);
 
             // Re-tier any other decals that now overlap with this one
             retierOverlapping(decal.id());

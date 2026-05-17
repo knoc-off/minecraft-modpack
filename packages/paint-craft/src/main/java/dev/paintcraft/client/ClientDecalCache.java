@@ -25,6 +25,7 @@ public final class ClientDecalCache {
     public static void remove(UUID id) {
         Entry old = cache.remove(id);
         if (old != null) old.texture.close();
+        ClientDecalResolver.remove(id);
     }
 
     public static Entry get(UUID id) {
@@ -49,6 +50,7 @@ public final class ClientDecalCache {
     public static void clear() {
         cache.values().forEach(e -> e.texture.close());
         cache.clear();
+        ClientDecalResolver.clear();
     }
 
     public static boolean couldOverlap(Decal decal, BlockPos pos) {

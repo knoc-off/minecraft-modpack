@@ -13,8 +13,6 @@ public final class ClientBrushHandler {
 
     private ClientBrushHandler() {}
 
-    /** Canonical up used by BackgroundCapture for floor/ceiling faces. */
-    private static final Direction CANONICAL_UP = Direction.NORTH;
     private static final int MAX_CANVAS_SIZE = 16;
 
     // Multi-block corner selection state
@@ -84,17 +82,7 @@ public final class ClientBrushHandler {
     private static void openMultiBlockEditor(BlockPos anchor, Direction face, Direction displayUp,
                                               int widthBlocks, int heightBlocks) {
         int[] background = BackgroundCapture.capture(
-            Minecraft.getInstance().level, anchor, face, widthBlocks, heightBlocks, 1.0f);
-
-        // Rotate background for floor/ceiling
-        if (face.getAxis().isVertical()) {
-            int rotations = clockwiseSteps(CANONICAL_UP, displayUp, face);
-            if (rotations != 0) {
-                int bgW = widthBlocks * Decal.PX_PER_BLOCK;
-                int bgH = heightBlocks * Decal.PX_PER_BLOCK;
-                background = rotatePixels(background, bgW, bgH, -rotations);
-            }
-        }
+            Minecraft.getInstance().level, anchor, face, displayUp, widthBlocks, heightBlocks, 1.0f);
 
         Minecraft.getInstance().setScreen(new PaintScreen(
             anchor, face, displayUp, widthBlocks, heightBlocks, null, null, background));
@@ -106,16 +94,7 @@ public final class ClientBrushHandler {
             : Direction.UP;
 
         int[] background = BackgroundCapture.capture(
-            Minecraft.getInstance().level, pos, face, 1, 1, 1.0f);
-
-        // Rotate background from canonical orientation to player orientation.
-        // Negate: pixel rotation is opposite to the world-space direction rotation.
-        if (face.getAxis().isVertical()) {
-            int rotations = clockwiseSteps(CANONICAL_UP, displayUp, face);
-            if (rotations != 0) {
-                background = rotatePixels(background, Decal.PX_PER_BLOCK, Decal.PX_PER_BLOCK, -rotations);
-            }
-        }
+            Minecraft.getInstance().level, pos, face, displayUp, 1, 1, 1.0f);
 
         Minecraft.getInstance().setScreen(new PaintScreen(pos, face, displayUp, 1, 1, null, null, background));
     }
@@ -128,9 +107,10 @@ public final class ClientBrushHandler {
         int displayW = widthBlocks;
         int displayH = heightBlocks;
 
+        int rotations = 0;
         if (normal.getAxis().isVertical()) {
             Direction playerDir = Minecraft.getInstance().player.getDirection();
-            int rotations = clockwiseSteps(storedUp, playerDir, normal);
+            rotations = clockwiseSteps(storedUp, playerDir, normal);
             if (rotations != 0) {
                 int wPx = widthBlocks * Decal.PX_PER_BLOCK;
                 int hPx = heightBlocks * Decal.PX_PER_BLOCK;
@@ -143,18 +123,31 @@ public final class ClientBrushHandler {
             }
         }
 
-        // Background is captured in canonical orientation, rotate to match display
-        int[] background = BackgroundCapture.capture(
-            Minecraft.getInstance().level, anchor, normal, displayW, displayH, 1.0f);
-
-        if (normal.getAxis().isVertical()) {
-            int bgRotations = clockwiseSteps(CANONICAL_UP, displayUp, normal);
-            if (bgRotations != 0) {
-                int bgW = displayW * Decal.PX_PER_BLOCK;
-                int bgH = displayH * Decal.PX_PER_BLOCK;
-                background = rotatePixels(background, bgW, bgH, -bgRotations);
+        // Compute background anchor adjusted for display orientation.
+        // The stored anchor is the min corner for (storedRight, storedUp).
+        // When the display rotates, we need the min corner for (newRight, newUp).
+        BlockPos bgAnchor = anchor;
+        if (normal.getAxis().isVertical() && rotations != 0) {
+            Direction storedRight = storedUp.getClockWise(normal.getAxis());
+            switch (rotations) {
+                case 1 -> bgAnchor = anchor.offset(
+                    storedUp.getStepX() * (heightBlocks - 1),
+                    storedUp.getStepY() * (heightBlocks - 1),
+                    storedUp.getStepZ() * (heightBlocks - 1));
+                case 2 -> bgAnchor = anchor.offset(
+                    storedRight.getStepX() * (widthBlocks - 1) + storedUp.getStepX() * (heightBlocks - 1),
+                    storedRight.getStepY() * (widthBlocks - 1) + storedUp.getStepY() * (heightBlocks - 1),
+                    storedRight.getStepZ() * (widthBlocks - 1) + storedUp.getStepZ() * (heightBlocks - 1));
+                case 3 -> bgAnchor = anchor.offset(
+                    storedRight.getStepX() * (widthBlocks - 1),
+                    storedRight.getStepY() * (widthBlocks - 1),
+                    storedRight.getStepZ() * (widthBlocks - 1));
             }
         }
+
+        // Background captured directly in display orientation
+        int[] background = BackgroundCapture.capture(
+            Minecraft.getInstance().level, bgAnchor, normal, displayUp, displayW, displayH, 1.0f);
 
         Minecraft.getInstance().setScreen(new PaintScreen(
             anchor, normal, displayUp, displayW, displayH, displayPixels, decalId, background));

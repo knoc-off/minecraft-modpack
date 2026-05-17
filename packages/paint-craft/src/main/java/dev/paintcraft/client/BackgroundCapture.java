@@ -33,13 +33,13 @@ public final class BackgroundCapture {
     private BackgroundCapture() {}
 
     public static int[] capture(BlockAndTintGetter level, BlockPos anchor, Direction face,
-                                 int widthBlocks, int heightBlocks, float depth) {
+                                 Direction captureUp, int widthBlocks, int heightBlocks, float depth) {
         int wPx = widthBlocks * Decal.PX_PER_BLOCK;
         int hPx = heightBlocks * Decal.PX_PER_BLOCK;
         int[] background = new int[wPx * hPx];
 
         // Build a ProjectionVolume matching what the renderer uses
-        Direction up = face.getAxis().isVertical() ? Direction.NORTH : Direction.UP;
+        Direction up = face.getAxis().isVertical() ? captureUp : Direction.UP;
         Direction right = up.getClockWise(face.getAxis());
 
         Vec3 rightVec = Vec3.atLowerCornerOf(right.getNormal());
@@ -125,7 +125,7 @@ public final class BackgroundCapture {
                 float faceV = computeFaceV(hit, py, hPx, vol);
 
                 // Sample the block's texture
-                int color = sampleBlockTexture(level, hit.blockPos, hit.faceNormal, faceU, faceV);
+                int color = sampleBlockTexture(level, hit.blockPos, hit.faceNormal, faceU, faceV, face, up);
                 if (color == 0) continue;
 
                 // Apply depth shading
@@ -161,7 +161,8 @@ public final class BackgroundCapture {
     }
 
     private static int sampleBlockTexture(BlockAndTintGetter level, BlockPos pos,
-                                           Direction face, float u, float v) {
+                                           Direction face, float u, float v,
+                                           Direction projFace, Direction captureUp) {
         BlockState state = level.getBlockState(pos);
         if (state.isAir()) return 0;
 
@@ -193,18 +194,26 @@ public final class BackgroundCapture {
             cornerV[i] = (atlasV - spriteV0) / spriteVRange;
         }
 
-        // Compute quad parametric coordinates (s, t) from our projection's faceU/faceV.
-        // BakedQuad vertex ordering (from FaceInfo) has v0→v1 going DOWN for wall faces
-        // and v0→v3 going along the face's width. We must map our projection axes
-        // to the correct parametric axes of the quad.
-        //
-        // s interpolates along v0→v1 edge, t interpolates along v0→v3 edge.
+        // For vertical faces (floor/ceiling), convert display (u,v) to canonical (NORTH-up) coords
+        // before applying the s,t mapping which assumes canonical orientation.
+        float cu = u, cv = v;
+        if (projFace.getAxis().isVertical()) {
+            int r = canonicalRotation(captureUp, projFace);
+            switch (r) {
+                case 1 -> { cu = v;       cv = 1 - u; }
+                case 2 -> { cu = 1 - u;   cv = 1 - v; }
+                case 3 -> { cu = 1 - v;   cv = u;     }
+                // case 0: cu = u, cv = v (already set)
+            }
+        }
+
+        // Compute quad parametric coordinates (s, t) from canonical faceU/faceV.
         float s, t;
         switch (face) {
-            case SOUTH, EAST, UP -> { s = 1 - v; t = u; }
-            case NORTH, WEST     -> { s = 1 - v; t = 1 - u; }
-            case DOWN            -> { s = v; t = u; }
-            default              -> { s = u; t = v; }
+            case SOUTH, EAST, UP -> { s = 1 - cv; t = cu; }
+            case NORTH, WEST     -> { s = 1 - cv; t = 1 - cu; }
+            case DOWN            -> { s = cv; t = cu; }
+            default              -> { s = cu; t = cv; }
         }
 
         // Bilinearly interpolate sprite UV using quad parametric coords (s, t).
@@ -292,4 +301,17 @@ public final class BackgroundCapture {
 
     private record FaceHit(BlockPos blockPos, Direction faceNormal,
                            float u0, float v0, float u1, float v1, float depth) {}
+
+    /**
+     * Count 90° clockwise steps from NORTH to captureUp around the face normal axis.
+     * Returns 0 if captureUp == NORTH (canonical), 1 for EAST, 2 for SOUTH, 3 for WEST.
+     */
+    private static int canonicalRotation(Direction captureUp, Direction face) {
+        Direction cur = Direction.NORTH;
+        for (int i = 1; i <= 3; i++) {
+            cur = cur.getClockWise(face.getAxis());
+            if (cur == captureUp) return i;
+        }
+        return 0;
+    }
 }
