@@ -1,5 +1,6 @@
 package dev.paintcraft.client.gui;
 
+import dev.paintcraft.PaintCraft;
 import dev.paintcraft.client.EditorPrefs;
 import dev.paintcraft.client.gui.widget.BlockListWidget;
 import dev.paintcraft.client.gui.widget.ColorSquareWidget;
@@ -22,6 +23,9 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.neoforged.neoforge.network.PacketDistributor;
 
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.*;
 
 public class PaintScreen extends Screen {
@@ -51,12 +55,15 @@ public class PaintScreen extends Screen {
     private final List<Integer> recentColors = new ArrayList<>();
 
     // Tools
-    private PaintTool activeTool = PaintTool.PENCIL;
+     private PaintTool activeTool = PaintTool.PENCIL;
     private int brushSize = 1;
     private boolean painting = false;
 
     // Persistent block list
     private final List<Block> customBlocks = new ArrayList<>();
+
+    // Image import path input (Ctrl+I)
+    private net.minecraft.client.gui.components.EditBox pathInput;
 
     // Layout
     private int canvasX, canvasY, pixelSize;
@@ -420,10 +427,28 @@ public class PaintScreen extends Screen {
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        // Path input field active — handle its keys first
+        if (pathInput != null) {
+            if (keyCode == 256) { // Escape
+                removeWidget(pathInput);
+                pathInput = null;
+                return true;
+            }
+            if (keyCode == 257 || keyCode == 335) { // Enter / KP_Enter
+                loadImageFromPath(pathInput.getValue().trim());
+                removeWidget(pathInput);
+                pathInput = null;
+                return true;
+            }
+            return pathInput.keyPressed(keyCode, scanCode, modifiers) || super.keyPressed(keyCode, scanCode, modifiers);
+        }
+
         if (hasControlDown()) {
             if (keyCode == 90 && !hasShiftDown()) { undo(); return true; }
             if (keyCode == 90 && hasShiftDown()) { redo(); return true; }
             if (keyCode == 89) { redo(); return true; }
+            if (keyCode == 73) { showPathInput(); return true; } // Ctrl+I
+            if (keyCode == 86) { pasteFromClipboard(); return true; } // Ctrl+V
         }
         return super.keyPressed(keyCode, scanCode, modifiers);
     }
@@ -446,6 +471,90 @@ public class PaintScreen extends Screen {
         undoStack.add(Arrays.copyOf(canvas, canvas.length));
         canvas = redoStack.remove(redoStack.size() - 1);
         canvasDirty = true;
+    }
+
+    private void loadAndImport(Path file) {
+        String name = file.getFileName().toString().toLowerCase();
+        if (!(name.endsWith(".png") || name.endsWith(".jpg") ||
+              name.endsWith(".jpeg") || name.endsWith(".bmp"))) {
+            PaintCraft.LOGGER.warn("Unsupported image format: {}", name);
+            return;
+        }
+        if (!java.nio.file.Files.isRegularFile(file)) {
+            PaintCraft.LOGGER.warn("File not found: {}", file);
+            return;
+        }
+        PaintCraft.LOGGER.info("Importing image: {}", file);
+        try (NativeImage img = NativeImage.read(new FileInputStream(file.toFile()))) {
+            pushUndo();
+            importImage(img);
+            canvasDirty = true;
+            PaintCraft.LOGGER.info("Image imported ({}x{})", img.getWidth(), img.getHeight());
+        } catch (Exception e) {
+            PaintCraft.LOGGER.error("Failed to import image: {}", file, e);
+        }
+    }
+
+    private void importImage(NativeImage img) {
+        int srcW = img.getWidth();
+        int srcH = img.getHeight();
+
+        float scale = Math.min((float) canvasW / srcW, (float) canvasH / srcH);
+        int dstW = Math.max(1, (int) (srcW * scale));
+        int dstH = Math.max(1, (int) (srcH * scale));
+
+        int offsetX = (canvasW - dstW) / 2;
+        int offsetY = (canvasH - dstH) / 2;
+
+        Arrays.fill(canvas, 0);
+
+        for (int y = 0; y < dstH; y++) {
+            for (int x = 0; x < dstW; x++) {
+                int srcX = Math.min((int) (x / scale), srcW - 1);
+                int srcY = Math.min((int) (y / scale), srcH - 1);
+                int abgr = img.getPixelRGBA(srcX, srcY);
+                int idx = (offsetY + y) * canvasW + (offsetX + x);
+                if (idx >= 0 && idx < canvas.length) {
+                    canvas[idx] = ColorFormat.abgrToArgb(abgr);
+                }
+            }
+        }
+    }
+
+    private void showPathInput() {
+        if (pathInput != null) return; // already showing
+        int inputW = Math.min(this.width - 20, 400);
+        int inputX = (this.width - inputW) / 2;
+        int inputY = this.height - 30;
+        pathInput = new net.minecraft.client.gui.components.EditBox(
+            this.font, inputX, inputY, inputW, 16, Component.literal("File path"));
+        pathInput.setMaxLength(512);
+        pathInput.setHint(Component.literal("Paste image path here, press Enter"));
+        addRenderableWidget(pathInput);
+        setFocused(pathInput);
+    }
+
+    private void loadImageFromPath(String pathStr) {
+        if (pathStr.isEmpty()) return;
+        if (pathStr.startsWith("\"") && pathStr.endsWith("\"")) {
+            pathStr = pathStr.substring(1, pathStr.length() - 1);
+        }
+        if (pathStr.startsWith("file://")) {
+            pathStr = pathStr.substring(7);
+        }
+        loadAndImport(Path.of(pathStr));
+    }
+
+    private void pasteFromClipboard() {
+        long window = Minecraft.getInstance().getWindow().getWindow();
+        String text = org.lwjgl.glfw.GLFW.glfwGetClipboardString(window);
+        if (text == null || text.isEmpty()) return;
+        text = text.trim();
+        String lower = text.toLowerCase();
+        if (lower.endsWith(".png") || lower.endsWith(".jpg") ||
+            lower.endsWith(".jpeg") || lower.endsWith(".bmp")) {
+            loadImageFromPath(text);
+        }
     }
 
     private void saveAndClose() {
