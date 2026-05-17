@@ -24,8 +24,8 @@ import java.util.function.IntConsumer;
  * using Delaunay triangulation with barycentric color interpolation.
  *
  * Two modes:
- * - Hard: Delaunay of real block-texture seeds only (larger triangles, coarser blending)
- * - Soft: Real seeds + bridge seeds along Delaunay edges (denser triangles, finer gradients)
+ * - Smooth: Real seeds + achromatic boundary anchors → full coverage, neutral gray edges
+ * - Raw: Real seeds only → shows only true block colors, edges may be clipped
  *
  * X axis = hue (0°–360°), Y axis = lightness (1 at top, 0 at bottom).
  * Clicking returns the exact barycentric-interpolated color at that pixel.
@@ -35,29 +35,21 @@ public class ColorSquareWidget extends AbstractWidget {
     private static final int TEX_W = 128;
     private static final int TEX_H = 128;
 
-    // Bridge seed generation: subdivision step size in normalized [0,1]×[0,1] space
-    private static final float STEP_SIZE = 0.04f;
-
     private final IntConsumer onColorPicked;
     private final DynamicTexture texture;
     private final ResourceLocation textureLoc;
 
-    // Real seeds from block textures
+    // Seeds used for triangulation (real + optional boundary anchors)
     private final List<SeedColor> seeds = new ArrayList<>();
-    // Synthetic bridge seeds generated along Delaunay edges
-    private final List<SeedColor> bridgeSeeds = new ArrayList<>();
 
-    // Cached triangulation for click/hover (reused after repaint)
-    private List<SeedColor> activeSeeds = List.of();
-    private float[] triXs, triYs;  // normalized coords of active seeds
-    private int[] triIndices;       // triangle vertex index triplets
-    private int triCount;           // number of triangles
+    // Cached block list for rebuild on toggle
+    private List<Block> lastBlocks = List.of();
 
     // Cached per-pixel color map for fast click lookup
     private int[] pixelColors;
 
-    // Mode toggle: true = soft (real + bridge seeds), false = hard (real seeds only)
-    private boolean soft = true;
+    // Mode toggle: true = smooth (with boundary anchors), false = raw (real seeds only)
+    private boolean smooth = true;
 
     public ColorSquareWidget(int x, int y, int width, int height, IntConsumer onColorPicked) {
         super(x, y, width, height, Component.literal("Color Picker"));
@@ -70,25 +62,26 @@ public class ColorSquareWidget extends AbstractWidget {
             .register("paintcraft_colorpicker", this.texture);
     }
 
-    public boolean isSoft() { return soft; }
+    public boolean isSmooth() { return smooth; }
 
-    public void setSoft(boolean soft) {
-        if (this.soft != soft) {
-            this.soft = soft;
-            if (!seeds.isEmpty()) repaint();
+    public void setSmooth(boolean smooth) {
+        if (this.smooth != smooth) {
+            this.smooth = smooth;
+            rebuild(lastBlocks);
         }
     }
 
     public void toggleMode() {
-        setSoft(!soft);
+        setSmooth(!smooth);
     }
 
     /**
-     * Rebuild seeds from the current block set, generate bridge seeds, and repaint.
+     * Rebuild seeds from the current block set and repaint.
+     * In smooth mode, adds achromatic boundary anchors for full coverage.
      */
     public void rebuild(List<Block> blocks) {
+        lastBlocks = blocks;
         seeds.clear();
-        bridgeSeeds.clear();
 
         Set<Integer> seen = new HashSet<>();
         for (Block block : blocks) {
@@ -102,23 +95,19 @@ public class ColorSquareWidget extends AbstractWidget {
             }
         }
 
-        // Add boundary anchors so the Delaunay covers the full square
-        addBoundaryAnchors();
-
-        if (seeds.size() >= 3 && seeds.size() <= 300) {
-            generateBridgeSeeds();
+        if (smooth) {
+            addBoundaryAnchors();
         }
 
         repaint();
     }
 
     /**
-     * Inject synthetic anchor seeds at corners + edge midpoints of the color space.
+     * Inject achromatic anchor seeds at corners + edge midpoints of the color space.
+     * All anchors are neutral gray (chroma=0) at their respective lightness.
      * Ensures the Delaunay convex hull covers the full [0°,360°] × [0,1] square.
      */
     private void addBoundaryAnchors() {
-        float CHROMA = 0.12f;
-
         // 4 corners: black at bottom, white at top
         addAnchorSeed(0f, 0f, 0xFF000000);
         addAnchorSeed(360f, 0f, 0xFF000000);
@@ -133,66 +122,18 @@ public class ColorSquareWidget extends AbstractWidget {
         addAnchorSeed(120f, 1f, 0xFFFFFFFF);
         addAnchorSeed(240f, 1f, 0xFFFFFFFF);
 
-        // Left edge midpoints (H=0°, saturated at that hue)
-        addAnchorSeed(0f, 0.33f, OkHsl.toArgb(0f, 0.33f, CHROMA));
-        addAnchorSeed(0f, 0.67f, OkHsl.toArgb(0f, 0.67f, CHROMA));
+        // Left edge midpoints (neutral gray, chroma=0)
+        addAnchorSeed(0f, 0.33f, OkHsl.toArgb(0f, 0.33f, 0f));
+        addAnchorSeed(0f, 0.67f, OkHsl.toArgb(0f, 0.67f, 0f));
 
-        // Right edge midpoints (H=360°, same hue as 0°)
-        addAnchorSeed(360f, 0.33f, OkHsl.toArgb(0f, 0.33f, CHROMA));
-        addAnchorSeed(360f, 0.67f, OkHsl.toArgb(0f, 0.67f, CHROMA));
+        // Right edge midpoints (neutral gray, chroma=0)
+        addAnchorSeed(360f, 0.33f, OkHsl.toArgb(0f, 0.33f, 0f));
+        addAnchorSeed(360f, 0.67f, OkHsl.toArgb(0f, 0.67f, 0f));
     }
 
     private void addAnchorSeed(float hue, float lightness, int argb) {
         seeds.add(new SeedColor(hue, lightness, argb,
             linearR(argb), linearG(argb), linearB(argb)));
-    }
-
-    /**
-     * Generate bridge seeds along Delaunay edges of the real seeds.
-     * Uses the triangulation's natural neighbor edges instead of K-nearest.
-     */
-    private void generateBridgeSeeds() {
-        int n = seeds.size();
-        float[] xs = new float[n];
-        float[] ys = new float[n];
-        for (int i = 0; i < n; i++) {
-            xs[i] = seeds.get(i).hue / 360f;
-            ys[i] = seeds.get(i).lightness;
-        }
-
-        Delaunay2D.Result result = Delaunay2D.triangulate(xs, ys, n);
-
-        for (Delaunay2D.Edge edge : result.edges()) {
-            SeedColor a = seeds.get(edge.a());
-            SeedColor b = seeds.get(edge.b());
-
-            // Distance in normalized space
-            float dh = (a.hue - b.hue) / 360f;
-            float dl = a.lightness - b.lightness;
-            float dist = (float) Math.sqrt(dh * dh + dl * dl);
-
-            int steps = (int) (dist / STEP_SIZE);
-            if (steps < 2) continue;
-
-            for (int s = 1; s < steps; s++) {
-                float t = s / (float) steps;
-
-                float h = a.hue + (b.hue - a.hue) * t;
-                float l = a.lightness + (b.lightness - a.lightness) * t;
-
-                // Linear RGB lerp
-                float rLin = a.linR + (b.linR - a.linR) * t;
-                float gLin = a.linG + (b.linG - a.linG) * t;
-                float bLin = a.linB + (b.linB - a.linB) * t;
-
-                int ri = clamp255(linearToSrgb(rLin) * 255f + 0.5f);
-                int gi = clamp255(linearToSrgb(gLin) * 255f + 0.5f);
-                int bi = clamp255(linearToSrgb(bLin) * 255f + 0.5f);
-                int argb = 0xFF000000 | (ri << 16) | (gi << 8) | bi;
-
-                bridgeSeeds.add(new SeedColor(h, l, argb, rLin, gLin, bLin));
-            }
-        }
     }
 
     /**
@@ -216,22 +157,20 @@ public class ColorSquareWidget extends AbstractWidget {
             return;
         }
 
-        // Determine active seeds for this mode
-        activeSeeds = soft ? combinedSeeds() : new ArrayList<>(seeds);
-        int n = activeSeeds.size();
+        int n = seeds.size();
 
         // Build normalized coordinate arrays
-        triXs = new float[n];
-        triYs = new float[n];
+        float[] xs = new float[n];
+        float[] ys = new float[n];
         for (int i = 0; i < n; i++) {
-            triXs[i] = activeSeeds.get(i).hue / 360f;
-            triYs[i] = activeSeeds.get(i).lightness;
+            xs[i] = seeds.get(i).hue / 360f;
+            ys[i] = seeds.get(i).lightness;
         }
 
         // Triangulate
-        Delaunay2D.Result result = Delaunay2D.triangulate(triXs, triYs, n);
-        triIndices = result.triangles();
-        triCount = result.numTriangles();
+        Delaunay2D.Result result = Delaunay2D.triangulate(xs, ys, n);
+        int[] triIndices = result.triangles();
+        int triCount = result.numTriangles();
 
         // Pixel color buffer
         pixelColors = new int[TEX_W * TEX_H];
@@ -243,14 +182,14 @@ public class ColorSquareWidget extends AbstractWidget {
             int i1 = triIndices[t * 3 + 1];
             int i2 = triIndices[t * 3 + 2];
 
-            SeedColor s0 = activeSeeds.get(i0);
-            SeedColor s1 = activeSeeds.get(i1);
-            SeedColor s2 = activeSeeds.get(i2);
+            SeedColor s0 = seeds.get(i0);
+            SeedColor s1 = seeds.get(i1);
+            SeedColor s2 = seeds.get(i2);
 
             // Triangle vertices in pixel space
-            float px0 = triXs[i0] * TEX_W, py0 = (1f - triYs[i0]) * TEX_H;
-            float px1 = triXs[i1] * TEX_W, py1 = (1f - triYs[i1]) * TEX_H;
-            float px2 = triXs[i2] * TEX_W, py2 = (1f - triYs[i2]) * TEX_H;
+            float px0 = xs[i0] * TEX_W, py0 = (1f - ys[i0]) * TEX_H;
+            float px1 = xs[i1] * TEX_W, py1 = (1f - ys[i1]) * TEX_H;
+            float px2 = xs[i2] * TEX_W, py2 = (1f - ys[i2]) * TEX_H;
 
             // Bounding box (clamped to texture)
             int minX = Math.max(0, (int) Math.floor(Math.min(px0, Math.min(px1, px2))));
@@ -301,7 +240,7 @@ public class ColorSquareWidget extends AbstractWidget {
                 if (!covered[idx]) {
                     float h = (px + 0.5f) / TEX_W * 360f;
                     float l = 1f - (py + 0.5f) / TEX_H;
-                    SeedColor nearest = findNearestIn(h, l, activeSeeds);
+                    SeedColor nearest = findNearestIn(h, l, seeds);
                     int argb = nearest != null ? nearest.argb : 0xFF1A1A1A;
                     pixelColors[idx] = argb;
                     img.setPixelRGBA(px, py, argbToAbgr(argb));
@@ -328,17 +267,6 @@ public class ColorSquareWidget extends AbstractWidget {
             }
         }
 
-        // Draw bridge seed dots in soft mode: 1×1, subtle 20% alpha
-        if (soft) {
-            for (SeedColor bridge : bridgeSeeds) {
-                int px = hueToPixelX(bridge.hue);
-                int py = lightnessToPixelY(bridge.lightness);
-                if (px >= 0 && px < TEX_W && py >= 0 && py < TEX_H) {
-                    img.setPixelRGBA(px, py, 0x33888888);
-                }
-            }
-        }
-
         texture.upload();
     }
 
@@ -346,16 +274,13 @@ public class ColorSquareWidget extends AbstractWidget {
      * Fallback for < 3 seeds: simple nearest-seed fill.
      */
     private void repaintNearestFallback(NativeImage img) {
-        List<SeedColor> all = seeds;
         pixelColors = new int[TEX_W * TEX_H];
-        activeSeeds = new ArrayList<>(seeds);
-        triCount = 0;
 
         for (int py = 0; py < TEX_H; py++) {
             float l = 1f - (py + 0.5f) / TEX_H;
             for (int px = 0; px < TEX_W; px++) {
                 float h = (px + 0.5f) / TEX_W * 360f;
-                SeedColor nearest = findNearestIn(h, l, all);
+                SeedColor nearest = findNearestIn(h, l, seeds);
                 int argb = nearest != null ? nearest.argb : 0xFF1A1A1A;
                 int idx = py * TEX_W + px;
                 pixelColors[idx] = argb;
@@ -383,13 +308,6 @@ public class ColorSquareWidget extends AbstractWidget {
         }
     }
 
-    private List<SeedColor> combinedSeeds() {
-        List<SeedColor> combined = new ArrayList<>(seeds.size() + bridgeSeeds.size());
-        combined.addAll(seeds);
-        combined.addAll(bridgeSeeds);
-        return combined;
-    }
-
     @Override
     protected void renderWidget(GuiGraphics gfx, int mouseX, int mouseY, float partialTick) {
         gfx.blit(textureLoc, getX(), getY(), 0, 0, width, height, width, height);
@@ -400,7 +318,6 @@ public class ColorSquareWidget extends AbstractWidget {
             int px = screenToPixelX(mouseX);
             int py = screenToPixelY(mouseY);
             if (px >= 0 && px < TEX_W && py >= 0 && py < TEX_H) {
-                // Map pixel back to screen coords for crosshair
                 int sx = getX() + (int)(px * (float) width / TEX_W);
                 int sy = getY() + (int)(py * (float) height / TEX_H);
                 gfx.fill(sx - 4, sy, sx + 5, sy + 1, 0xFFFFFFFF);

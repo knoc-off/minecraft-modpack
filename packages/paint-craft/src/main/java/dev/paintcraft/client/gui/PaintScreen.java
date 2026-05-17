@@ -138,18 +138,18 @@ public class PaintScreen extends Screen {
         // Always recreated here since removed() destroys it on screen transitions
         int squareH = colWidth;
         colorSquare = new ColorSquareWidget(colX, curY, colWidth, squareH, this::onColorPicked);
-        colorSquare.setSoft(colorSquareSoft);
+        colorSquare.setSmooth(colorSquareSoft);
         colorSquare.rebuild(customBlocks);
         addRenderableWidget(colorSquare);
         curY += squareH + 2;
 
-        // Soft/Hard toggle button
+        // Smooth/Raw toggle button
         addRenderableWidget(Button.builder(
-            Component.literal(colorSquareSoft ? "Soft" : "Hard"),
+            Component.literal(colorSquareSoft ? "Smooth" : "Raw"),
             b -> {
                 colorSquare.toggleMode();
-                colorSquareSoft = colorSquare.isSoft();
-                b.setMessage(Component.literal(colorSquareSoft ? "Soft" : "Hard"));
+                colorSquareSoft = colorSquare.isSmooth();
+                b.setMessage(Component.literal(colorSquareSoft ? "Smooth" : "Raw"));
             })
             .bounds(colX, curY, colWidth, 14).build());
         curY += 18;
