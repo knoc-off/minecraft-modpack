@@ -6,10 +6,11 @@ import dev.paintcraft.core.Decal;
 import dev.paintcraft.projection.ResolvedSurface;
 import dev.paintcraft.projection.SurfaceFragment;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.world.level.BlockAndTintGetter;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
 
@@ -75,33 +76,51 @@ public final class DecalRenderer {
         float[] v = frag.vertices();
         float[] uv = frag.uvs();
 
-        int light = LevelRenderer.getLightColor(
-            Minecraft.getInstance().level,
-            frag.pos().relative(normal)
-        );
+        BlockAndTintGetter level = Minecraft.getInstance().level;
+        Direction right = decal.right();
+        Direction up = decal.up();
 
-        // Emit one textured quad for the entire fragment
-        // Vertices: c0=(v[0..2]), c1=(v[3..5]), c2=(v[6..8]), c3=(v[9..11])
-        // UVs: pre-computed per-vertex from projection space
-        consumer.addVertex(matrix, v[0] + nx, v[1] + ny, v[2] + nz)
-            .setColor(255, 255, 255, 255)
-            .setUv(uv[0], uv[1])
-            .setLight(light);
+        // Compute per-corner AO and lightmap for this block face
+        float[] cornerAO = DecalLighting.computeCornerAO(level, frag.pos(), normal, right, up);
+        int[] cornerLight = DecalLighting.computeCornerLight(level, frag.pos(), normal, right, up);
 
-        consumer.addVertex(matrix, v[3] + nx, v[4] + ny, v[5] + nz)
-            .setColor(255, 255, 255, 255)
-            .setUv(uv[2], uv[3])
-            .setLight(light);
+        // Face shade multiplier (vanilla directional shading)
+        float faceShade = level.getShade(normal, true);
 
-        consumer.addVertex(matrix, v[6] + nx, v[7] + ny, v[8] + nz)
-            .setColor(255, 255, 255, 255)
-            .setUv(uv[4], uv[5])
-            .setLight(light);
+        // Block origin for computing fractional vertex positions within the face
+        float bx = frag.pos().getX();
+        float by = frag.pos().getY();
+        float bz = frag.pos().getZ();
+        float rx = right.getStepX(), ry = right.getStepY(), rz = right.getStepZ();
+        float ux = up.getStepX(), uy = up.getStepY(), uz = up.getStepZ();
 
-        consumer.addVertex(matrix, v[9] + nx, v[10] + ny, v[11] + nz)
-            .setColor(255, 255, 255, 255)
-            .setUv(uv[6], uv[7])
-            .setLight(light);
+        // For negative-step directions, the face starts at block+1 on that axis
+        // so we shift the origin to match where fracRight/fracUp = 0
+        float ox = bx + (rx < 0 ? 1 : 0) + (ux < 0 ? 1 : 0);
+        float oy = by + (ry < 0 ? 1 : 0) + (uy < 0 ? 1 : 0);
+        float oz = bz + (rz < 0 ? 1 : 0) + (uz < 0 ? 1 : 0);
+
+        // Emit 4 vertices with per-vertex AO + light
+        for (int i = 0; i < 4; i++) {
+            float vx = v[i * 3], vy = v[i * 3 + 1], vz = v[i * 3 + 2];
+
+            // Fractional position within the block face (0-1)
+            float dx = vx - ox, dy = vy - oy, dz = vz - oz;
+            float fracRight = dx * rx + dy * ry + dz * rz;
+            float fracUp = dx * ux + dy * uy + dz * uz;
+            fracRight = Math.clamp(fracRight, 0f, 1f);
+            fracUp = Math.clamp(fracUp, 0f, 1f);
+
+            float ao = DecalLighting.interpolateAO(cornerAO, fracRight, fracUp);
+            int light = DecalLighting.interpolateLight(cornerLight, fracRight, fracUp);
+
+            int shade = (int) (ao * faceShade * 255);
+
+            consumer.addVertex(matrix, vx + nx, vy + ny, vz + nz)
+                .setColor(shade, shade, shade, 255)
+                .setUv(uv[i * 2], uv[i * 2 + 1])
+                .setLight(light);
+        }
     }
 
     private record ResolvedEntry(Decal decal, DecalTexture texture, ResolvedSurface resolved) {}

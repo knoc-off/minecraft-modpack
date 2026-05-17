@@ -1,7 +1,7 @@
 package dev.paintcraft.client.gui;
 
-import dev.paintcraft.client.color.BlockColorCache;
 import dev.paintcraft.client.gui.widget.BlockListWidget;
+import dev.paintcraft.client.gui.widget.ColorSquareWidget;
 import dev.paintcraft.core.Decal;
 import dev.paintcraft.network.DecalCreatePayload;
 import net.minecraft.client.gui.GuiGraphics;
@@ -18,13 +18,13 @@ import java.util.*;
 
 public class PaintScreen extends Screen {
 
-    // Default starter blocks
-    private static final Block[] DEFAULT_BLOCKS = {
+    // Default starter blocks shown before the user adds their own
+    private static final List<Block> DEFAULT_BLOCKS = List.of(
         Blocks.STONE, Blocks.OAK_PLANKS, Blocks.DIRT, Blocks.COBBLESTONE,
         Blocks.SAND, Blocks.BRICKS, Blocks.OAK_LOG, Blocks.IRON_BLOCK,
         Blocks.GOLD_BLOCK, Blocks.DIAMOND_BLOCK, Blocks.DEEPSLATE,
         Blocks.TERRACOTTA, Blocks.WHITE_WOOL, Blocks.BLACK_WOOL
-    };
+    );
 
     private final BlockPos anchor;
     private final Direction normal;
@@ -43,7 +43,6 @@ public class PaintScreen extends Screen {
 
     // Color state
     private int selectedColor = 0xFF000000;
-    private final List<Integer> blockColors = new ArrayList<>(); // accumulated from selected blocks
     private final List<Integer> recentColors = new ArrayList<>(); // last N colors used
 
     // Tools
@@ -51,14 +50,18 @@ public class PaintScreen extends Screen {
     private int brushSize = 1;
     private boolean painting = false;
 
+    // Persistent block list -- survives re-init when returning from BlockSearchScreen
+    private final List<Block> customBlocks = new ArrayList<Block>(DEFAULT_BLOCKS);
+
     // Layout
     private int canvasX, canvasY, pixelSize;
     private BlockListWidget blockList;
+    private ColorSquareWidget colorSquare;
+    private boolean colorSquareSoft = true; // persists mode across re-inits
 
     // Color bar layout
     private static final int COLOR_SWATCH_SIZE = 12;
-    private static final int COLOR_BAR_Y = 4;
-    private static final int RECENTS_BAR_Y = 20;
+    private static final int RECENTS_BAR_Y = 4;
     private static final int MAX_RECENTS = 16;
 
     public PaintScreen(BlockPos anchor, Direction normal, Direction up, int widthBlocks, int heightBlocks,
@@ -105,29 +108,50 @@ public class PaintScreen extends Screen {
     @Override
     protected void init() {
         // Layout calculations
-        int blockListWidth = 110;
-        int canvasArea = this.width - blockListWidth - 20;
-        int availableH = this.height - 80;
+        int rightColWidth = 120;
+        int canvasArea = this.width - rightColWidth - 20;
+        int availableH = this.height - 60;
         pixelSize = Math.min(canvasArea / canvasW, availableH / canvasH);
         pixelSize = Math.max(pixelSize, 2);
         canvasX = 10;
-        canvasY = 38;
+        canvasY = 22;
 
-        // Block list widget (right side)
-        int listX = canvasX + canvasW * pixelSize + 12;
-        int listWidth = this.width - listX - 4;
-        blockList = new BlockListWidget(this.minecraft, listWidth, this.height - 70, canvasY, this::onBlockClicked);
-        blockList.setX(listX);
+        // Right column layout
+        int colX = canvasX + canvasW * pixelSize + 12;
+        int colWidth = this.width - colX - 4;
+        int curY = canvasY;
+
+        // Color square (hue x lightness picker, 1:1 aspect ratio)
+        // Always recreated here since removed() destroys it on screen transitions
+        int squareH = colWidth;
+        colorSquare = new ColorSquareWidget(colX, curY, colWidth, squareH, this::onColorPicked);
+        colorSquare.setSoft(colorSquareSoft);
+        colorSquare.rebuild(customBlocks);
+        addRenderableWidget(colorSquare);
+        curY += squareH + 2;
+
+        // Soft/Hard toggle button
+        addRenderableWidget(Button.builder(
+            Component.literal(colorSquareSoft ? "Soft" : "Hard"),
+            b -> {
+                colorSquare.toggleMode();
+                colorSquareSoft = colorSquare.isSoft();
+                b.setMessage(Component.literal(colorSquareSoft ? "Soft" : "Hard"));
+            })
+            .bounds(colX, curY, colWidth, 14).build());
+        curY += 18;
+
+        // "+ Add Block" button
+        addRenderableWidget(Button.builder(Component.literal("+ Add Block"), b -> openBlockSearch())
+            .bounds(colX, curY, colWidth, 16).build());
+        curY += 20;
+
+        // Block list widget
+        blockList = new BlockListWidget(this.minecraft, colWidth, this.height - curY - 10,
+                                        curY, this::onBlockClicked, this::onBlockRemoved);
+        blockList.setX(colX);
+        blockList.setBlocks(customBlocks);
         addRenderableWidget(blockList);
-
-        // Populate with default blocks
-        List<Block> defaults = new ArrayList<>(Arrays.asList(DEFAULT_BLOCKS));
-        blockList.setBlocks(defaults);
-
-        // Pre-populate block colors from defaults
-        for (Block b : defaults) {
-            addBlockColors(b);
-        }
 
         // Tool buttons (below canvas)
         int toolY = canvasY + canvasH * pixelSize + 6;
@@ -152,29 +176,41 @@ public class PaintScreen extends Screen {
             .bounds(canvasX + 56, bottomY, 50, 20).build());
     }
 
-    private void onBlockClicked(Block block) {
-        addBlockColors(block);
+    private void onColorPicked(int color) {
+        selectedColor = color;
+        addToRecents(color);
     }
 
-    private void addBlockColors(Block block) {
-        int[] colors = BlockColorCache.getColors(block);
-        for (int c : colors) {
-            if (!blockColors.contains(c)) {
-                blockColors.add(c);
-            }
-        }
+    private void openBlockSearch() {
+        Set<Block> alreadyAdded = new HashSet<>(customBlocks);
+        minecraft.setScreen(new BlockSearchScreen(this, this::onBlockAdded, alreadyAdded));
+    }
+
+    private void onBlockAdded(Block block) {
+        if (customBlocks.contains(block)) return;
+        customBlocks.add(block);
+        if (blockList != null) blockList.addBlock(block);
+        if (colorSquare != null) colorSquare.rebuild(customBlocks);
+    }
+
+    private void onBlockRemoved(Block block) {
+        customBlocks.remove(block);
+        if (blockList != null) blockList.setBlocks(customBlocks);
+        if (colorSquare != null) colorSquare.rebuild(customBlocks);
+    }
+
+    // Clicking a block in the right-column list is now a no-op for color purposes
+    // since the square already shows all blocks' colors. Keep the handler as it may
+    // be useful in the future (e.g. highlighting that block's dots on the square).
+    private void onBlockClicked(Block block) {
     }
 
     @Override
     public void render(GuiGraphics gfx, int mouseX, int mouseY, float partialTick) {
         renderBackground(gfx, mouseX, mouseY, partialTick);
 
-        // === Block Color Bar (top) ===
-        int barX = canvasX;
-        renderColorBar(gfx, blockColors, barX, COLOR_BAR_Y, mouseX, mouseY, "Block Colors");
-
-        // === Recents Bar ===
-        renderColorBar(gfx, recentColors, barX, RECENTS_BAR_Y, mouseX, mouseY, "Recent");
+        // === Recents Bar (top, above canvas) ===
+        renderColorBar(gfx, recentColors, canvasX, RECENTS_BAR_Y, mouseX, mouseY, "Recent");
 
         // === Canvas background (block textures or checkerboard) ===
         for (int py = 0; py < canvasH; py++) {
@@ -260,9 +296,6 @@ public class PaintScreen extends Screen {
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (super.mouseClicked(mouseX, mouseY, button)) return true;
 
-        // Check block color bar click
-        if (clickColorBar(blockColors, (int) mouseX, (int) mouseY, canvasX, COLOR_BAR_Y)) return true;
-
         // Check recents bar click
         if (clickColorBar(recentColors, (int) mouseX, (int) mouseY, canvasX, RECENTS_BAR_Y)) return true;
 
@@ -280,7 +313,7 @@ public class PaintScreen extends Screen {
     }
 
     private boolean clickColorBar(List<Integer> colors, int mouseX, int mouseY, int barX, int barY) {
-        String label = colors == blockColors ? "Block Colors" : "Recent";
+        String label = "Recent";
         int offsetX = barX + this.font.width(label) + 6;
         if (mouseY >= barY && mouseY < barY + COLOR_SWATCH_SIZE) {
             for (int i = 0; i < colors.size(); i++) {
@@ -357,6 +390,15 @@ public class PaintScreen extends Screen {
         );
         PacketDistributor.sendToServer(payload);
         onClose();
+    }
+
+    @Override
+    public void removed() {
+        super.removed();
+        if (colorSquare != null) {
+            colorSquare.close();
+            colorSquare = null;
+        }
     }
 
     @Override

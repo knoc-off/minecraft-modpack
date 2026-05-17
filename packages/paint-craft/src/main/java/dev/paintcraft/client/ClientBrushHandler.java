@@ -23,11 +23,12 @@ public final class ClientBrushHandler {
         int[] background = BackgroundCapture.capture(
             Minecraft.getInstance().level, pos, face, 1, 1, 1.0f);
 
-        // Rotate background from canonical orientation to player orientation
+        // Rotate background from canonical orientation to player orientation.
+        // Negate: pixel rotation is opposite to the world-space direction rotation.
         if (face.getAxis().isVertical()) {
             int rotations = clockwiseSteps(CANONICAL_UP, displayUp, face);
             if (rotations != 0) {
-                background = rotatePixels(background, Decal.PX_PER_BLOCK, Decal.PX_PER_BLOCK, rotations);
+                background = rotatePixels(background, Decal.PX_PER_BLOCK, Decal.PX_PER_BLOCK, -rotations);
             }
         }
 
@@ -48,7 +49,7 @@ public final class ClientBrushHandler {
             if (rotations != 0) {
                 int wPx = widthBlocks * Decal.PX_PER_BLOCK;
                 int hPx = heightBlocks * Decal.PX_PER_BLOCK;
-                displayPixels = rotatePixels(pixels, wPx, hPx, rotations);
+                displayPixels = rotatePixels(pixels, wPx, hPx, -rotations);
                 displayUp = playerDir;
                 if (rotations % 2 == 1) {
                     displayW = heightBlocks;
@@ -66,7 +67,7 @@ public final class ClientBrushHandler {
             if (bgRotations != 0) {
                 int bgW = displayW * Decal.PX_PER_BLOCK;
                 int bgH = displayH * Decal.PX_PER_BLOCK;
-                background = rotatePixels(background, bgW, bgH, bgRotations);
+                background = rotatePixels(background, bgW, bgH, -bgRotations);
             }
         }
 
