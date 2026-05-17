@@ -102,11 +102,49 @@ public class ColorSquareWidget extends AbstractWidget {
             }
         }
 
+        // Add boundary anchors so the Delaunay covers the full square
+        addBoundaryAnchors();
+
         if (seeds.size() >= 3 && seeds.size() <= 300) {
             generateBridgeSeeds();
         }
 
         repaint();
+    }
+
+    /**
+     * Inject synthetic anchor seeds at corners + edge midpoints of the color space.
+     * Ensures the Delaunay convex hull covers the full [0°,360°] × [0,1] square.
+     */
+    private void addBoundaryAnchors() {
+        float CHROMA = 0.12f;
+
+        // 4 corners: black at bottom, white at top
+        addAnchorSeed(0f, 0f, 0xFF000000);
+        addAnchorSeed(360f, 0f, 0xFF000000);
+        addAnchorSeed(0f, 1f, 0xFFFFFFFF);
+        addAnchorSeed(360f, 1f, 0xFFFFFFFF);
+
+        // Bottom edge midpoints (black)
+        addAnchorSeed(120f, 0f, 0xFF000000);
+        addAnchorSeed(240f, 0f, 0xFF000000);
+
+        // Top edge midpoints (white)
+        addAnchorSeed(120f, 1f, 0xFFFFFFFF);
+        addAnchorSeed(240f, 1f, 0xFFFFFFFF);
+
+        // Left edge midpoints (H=0°, saturated at that hue)
+        addAnchorSeed(0f, 0.33f, OkHsl.toArgb(0f, 0.33f, CHROMA));
+        addAnchorSeed(0f, 0.67f, OkHsl.toArgb(0f, 0.67f, CHROMA));
+
+        // Right edge midpoints (H=360°, same hue as 0°)
+        addAnchorSeed(360f, 0.33f, OkHsl.toArgb(0f, 0.33f, CHROMA));
+        addAnchorSeed(360f, 0.67f, OkHsl.toArgb(0f, 0.67f, CHROMA));
+    }
+
+    private void addAnchorSeed(float hue, float lightness, int argb) {
+        seeds.add(new SeedColor(hue, lightness, argb,
+            linearR(argb), linearG(argb), linearB(argb)));
     }
 
     /**

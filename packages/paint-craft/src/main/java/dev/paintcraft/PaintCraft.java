@@ -5,10 +5,10 @@ import dev.paintcraft.item.BrushItem;
 import dev.paintcraft.network.ModNetwork;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.neoforged.bus.api.IEventBus;
-import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.common.util.TriState;
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
@@ -44,7 +44,7 @@ public class PaintCraft {
      */
     private static void onRightClickBlock(PlayerInteractEvent.RightClickBlock event) {
         if (event.getEntity().getItemInHand(event.getHand()).getItem() instanceof BrushItem) {
-            event.setUseBlock(net.neoforged.bus.api.Event.Result.DENY);
+            event.setUseBlock(TriState.FALSE);
         }
     }
 }
