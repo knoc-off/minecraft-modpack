@@ -3,7 +3,9 @@ package dev.paintcraft.network;
 import dev.paintcraft.PaintCraft;
 import dev.paintcraft.client.ClientBrushHandler;
 import dev.paintcraft.client.ClientDecalCache;
+import dev.paintcraft.client.ClientSpatialIndex;
 import dev.paintcraft.client.DecalRenderer;
+import dev.paintcraft.client.gui.DecalSelectionScreen;
 import dev.paintcraft.core.Decal;
 import dev.paintcraft.projection.ProjectionResolver;
 import dev.paintcraft.projection.ResolvedSurface;
@@ -17,6 +19,9 @@ import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
+
+import java.util.Set;
+import java.util.UUID;
 
 public final class ModNetwork {
 
@@ -44,6 +49,18 @@ public final class ModNetwork {
             OpenEditorPayload.TYPE,
             OpenEditorPayload.STREAM_CODEC,
             ModNetwork::handleOpenEditor
+        );
+
+        registrar.playToClient(
+            DecalSelectionPayload.TYPE,
+            DecalSelectionPayload.STREAM_CODEC,
+            ModNetwork::handleDecalSelection
+        );
+
+        registrar.playToServer(
+            DecalReorderPayload.TYPE,
+            DecalReorderPayload.STREAM_CODEC,
+            ModNetwork::handleDecalReorder
         );
     }
 
@@ -93,10 +110,18 @@ public final class ModNetwork {
         Level level = Minecraft.getInstance().level;
         if (level != null) {
             ResolvedSurface resolved = ProjectionResolver.resolve(decal, level);
+
+            // Register in spatial index and assign z-tiers
+            ClientSpatialIndex.register(decal.id(), decal.zOrder(), resolved.fragments());
+            ResolvedSurface tiered = ClientSpatialIndex.assignTiers(decal.id(), resolved);
+
             ClientDecalCache.Entry entry = ClientDecalCache.get(decal.id());
             if (entry != null) {
-                DecalRenderer.cacheResolved(decal.id(), decal, entry.texture(), resolved);
+                DecalRenderer.cacheResolved(decal.id(), decal, entry.texture(), tiered);
             }
+
+            // Re-tier any other decals that now overlap with this one
+            retierOverlapping(decal.id());
         }
 
         PaintCraft.LOGGER.debug("Client resolved and cached decal {}", payload.id());
@@ -115,9 +140,16 @@ public final class ModNetwork {
                     );
                 });
             } else {
-                // Client side: remove from cache
+                // Client side: find overlapping before removing
+                Set<UUID> affected = ClientSpatialIndex.getOverlapping(payload.id());
+                ClientSpatialIndex.unregister(payload.id());
                 ClientDecalCache.remove(payload.id());
                 DecalRenderer.invalidate(payload.id());
+
+                // Re-tier decals that were overlapping with the deleted one
+                for (UUID otherId : affected) {
+                    retierDecal(otherId);
+                }
             }
         });
     }
@@ -131,5 +163,68 @@ public final class ModNetwork {
                 payload.pixels(), payload.id()
             );
         });
+    }
+
+    private static void handleDecalSelection(DecalSelectionPayload payload, IPayloadContext ctx) {
+        ctx.enqueueWork(() -> {
+            Minecraft.getInstance().setScreen(new DecalSelectionScreen(payload.entries()));
+        });
+    }
+
+    private static void handleDecalReorder(DecalReorderPayload payload, IPayloadContext ctx) {
+        ctx.enqueueWork(() -> {
+            if (ctx.player() instanceof ServerPlayer player) {
+                ServerLevel level = player.serverLevel();
+                ChunkPaintStorage storage = ChunkPaintStorage.get(level, new ChunkPos(player.blockPosition()));
+                storage.getDecal(payload.id()).ifPresent(decal -> {
+                    long newZ;
+                    if (payload.bringToFront()) {
+                        newZ = storage.nextSeqNo(); // higher than any existing
+                    } else {
+                        // Send to back: find minimum zOverride and go below it
+                        long min = Long.MAX_VALUE;
+                        for (Decal d : storage.allDecals()) {
+                            min = Math.min(min, d.zOrder());
+                        }
+                        newZ = min - 1;
+                    }
+                    decal.setZOverride(newZ);
+                    storage.setDirty();
+
+                    // Broadcast the updated decal
+                    PacketDistributor.sendToPlayersTrackingChunk(
+                        level, new ChunkPos(decal.anchor()),
+                        DecalCreatePayload.fromDecal(decal)
+                    );
+                });
+            }
+        });
+    }
+
+    /**
+     * Re-tier all decals that overlap with the given decal.
+     */
+    private static void retierOverlapping(UUID decalId) {
+        Set<UUID> affected = ClientSpatialIndex.getOverlapping(decalId);
+        for (UUID otherId : affected) {
+            retierDecal(otherId);
+        }
+    }
+
+    /**
+     * Re-resolve tiers for a single decal and update the render cache.
+     */
+    private static void retierDecal(UUID decalId) {
+        ClientDecalCache.Entry entry = ClientDecalCache.get(decalId);
+        if (entry == null) return;
+
+        Level level = Minecraft.getInstance().level;
+        if (level == null) return;
+
+        Decal decal = entry.decal();
+        ResolvedSurface resolved = ProjectionResolver.resolve(decal, level);
+        ClientSpatialIndex.register(decal.id(), decal.zOrder(), resolved.fragments());
+        ResolvedSurface tiered = ClientSpatialIndex.assignTiers(decal.id(), resolved);
+        DecalRenderer.cacheResolved(decal.id(), decal, entry.texture(), tiered);
     }
 }

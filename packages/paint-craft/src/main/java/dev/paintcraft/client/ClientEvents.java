@@ -27,6 +27,13 @@ public final class ClientEvents {
             mc.renderBuffers().bufferSource(),
             cameraPos
         );
+
+        // Stamp ghost preview
+        StampPreviewRenderer.render(
+            event.getPoseStack(),
+            mc.renderBuffers().bufferSource(),
+            cameraPos
+        );
     }
 
     @SubscribeEvent
@@ -34,5 +41,6 @@ public final class ClientEvents {
         ClientDecalCache.clear();
         DecalRenderer.invalidateAll();
         ClientBrushHandler.clearPending();
+        ClientSpatialIndex.clear();
     }
 }

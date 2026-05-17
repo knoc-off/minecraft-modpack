@@ -79,6 +79,18 @@ public class ChunkPaintStorage extends SavedData {
         return Optional.ofNullable(best);
     }
 
+    /** Find ALL decals covering a specific block face, sorted by zOrder (highest first). */
+    public List<Decal> getAllDecalsAt(BlockPos pos, Direction face) {
+        List<Decal> result = new ArrayList<>();
+        for (Decal d : decals.values()) {
+            if (d.normal() != face) continue;
+            if (!isWithinDecal(d, pos)) continue;
+            result.add(d);
+        }
+        result.sort(java.util.Comparator.comparingLong(Decal::zOrder).reversed());
+        return result;
+    }
+
     private static boolean isWithinDecal(Decal d, BlockPos pos) {
         BlockPos anchor = d.anchor();
         Direction right = d.right();

@@ -2,6 +2,7 @@ package dev.paintcraft;
 
 import com.mojang.logging.LogUtils;
 import dev.paintcraft.item.BrushItem;
+import dev.paintcraft.item.StampItem;
 import dev.paintcraft.network.ModNetwork;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.neoforged.bus.api.IEventBus;
@@ -35,6 +36,7 @@ public class PaintCraft {
     private void addCreative(BuildCreativeModeTabContentsEvent event) {
         if (event.getTabKey() == CreativeModeTabs.TOOLS_AND_UTILITIES) {
             event.accept(ModItems.BRUSH);
+            event.accept(ModItems.STAMP);
         }
     }
 
@@ -43,7 +45,8 @@ public class PaintCraft {
      * This ensures useOn fires instead of the block's use method.
      */
     private static void onRightClickBlock(PlayerInteractEvent.RightClickBlock event) {
-        if (event.getEntity().getItemInHand(event.getHand()).getItem() instanceof BrushItem) {
+        if (event.getEntity().getItemInHand(event.getHand()).getItem() instanceof BrushItem
+            || event.getEntity().getItemInHand(event.getHand()).getItem() instanceof StampItem) {
             event.setUseBlock(TriState.FALSE);
         }
     }

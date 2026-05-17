@@ -5,12 +5,16 @@ import dev.paintcraft.client.gui.widget.BlockListWidget;
 import dev.paintcraft.client.gui.widget.ColorSquareWidget;
 import dev.paintcraft.core.Decal;
 import dev.paintcraft.network.DecalCreatePayload;
+import com.mojang.blaze3d.platform.NativeImage;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.neoforged.neoforge.network.PacketDistributor;
@@ -60,6 +64,11 @@ public class PaintScreen extends Screen {
     private ColorSquareWidget colorSquare;
     private boolean colorSquareSoft = true; // persists mode across re-inits
 
+    // Canvas texture (rendered as a single blit instead of per-pixel fills)
+    private DynamicTexture canvasTexture;
+    private ResourceLocation canvasTextureLoc;
+    private boolean canvasDirty = true;
+
     // Color bar layout
     private static final int COLOR_SWATCH_SIZE = 12;
     private static final int RECENTS_BAR_Y = 4;
@@ -94,6 +103,12 @@ public class PaintScreen extends Screen {
         this.brushSize = Math.max(1, Math.min(4, prefs.brushSize));
         try { this.activeTool = PaintTool.valueOf(prefs.activeTool); }
         catch (IllegalArgumentException ignored) {}
+
+        // Create canvas texture (single GPU texture, blitted each frame instead of per-pixel fills)
+        NativeImage canvasImage = new NativeImage(canvasW, canvasH, true);
+        this.canvasTexture = new DynamicTexture(canvasImage);
+        this.canvasTextureLoc = Minecraft.getInstance().getTextureManager()
+            .register("paintcraft_canvas", this.canvasTexture);
     }
 
     public PaintScreen(BlockPos anchor, Direction normal, Direction up, int widthBlocks, int heightBlocks,
@@ -225,46 +240,24 @@ public class PaintScreen extends Screen {
         // === Recents Bar (top, above canvas) ===
         renderColorBar(gfx, recentColors, canvasX, RECENTS_BAR_Y, mouseX, mouseY, "Recent");
 
-        // === Canvas background (block textures or checkerboard) ===
-        for (int py = 0; py < canvasH; py++) {
-            for (int px = 0; px < canvasW; px++) {
-                int sx = canvasX + displayX(px) * pixelSize;
-                int sy = canvasY + py * pixelSize;
-
-                // Try background texture first
-                if (backgroundPixels != null) {
-                    int bgColor = backgroundPixels[py * canvasW + px];
-                    if (((bgColor >> 24) & 0xFF) > 0) {
-                        gfx.fill(sx, sy, sx + pixelSize, sy + pixelSize, bgColor);
-                        continue;
-                    }
-                }
-                // Fallback: checkerboard for transparent areas
-                boolean checker = ((px / 2) + (py / 2)) % 2 == 0;
-                gfx.fill(sx, sy, sx + pixelSize, sy + pixelSize, checker ? 0xFF666666 : 0xFF999999);
-            }
+        // === Canvas (single texture blit — updated only when pixels change) ===
+        if (canvasDirty) {
+            updateCanvasTexture();
+            canvasDirty = false;
         }
+        int renderW = canvasW * pixelSize;
+        int renderH = canvasH * pixelSize;
+        gfx.blit(canvasTextureLoc, canvasX, canvasY, renderW, renderH, 0f, 0f, canvasW, canvasH, canvasW, canvasH);
 
-        // === Draw pixels ===
-        for (int py = 0; py < canvasH; py++) {
-            for (int px = 0; px < canvasW; px++) {
-                int color = pixels[py * canvasW + px];
-                if (((color >> 24) & 0xFF) <= 0) continue;
-                int sx = canvasX + displayX(px) * pixelSize;
-                int sy = canvasY + py * pixelSize;
-                gfx.fill(sx, sy, sx + pixelSize, sy + pixelSize, color);
-            }
-        }
-
-        // === Grid lines ===
+        // === Grid lines (cheap overlay) ===
         int gridColor = 0x40000000;
         for (int px = 0; px <= canvasW; px++) {
             int sx = canvasX + px * pixelSize;
-            gfx.fill(sx, canvasY, sx + 1, canvasY + canvasH * pixelSize, gridColor);
+            gfx.fill(sx, canvasY, sx + 1, canvasY + renderH, gridColor);
         }
         for (int py = 0; py <= canvasH; py++) {
             int sy = canvasY + py * pixelSize;
-            gfx.fill(canvasX, sy, canvasX + canvasW * pixelSize, sy + 1, gridColor);
+            gfx.fill(canvasX, sy, canvasX + renderW, sy + 1, gridColor);
         }
 
         // === Cursor highlight ===
@@ -289,6 +282,48 @@ public class PaintScreen extends Screen {
         gfx.drawString(this.font, activeTool.name() + " " + brushSize, previewX + 22, previewY + 4, 0xFFFFFF);
 
         super.render(gfx, mouseX, mouseY, partialTick);
+    }
+
+    /**
+     * Composites background + painted pixels into the canvas DynamicTexture.
+     * Only called when canvasDirty is true (on draw/undo/redo).
+     */
+    private void updateCanvasTexture() {
+        NativeImage img = canvasTexture.getPixels();
+        if (img == null) return;
+
+        for (int py = 0; py < canvasH; py++) {
+            for (int screenPx = 0; screenPx < canvasW; screenPx++) {
+                // Apply flip: texture is written in display order
+                int dataPx = hFlip ? canvasW - 1 - screenPx : screenPx;
+                int idx = py * canvasW + dataPx;
+
+                // Painted pixel takes priority
+                int pixelColor = pixels[idx];
+                int color;
+                if (((pixelColor >> 24) & 0xFF) > 0) {
+                    color = pixelColor;
+                } else if (backgroundPixels != null && ((backgroundPixels[idx] >> 24) & 0xFF) > 0) {
+                    color = backgroundPixels[idx];
+                } else {
+                    // Checkerboard for transparent areas
+                    boolean checker = ((dataPx / 2) + (py / 2)) % 2 == 0;
+                    color = checker ? 0xFF666666 : 0xFF999999;
+                }
+
+                img.setPixelRGBA(screenPx, py, argbToAbgr(color));
+            }
+        }
+
+        canvasTexture.upload();
+    }
+
+    private static int argbToAbgr(int argb) {
+        int a = argb & 0xFF000000;
+        int r = (argb >> 16) & 0xFF;
+        int g = argb & 0x0000FF00;
+        int b = (argb & 0xFF) << 16;
+        return a | b | g | r;
     }
 
     private void renderColorBar(GuiGraphics gfx, List<Integer> colors, int x, int y, int mouseX, int mouseY, String label) {
@@ -318,6 +353,7 @@ public class PaintScreen extends Screen {
         if (px >= 0 && px < canvasW && py >= 0 && py < canvasH) {
             pushUndo();
             activeTool.draw(pixels, canvasW, canvasH, px, py, brushSize, selectedColor);
+            canvasDirty = true;
             painting = true;
             return true;
         }
@@ -356,6 +392,7 @@ public class PaintScreen extends Screen {
             int py = ((int) mouseY - canvasY) / pixelSize;
             if (px >= 0 && px < canvasW && py >= 0 && py < canvasH) {
                 activeTool.draw(pixels, canvasW, canvasH, px, py, brushSize, selectedColor);
+                canvasDirty = true;
             }
             return true;
         }
@@ -404,12 +441,14 @@ public class PaintScreen extends Screen {
         if (undoStack.isEmpty()) return;
         redoStack.add(Arrays.copyOf(pixels, pixels.length));
         pixels = undoStack.remove(undoStack.size() - 1);
+        canvasDirty = true;
     }
 
     private void redo() {
         if (redoStack.isEmpty()) return;
         undoStack.add(Arrays.copyOf(pixels, pixels.length));
         pixels = redoStack.remove(redoStack.size() - 1);
+        canvasDirty = true;
     }
 
     private void saveAndClose() {
@@ -430,6 +469,10 @@ public class PaintScreen extends Screen {
         if (colorSquare != null) {
             colorSquare.close();
             colorSquare = null;
+        }
+        if (canvasTextureLoc != null) {
+            Minecraft.getInstance().getTextureManager().release(canvasTextureLoc);
+            canvasTextureLoc = null;
         }
     }
 

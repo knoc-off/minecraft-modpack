@@ -2,6 +2,7 @@ package dev.paintcraft.item;
 
 import dev.paintcraft.PaintCraft;
 import dev.paintcraft.core.Decal;
+import dev.paintcraft.network.DecalSelectionPayload;
 import dev.paintcraft.network.OpenEditorPayload;
 import dev.paintcraft.storage.ChunkPaintStorage;
 import net.minecraft.core.BlockPos;
@@ -16,7 +17,7 @@ import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.neoforged.neoforge.network.PacketDistributor;
 
-import java.util.Optional;
+import java.util.List;
 import java.util.UUID;
 
 public class BrushItem extends Item {
@@ -57,15 +58,10 @@ public class BrushItem extends Item {
         }
 
         ChunkPaintStorage storage = ChunkPaintStorage.get(level, new ChunkPos(pos));
-        Optional<Decal> existing = storage.getTopmostDecalAt(pos, face);
+        List<Decal> overlapping = storage.getAllDecalsAt(pos, face);
 
-        if (existing.isPresent()) {
-            // Edit existing: send decal data to open editor
-            PacketDistributor.sendToPlayer(player, OpenEditorPayload.fromDecal(existing.get()));
-            PaintCraft.LOGGER.debug("Sent decal {} to client for editing", existing.get().id());
-        } else {
+        if (overlapping.isEmpty()) {
             // New 1x1: send blank editor signal
-            // For floor/ceiling, orient the canvas based on player's facing direction
             Direction up = face.getAxis().isVertical() ? player.getDirection() : Direction.UP;
             OpenEditorPayload payload = OpenEditorPayload.blank(
                 UUID.randomUUID(), pos, face, up,
@@ -73,6 +69,14 @@ public class BrushItem extends Item {
             );
             PacketDistributor.sendToPlayer(player, payload);
             PaintCraft.LOGGER.debug("Sent blank editor to client at {} face {}", pos, face);
+        } else if (overlapping.size() == 1) {
+            // Single decal: open editor directly
+            PacketDistributor.sendToPlayer(player, OpenEditorPayload.fromDecal(overlapping.get(0)));
+            PaintCraft.LOGGER.debug("Sent decal {} to client for editing", overlapping.get(0).id());
+        } else {
+            // Multiple decals: send selection screen
+            PacketDistributor.sendToPlayer(player, DecalSelectionPayload.from(overlapping));
+            PaintCraft.LOGGER.debug("Sent {} overlapping decals for selection at {} face {}", overlapping.size(), pos, face);
         }
     }
 }
