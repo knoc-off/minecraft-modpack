@@ -37,7 +37,9 @@ public class BrushItem extends Item {
         if (level.getBlockState(pos).isAir()) return InteractionResult.PASS;
 
         if (level.isClientSide) {
-            // Wait for server to send OpenEditorPayload
+            if (player.isShiftKeyDown()) {
+                dev.paintcraft.client.ClientBrushHandler.handleCornerClick(pos, face);
+            }
             return InteractionResult.SUCCESS;
         }
 

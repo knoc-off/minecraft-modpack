@@ -1,5 +1,6 @@
 package dev.paintcraft.client.gui;
 
+import dev.paintcraft.client.EditorPrefs;
 import dev.paintcraft.client.gui.widget.BlockListWidget;
 import dev.paintcraft.client.gui.widget.ColorSquareWidget;
 import dev.paintcraft.core.Decal;
@@ -51,7 +52,7 @@ public class PaintScreen extends Screen {
     private boolean painting = false;
 
     // Persistent block list -- survives re-init when returning from BlockSearchScreen
-    private final List<Block> customBlocks = new ArrayList<Block>(DEFAULT_BLOCKS);
+    private final List<Block> customBlocks = new ArrayList<>();
 
     // Layout
     private int canvasX, canvasY, pixelSize;
@@ -83,6 +84,16 @@ public class PaintScreen extends Screen {
         } else {
             this.pixels = new int[canvasW * canvasH];
         }
+
+        // Load persisted editor preferences
+        EditorPrefs prefs = EditorPrefs.load();
+        this.customBlocks.addAll(prefs.resolveBlocks(DEFAULT_BLOCKS));
+        this.recentColors.addAll(prefs.recentColors);
+        this.selectedColor = prefs.selectedColor;
+        this.colorSquareSoft = prefs.softMode;
+        this.brushSize = Math.max(1, Math.min(4, prefs.brushSize));
+        try { this.activeTool = PaintTool.valueOf(prefs.activeTool); }
+        catch (IllegalArgumentException ignored) {}
     }
 
     public PaintScreen(BlockPos anchor, Direction normal, Direction up, int widthBlocks, int heightBlocks,
@@ -108,17 +119,19 @@ public class PaintScreen extends Screen {
     @Override
     protected void init() {
         // Layout calculations
-        int rightColWidth = 120;
-        int canvasArea = this.width - rightColWidth - 20;
-        int availableH = this.height - 60;
-        pixelSize = Math.min(canvasArea / canvasW, availableH / canvasH);
-        pixelSize = Math.max(pixelSize, 2);
+        // Reserve space: top (canvasY) + bottom (tool row 16 + gap 6 + done row 20 + gap 6 + margin 4 = 52)
         canvasX = 10;
         canvasY = 22;
+        int rightColWidth = 120;
+        int canvasArea = this.width - rightColWidth - 20;
+        int bottomSpace = 52;
+        int availableH = this.height - canvasY - bottomSpace;
+        pixelSize = Math.min(canvasArea / canvasW, availableH / canvasH);
+        pixelSize = Math.max(pixelSize, 2);
 
-        // Right column layout
-        int colX = canvasX + canvasW * pixelSize + 12;
-        int colWidth = this.width - colX - 4;
+        // Right column layout (capped at 1/3 screen width, right-aligned)
+        int colWidth = Math.min(this.width / 3, this.width - (canvasX + canvasW * pixelSize + 12) - 4);
+        int colX = this.width - colWidth - 4;
         int curY = canvasY;
 
         // Color square (hue x lightness picker, 1:1 aspect ratio)
@@ -356,6 +369,22 @@ public class PaintScreen extends Screen {
     }
 
     @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+        // Scroll over canvas adjusts brush size
+        int px = screenToPixelX((int) mouseX);
+        int py = ((int) mouseY - canvasY) / pixelSize;
+        if (px >= 0 && px < canvasW && py >= 0 && py < canvasH) {
+            if (scrollY > 0) {
+                brushSize = Math.min(brushSize + 1, 4);
+            } else if (scrollY < 0) {
+                brushSize = Math.max(brushSize - 1, 1);
+            }
+            return true;
+        }
+        return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
+    }
+
+    @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         if (hasControlDown()) {
             if (keyCode == 90 && !hasShiftDown()) { undo(); return true; }
@@ -395,6 +424,9 @@ public class PaintScreen extends Screen {
     @Override
     public void removed() {
         super.removed();
+        // Persist editor preferences
+        EditorPrefs.from(customBlocks, recentColors, selectedColor,
+                         colorSquareSoft, activeTool.name(), brushSize).save();
         if (colorSquare != null) {
             colorSquare.close();
             colorSquare = null;
