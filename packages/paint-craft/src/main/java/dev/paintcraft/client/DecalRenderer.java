@@ -56,13 +56,22 @@ public final class DecalRenderer {
             double distSq = cameraPos.distanceToSqr(Vec3.atCenterOf(decal.anchor()));
             if (distSq > 256 * 256) continue;
 
-            RenderType renderType = DecalRenderType.decal(entry.texture.location());
-            VertexConsumer consumer = bufferSource.getBuffer(renderType);
-
             float baseEpsilon = 0.0001f;
 
+            // Group fragments by their individual z-tier so each group gets
+            // the correct polygon offset (prevents Z-fighting when a multi-block
+            // canvas has different tiers on different blocks)
+            Map<Integer, List<SurfaceFragment>> byTier = new TreeMap<>();
             for (SurfaceFragment frag : resolved.fragments()) {
-                renderFragment(consumer, matrix, decal, frag, baseEpsilon);
+                byTier.computeIfAbsent(frag.zTier(), k -> new ArrayList<>()).add(frag);
+            }
+
+            for (var tierGroup : byTier.entrySet()) {
+                RenderType renderType = DecalRenderType.decal(entry.texture.location(), tierGroup.getKey());
+                VertexConsumer consumer = bufferSource.getBuffer(renderType);
+                for (SurfaceFragment frag : tierGroup.getValue()) {
+                    renderFragment(consumer, matrix, decal, frag, baseEpsilon);
+                }
             }
         }
 

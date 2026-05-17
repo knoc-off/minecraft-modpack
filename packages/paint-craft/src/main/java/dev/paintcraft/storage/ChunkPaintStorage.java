@@ -93,12 +93,17 @@ public class ChunkPaintStorage extends SavedData {
 
     private static boolean isWithinDecal(Decal d, BlockPos pos) {
         BlockPos anchor = d.anchor();
+        Direction normal = d.normal();
         Direction right = d.right();
         Direction up = d.up();
 
         int dx = pos.getX() - anchor.getX();
         int dy = pos.getY() - anchor.getY();
         int dz = pos.getZ() - anchor.getZ();
+
+        // Check depth: clicked pos must be within the decal's projection depth
+        int normalDist = dx * normal.getStepX() + dy * normal.getStepY() + dz * normal.getStepZ();
+        if (normalDist > 0 || normalDist < -((int) Math.ceil(d.depth()))) return false;
 
         // Project offset onto the decal's right and up axes
         int rightDist = dx * right.getStepX() + dy * right.getStepY() + dz * right.getStepZ();
