@@ -53,12 +53,12 @@ public final class DecalRenderer {
 
             Decal decal = entry.decal;
             double distSq = cameraPos.distanceToSqr(Vec3.atCenterOf(decal.anchor()));
-            if (distSq > 128 * 128) continue;
+            if (distSq > 256 * 256) continue;
 
             RenderType renderType = DecalRenderType.decal(entry.texture.location());
             VertexConsumer consumer = bufferSource.getBuffer(renderType);
 
-            float baseEpsilon = (float) (0.005 + Math.sqrt(distSq) * 0.00005);
+            float baseEpsilon = 0.0001f;
 
             for (SurfaceFragment frag : resolved.fragments()) {
                 renderFragment(consumer, matrix, decal, frag, baseEpsilon);

@@ -26,7 +26,6 @@ public final class DecalRenderType extends RenderStateShard {
                 .setCullState(NO_CULL)
                 .setLightmapState(LIGHTMAP)
                 .setLayeringState(POLYGON_OFFSET_LAYERING)
-                .setWriteMaskState(COLOR_WRITE)
                 .createCompositeState(false)
         )
     );

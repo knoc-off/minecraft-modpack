@@ -85,7 +85,8 @@ public final class ClientBrushHandler {
             Minecraft.getInstance().level, anchor, face, displayUp, widthBlocks, heightBlocks, 1.0f);
 
         Minecraft.getInstance().setScreen(new PaintScreen(
-            anchor, face, displayUp, widthBlocks, heightBlocks, null, null, background));
+            anchor, face, displayUp, widthBlocks, heightBlocks, null, null, background,
+            displayUp, 0));
     }
 
     public static void openNewEditor(BlockPos pos, Direction face) {
@@ -96,7 +97,8 @@ public final class ClientBrushHandler {
         int[] background = BackgroundCapture.capture(
             Minecraft.getInstance().level, pos, face, displayUp, 1, 1, 1.0f);
 
-        Minecraft.getInstance().setScreen(new PaintScreen(pos, face, displayUp, 1, 1, null, null, background));
+        Minecraft.getInstance().setScreen(new PaintScreen(
+            pos, face, displayUp, 1, 1, null, null, background, displayUp, 0));
     }
 
     public static void openExistingEditor(BlockPos anchor, Direction normal, Direction storedUp,
@@ -150,7 +152,8 @@ public final class ClientBrushHandler {
             Minecraft.getInstance().level, bgAnchor, normal, displayUp, displayW, displayH, 1.0f);
 
         Minecraft.getInstance().setScreen(new PaintScreen(
-            anchor, normal, displayUp, displayW, displayH, displayPixels, decalId, background));
+            anchor, normal, displayUp, displayW, displayH, displayPixels, decalId, background,
+            storedUp, rotations));
     }
 
     /**
@@ -169,7 +172,7 @@ public final class ClientBrushHandler {
     /**
      * Rotate a pixel array by the given number of 90° clockwise steps.
      */
-    static int[] rotatePixels(int[] src, int w, int h, int rotations) {
+    public static int[] rotatePixels(int[] src, int w, int h, int rotations) {
         rotations = ((rotations % 4) + 4) % 4;
         if (rotations == 0) return src;
 

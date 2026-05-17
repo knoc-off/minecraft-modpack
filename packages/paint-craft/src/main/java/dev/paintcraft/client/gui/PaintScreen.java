@@ -1,5 +1,6 @@
 package dev.paintcraft.client.gui;
 
+import dev.paintcraft.client.ClientBrushHandler;
 import dev.paintcraft.client.EditorPrefs;
 import dev.paintcraft.client.gui.widget.BlockListWidget;
 import dev.paintcraft.client.gui.widget.ColorSquareWidget;
@@ -40,6 +41,8 @@ public class PaintScreen extends Screen {
     private final int canvasH;
     private final UUID decalId;
     private final boolean hFlip; // flip display horizontally for negative-normal faces
+    private final Direction storedUp; // original up direction for saving (never changes)
+    private final int displayRotation; // CW steps applied for display (reversed on save)
 
     private int[] pixels;
     private int[] backgroundPixels;
@@ -75,7 +78,8 @@ public class PaintScreen extends Screen {
     private static final int MAX_RECENTS = 16;
 
     public PaintScreen(BlockPos anchor, Direction normal, Direction up, int widthBlocks, int heightBlocks,
-                       int[] existingPixels, UUID decalId, int[] backgroundPixels) {
+                       int[] existingPixels, UUID decalId, int[] backgroundPixels,
+                       Direction storedUp, int displayRotation) {
         super(Component.literal("Paint"));
         this.anchor = anchor;
         this.normal = normal;
@@ -88,6 +92,8 @@ public class PaintScreen extends Screen {
         this.hFlip = normal.getAxis() != Direction.Axis.Y
                      && normal.getAxisDirection() == Direction.AxisDirection.NEGATIVE;
         this.backgroundPixels = backgroundPixels;
+        this.storedUp = storedUp;
+        this.displayRotation = displayRotation;
 
         if (existingPixels != null && existingPixels.length == canvasW * canvasH) {
             this.pixels = Arrays.copyOf(existingPixels, existingPixels.length);
@@ -114,11 +120,11 @@ public class PaintScreen extends Screen {
 
     public PaintScreen(BlockPos anchor, Direction normal, Direction up, int widthBlocks, int heightBlocks,
                        int[] existingPixels, UUID decalId) {
-        this(anchor, normal, up, widthBlocks, heightBlocks, existingPixels, decalId, null);
+        this(anchor, normal, up, widthBlocks, heightBlocks, existingPixels, decalId, null, up, 0);
     }
 
     public PaintScreen(BlockPos anchor, Direction normal, Direction up, int widthBlocks, int heightBlocks) {
-        this(anchor, normal, up, widthBlocks, heightBlocks, null, null, null);
+        this(anchor, normal, up, widthBlocks, heightBlocks, null, null, null, up, 0);
     }
 
     /** Map pixel X to display X (flips for positive-normal faces so editor matches player view) */
@@ -463,9 +469,19 @@ public class PaintScreen extends Screen {
     }
 
     private void saveAndClose() {
+        int[] savePixels = pixels;
+        int saveW = canvasW, saveH = canvasH;
+        if (displayRotation != 0) {
+            // Reverse the display rotation to get back to stored orientation
+            savePixels = ClientBrushHandler.rotatePixels(pixels, canvasW, canvasH, displayRotation);
+            if (displayRotation % 2 == 1) {
+                saveW = canvasH;
+                saveH = canvasW;
+            }
+        }
         DecalCreatePayload payload = new DecalCreatePayload(
-            decalId, 0, anchor, normal, up,
-            canvasW, canvasH, 1.0f, (byte) 0, pixels
+            decalId, 0, anchor, normal, storedUp,
+            saveW, saveH, 1.0f, (byte) 0, savePixels
         );
         PacketDistributor.sendToServer(payload);
         onClose();
