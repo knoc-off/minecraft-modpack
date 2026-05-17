@@ -68,7 +68,7 @@ public final class DecalRenderer {
                                         Decal decal, SurfaceFragment frag,
                                         float baseEpsilon) {
         Direction normal = frag.faceNormal();
-        float offset = baseEpsilon + frag.zTier() * 0.00008f;
+        float offset = baseEpsilon + frag.zTier() * 0.0008f;
         float nx = normal.getStepX() * offset;
         float ny = normal.getStepY() * offset;
         float nz = normal.getStepZ() * offset;

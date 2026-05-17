@@ -133,6 +133,15 @@ public class PaintScreen extends Screen {
 
     @Override
     protected void init() {
+        // Recreate canvas texture if released (e.g. returning from BlockSearchScreen)
+        if (canvasTextureLoc == null) {
+            NativeImage canvasImage = new NativeImage(canvasW, canvasH, true);
+            this.canvasTexture = new DynamicTexture(canvasImage);
+            this.canvasTextureLoc = Minecraft.getInstance().getTextureManager()
+                .register("paintcraft_canvas", this.canvasTexture);
+            canvasDirty = true;
+        }
+
         // Layout calculations
         // Reserve space: top (canvasY) + bottom (tool row 16 + gap 6 + done row 20 + gap 6 + margin 4 = 52)
         canvasX = 10;
@@ -241,6 +250,7 @@ public class PaintScreen extends Screen {
         renderColorBar(gfx, recentColors, canvasX, RECENTS_BAR_Y, mouseX, mouseY, "Recent");
 
         // === Canvas (single texture blit — updated only when pixels change) ===
+        if (canvasTextureLoc == null) return;
         if (canvasDirty) {
             updateCanvasTexture();
             canvasDirty = false;
