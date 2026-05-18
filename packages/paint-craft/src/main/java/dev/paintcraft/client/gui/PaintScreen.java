@@ -133,17 +133,18 @@ public class PaintScreen extends Screen {
             .register("paintcraft_canvas", this.canvasTexture);
     }
 
-    // === Coordinate mapping (delegates to DisplayTransform) ===
+    // === Coordinate mapping ===
+    // Canvas is in DISPLAY orientation. No transform needed for canvas access.
+    // Background is in STORED orientation and needs transform.toDataX for access.
 
-    /** Map pixel X from data space to display space. */
+    /** Display pixel X (identity — canvas is display-oriented). */
     private int displayX(int px) {
-        return transform.toDisplayX(px, canvasW);
+        return px;
     }
 
-    /** Map raw screen X to data pixel X. */
+    /** Map raw screen X to canvas pixel X (display space — no flip). */
     private int screenToPixelX(int screenX) {
-        int raw = (screenX - canvasX) / pixelSize;
-        return transform.toDataX(raw, canvasW);
+        return (screenX - canvasX) / pixelSize;
     }
 
     @Override
@@ -311,18 +312,19 @@ public class PaintScreen extends Screen {
 
         for (int py = 0; py < canvasH; py++) {
             for (int screenPx = 0; screenPx < canvasW; screenPx++) {
-                // Map display X → data X using transform
-                int dataPx = transform.toDataX(screenPx, canvasW);
-                int idx = py * canvasW + dataPx;
+                // Canvas is in display orientation — index directly by screen position
+                int canvasIdx = py * canvasW + screenPx;
+                // Background is in stored orientation — map via transform
+                int bgIdx = py * canvasW + transform.toDataX(screenPx, canvasW);
 
-                int pixelColor = canvas[idx];
+                int pixelColor = canvas[canvasIdx];
                 int color;
                 if (ColorFormat.isOpaque(pixelColor)) {
                     color = pixelColor;
-                } else if (backgroundPixels != null && ColorFormat.isOpaque(backgroundPixels[idx])) {
-                    color = backgroundPixels[idx];
+                } else if (backgroundPixels != null && ColorFormat.isOpaque(backgroundPixels[bgIdx])) {
+                    color = backgroundPixels[bgIdx];
                 } else {
-                    boolean checker = ((dataPx / 2) + (py / 2)) % 2 == 0;
+                    boolean checker = ((screenPx / 2) + (py / 2)) % 2 == 0;
                     color = checker ? 0xFF666666 : 0xFF999999;
                 }
 
