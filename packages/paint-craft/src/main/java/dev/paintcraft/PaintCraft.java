@@ -26,6 +26,8 @@ public class PaintCraft {
         modEventBus.addListener(this::registerPayloads);
         modEventBus.addListener(this::addCreative);
 
+        modContainer.registerConfig(net.neoforged.fml.config.ModConfig.Type.COMMON, ModConfig.CONFIG_SPEC);
+
         NeoForge.EVENT_BUS.addListener(PaintCraft::onRightClickBlock);
     }
 

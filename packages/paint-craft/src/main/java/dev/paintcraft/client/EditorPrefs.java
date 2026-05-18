@@ -13,6 +13,7 @@ import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -26,6 +27,7 @@ public final class EditorPrefs {
 
     public List<String> blocks = List.of();
     public List<Integer> recentColors = List.of();
+    public List<Integer> pinnedColors = List.of();
     public int selectedColor = 0xFF000000;
     public boolean softMode = true;
     public String activeTool = "PENCIL";
@@ -69,17 +71,18 @@ public final class EditorPrefs {
 
     /** Snapshot current editor state into a saveable prefs object. */
     public static EditorPrefs from(List<Block> blocks, List<Integer> recents,
-                                   int selectedColor, boolean softMode,
-                                   String tool, int brushSize) {
+                                   Collection<Integer> pinned, int selectedColor,
+                                   boolean softMode, String tool, int brushSize) {
         EditorPrefs p = new EditorPrefs();
         p.blocks = blocks.stream()
             .map(b -> BuiltInRegistries.BLOCK.getKey(b).toString())
             .toList();
         p.recentColors = new ArrayList<>(recents);
+        p.pinnedColors = new ArrayList<>(pinned);
         p.selectedColor = selectedColor;
         p.softMode = softMode;
         p.activeTool = tool;
-        p.brushSize = Math.max(1, Math.min(4, brushSize));
+        p.brushSize = Math.max(1, Math.min(16, brushSize));
         return p;
     }
 }

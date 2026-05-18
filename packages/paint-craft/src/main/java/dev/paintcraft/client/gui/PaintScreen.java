@@ -1,5 +1,6 @@
 package dev.paintcraft.client.gui;
 
+import dev.paintcraft.ModConfig;
 import dev.paintcraft.PaintCraft;
 import dev.paintcraft.client.EditorPrefs;
 import dev.paintcraft.client.gui.widget.BlockListWidget;
@@ -53,6 +54,7 @@ public class PaintScreen extends Screen {
     // Color state
     private int selectedColor = 0xFF000000;
     private final List<Integer> recentColors = new ArrayList<>();
+    private final LinkedHashSet<Integer> pinnedColors = new LinkedHashSet<>();
 
     // Tools
      private PaintTool activeTool = PaintTool.PENCIL;
@@ -121,9 +123,12 @@ public class PaintScreen extends Screen {
         this.recentColors.addAll(prefs.recentColors);
         this.selectedColor = prefs.selectedColor;
         this.colorSquareSoft = prefs.softMode;
-        this.brushSize = Math.max(1, Math.min(4, prefs.brushSize));
+        this.brushSize = Math.max(1, Math.min(16, prefs.brushSize));
         try { this.activeTool = PaintTool.valueOf(prefs.activeTool); }
         catch (IllegalArgumentException ignored) {}
+        if (prefs.pinnedColors != null) {
+            this.pinnedColors.addAll(prefs.pinnedColors);
+        }
     }
 
     private void initCanvasTexture() {
@@ -155,23 +160,23 @@ public class PaintScreen extends Screen {
             canvasDirty = true;
         }
 
-        // Layout calculations
+        // Layout calculations — canvas fills left side, right column has all controls
         canvasX = 10;
         canvasY = 22;
         int rightColWidth = 120;
         int canvasArea = this.width - rightColWidth - 20;
-        int bottomSpace = 52;
-        int availableH = this.height - canvasY - bottomSpace;
+        int availableH = this.height - canvasY - 6;
         pixelSize = Math.min(canvasArea / canvasW, availableH / canvasH);
         pixelSize = Math.max(pixelSize, 2);
 
         // Right column layout
         int colWidth = Math.min(this.width / 3, this.width - (canvasX + canvasW * pixelSize + 12) - 4);
+        colWidth = Math.max(colWidth, 100);
         int colX = this.width - colWidth - 4;
         int curY = canvasY;
 
         // Color square
-        int squareH = colWidth;
+        int squareH = Math.min(colWidth, this.height / 4);
         colorSquare = new ColorSquareWidget(colX, curY, colWidth, squareH, this::onColorPicked);
         colorSquare.setSmooth(colorSquareSoft);
         colorSquare.rebuild(customBlocks);
@@ -194,34 +199,39 @@ public class PaintScreen extends Screen {
             .bounds(colX, curY, colWidth, 16).build());
         curY += 20;
 
-        // Block list widget
-        blockList = new BlockListWidget(this.minecraft, colWidth, this.height - curY - 10,
+        // Block list widget — fill space but leave room for tool/action buttons (62px)
+        int blockListH = Math.max(30, this.height - curY - 68);
+        blockList = new BlockListWidget(this.minecraft, colWidth, blockListH,
                                         curY, this::onBlockClicked, this::onBlockRemoved);
         blockList.setX(colX);
         blockList.setBlocks(customBlocks);
         addRenderableWidget(blockList);
+        curY += blockListH + 4;
 
-        // Tool buttons (below canvas)
-        int toolY = canvasY + canvasH * pixelSize + 6;
+        // Tool buttons (in right column, below block list)
+        int halfCol = colWidth / 2;
         addRenderableWidget(Button.builder(Component.literal("Pencil"), b -> activeTool = PaintTool.PENCIL)
-            .bounds(canvasX, toolY, 44, 16).build());
+            .bounds(colX, curY, halfCol - 1, 16).build());
         addRenderableWidget(Button.builder(Component.literal("Eraser"), b -> activeTool = PaintTool.ERASER)
-            .bounds(canvasX + 48, toolY, 44, 16).build());
-        addRenderableWidget(Button.builder(Component.literal("+"), b -> brushSize = Math.min(brushSize + 1, 4))
-            .bounds(canvasX + 96, toolY, 16, 16).build());
-        addRenderableWidget(Button.builder(Component.literal("-"), b -> brushSize = Math.max(brushSize - 1, 1))
-            .bounds(canvasX + 114, toolY, 16, 16).build());
-        addRenderableWidget(Button.builder(Component.literal("Undo"), b -> undo())
-            .bounds(canvasX + 140, toolY, 36, 16).build());
-        addRenderableWidget(Button.builder(Component.literal("Redo"), b -> redo())
-            .bounds(canvasX + 180, toolY, 36, 16).build());
+            .bounds(colX + halfCol + 1, curY, halfCol - 1, 16).build());
+        curY += 20;
 
-        // Done / Cancel (bottom)
-        int bottomY = toolY + 22;
+        int btnW = colWidth / 4;
+        addRenderableWidget(Button.builder(Component.literal("+"), b -> brushSize = Math.min(brushSize + 1, 16))
+            .bounds(colX, curY, btnW - 1, 16).build());
+        addRenderableWidget(Button.builder(Component.literal("-"), b -> brushSize = Math.max(brushSize - 1, 1))
+            .bounds(colX + btnW, curY, btnW - 1, 16).build());
+        addRenderableWidget(Button.builder(Component.literal("Undo"), b -> undo())
+            .bounds(colX + btnW * 2, curY, btnW - 1, 16).build());
+        addRenderableWidget(Button.builder(Component.literal("Redo"), b -> redo())
+            .bounds(colX + btnW * 3, curY, btnW - 1, 16).build());
+        curY += 20;
+
+        // Done / Discard (bottom of right column)
         addRenderableWidget(Button.builder(Component.literal("Done"), b -> saveAndClose())
-            .bounds(canvasX, bottomY, 50, 20).build());
-        addRenderableWidget(Button.builder(Component.literal("Cancel"), b -> onClose())
-            .bounds(canvasX + 56, bottomY, 50, 20).build());
+            .bounds(colX, curY, halfCol - 1, 20).build());
+        addRenderableWidget(Button.builder(Component.literal("Discard"), b -> discardAndClose())
+            .bounds(colX + halfCol + 1, curY, halfCol - 1, 20).build());
     }
 
     private void onColorPicked(int color) {
@@ -266,17 +276,6 @@ public class PaintScreen extends Screen {
         int renderW = canvasW * pixelSize;
         int renderH = canvasH * pixelSize;
         gfx.blit(canvasTextureLoc, canvasX, canvasY, renderW, renderH, 0f, 0f, canvasW, canvasH, canvasW, canvasH);
-
-        // === Grid lines ===
-        int gridColor = 0x40000000;
-        for (int px = 0; px <= canvasW; px++) {
-            int sx = canvasX + px * pixelSize;
-            gfx.fill(sx, canvasY, sx + 1, canvasY + renderH, gridColor);
-        }
-        for (int py = 0; py <= canvasH; py++) {
-            int sy = canvasY + py * pixelSize;
-            gfx.fill(canvasX, sy, canvasX + renderW, sy + 1, gridColor);
-        }
 
         // === Cursor highlight ===
         int cursorPx = screenToPixelX((int) mouseX);
@@ -338,14 +337,32 @@ public class PaintScreen extends Screen {
     private void renderColorBar(GuiGraphics gfx, List<Integer> colors, int x, int y, int mouseX, int mouseY, String label) {
         gfx.drawString(this.font, label, x, y + 2, 0xAAAAAA);
         int offsetX = x + this.font.width(label) + 6;
-        for (int i = 0; i < colors.size(); i++) {
+        int maxX = this.width - 120;
+
+        // Render pinned colors first with gold underline
+        int i = 0;
+        for (int pinColor : pinnedColors) {
             int sx = offsetX + i * (COLOR_SWATCH_SIZE + 2);
-            if (sx + COLOR_SWATCH_SIZE > this.width - 120) break;
-            int color = colors.get(i);
+            if (sx + COLOR_SWATCH_SIZE > maxX) break;
+            gfx.fill(sx, y, sx + COLOR_SWATCH_SIZE, y + COLOR_SWATCH_SIZE, pinColor);
+            // Gold underline for pinned
+            gfx.fill(sx, y + COLOR_SWATCH_SIZE, sx + COLOR_SWATCH_SIZE, y + COLOR_SWATCH_SIZE + 2, 0xFFFFAA00);
+            if (pinColor == selectedColor) {
+                gfx.renderOutline(sx - 1, y - 1, COLOR_SWATCH_SIZE + 2, COLOR_SWATCH_SIZE + 2, 0xFFFFFFFF);
+            }
+            i++;
+        }
+
+        // Render unpinned recent colors after
+        for (int color : colors) {
+            if (pinnedColors.contains(color)) continue; // already shown
+            int sx = offsetX + i * (COLOR_SWATCH_SIZE + 2);
+            if (sx + COLOR_SWATCH_SIZE > maxX) break;
             gfx.fill(sx, y, sx + COLOR_SWATCH_SIZE, y + COLOR_SWATCH_SIZE, color);
             if (color == selectedColor) {
                 gfx.renderOutline(sx - 1, y - 1, COLOR_SWATCH_SIZE + 2, COLOR_SWATCH_SIZE + 2, 0xFFFFFFFF);
             }
+            i++;
         }
     }
 
@@ -353,7 +370,8 @@ public class PaintScreen extends Screen {
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (super.mouseClicked(mouseX, mouseY, button)) return true;
 
-        if (clickColorBar(recentColors, (int) mouseX, (int) mouseY, canvasX, RECENTS_BAR_Y)) return true;
+        // Color bar: left-click selects, right-click toggles pin
+        if (clickColorBar((int) mouseX, (int) mouseY, canvasX, RECENTS_BAR_Y, button)) return true;
 
         int px = screenToPixelX((int) mouseX);
         int py = ((int) mouseY - canvasY) / pixelSize;
@@ -368,17 +386,36 @@ public class PaintScreen extends Screen {
         return false;
     }
 
-    private boolean clickColorBar(List<Integer> colors, int mouseX, int mouseY, int barX, int barY) {
+    private boolean clickColorBar(int mouseX, int mouseY, int barX, int barY, int button) {
         String label = "Recent";
         int offsetX = barX + this.font.width(label) + 6;
-        if (mouseY >= barY && mouseY < barY + COLOR_SWATCH_SIZE) {
-            for (int i = 0; i < colors.size(); i++) {
-                int sx = offsetX + i * (COLOR_SWATCH_SIZE + 2);
-                if (mouseX >= sx && mouseX < sx + COLOR_SWATCH_SIZE) {
-                    selectedColor = colors.get(i);
-                    addToRecents(selectedColor);
-                    return true;
+        if (mouseY < barY || mouseY >= barY + COLOR_SWATCH_SIZE + 2) return false;
+
+        // Build ordered list: pinned first, then unpinned recents
+        List<Integer> ordered = new ArrayList<>();
+        ordered.addAll(pinnedColors);
+        for (int c : recentColors) {
+            if (!pinnedColors.contains(c)) ordered.add(c);
+        }
+
+        for (int i = 0; i < ordered.size(); i++) {
+            int sx = offsetX + i * (COLOR_SWATCH_SIZE + 2);
+            if (sx + COLOR_SWATCH_SIZE > this.width - 120) break;
+            if (mouseX >= sx && mouseX < sx + COLOR_SWATCH_SIZE) {
+                int color = ordered.get(i);
+                if (button == 1) {
+                    // Right-click: toggle pin
+                    if (pinnedColors.contains(color)) {
+                        pinnedColors.remove(color);
+                    } else {
+                        pinnedColors.add(color);
+                    }
+                } else {
+                    // Left-click: select color
+                    selectedColor = color;
+                    addToRecents(color);
                 }
+                return true;
             }
         }
         return false;
@@ -387,7 +424,10 @@ public class PaintScreen extends Screen {
     private void addToRecents(int color) {
         recentColors.remove(Integer.valueOf(color));
         recentColors.add(0, color);
-        if (recentColors.size() > MAX_RECENTS) {
+        // Trim excess, but never evict pinned colors
+        while (recentColors.size() > MAX_RECENTS) {
+            int last = recentColors.get(recentColors.size() - 1);
+            if (pinnedColors.contains(last)) break; // don't evict pinned
             recentColors.remove(recentColors.size() - 1);
         }
     }
@@ -418,7 +458,7 @@ public class PaintScreen extends Screen {
         int py = ((int) mouseY - canvasY) / pixelSize;
         if (px >= 0 && px < canvasW && py >= 0 && py < canvasH) {
             if (scrollY > 0) {
-                brushSize = Math.min(brushSize + 1, 4);
+                brushSize = Math.min(brushSize + 1, 16);
             } else if (scrollY < 0) {
                 brushSize = Math.max(brushSize - 1, 1);
             }
@@ -559,6 +599,19 @@ public class PaintScreen extends Screen {
         }
     }
 
+    @Override
+    public void onClose() {
+        if (ModConfig.CONFIG.autoSaveOnExit.get()) {
+            saveAndClose();
+        } else {
+            super.onClose();
+        }
+    }
+
+    private void discardAndClose() {
+        super.onClose();
+    }
+
     private void saveAndClose() {
         // Transform display pixels back to stored orientation
         PixelGrid displayGrid = PixelGrid.wrap(canvasW, canvasH, canvas);
@@ -569,13 +622,13 @@ public class PaintScreen extends Screen {
             stored.width(), stored.height(), 1.0f, (byte) 0, stored.data()
         );
         PacketDistributor.sendToServer(payload);
-        onClose();
+        super.onClose();
     }
 
     @Override
     public void removed() {
         super.removed();
-        EditorPrefs.from(customBlocks, recentColors, selectedColor,
+        EditorPrefs.from(customBlocks, recentColors, pinnedColors, selectedColor,
                          colorSquareSoft, activeTool.name(), brushSize).save();
         if (colorSquare != null) {
             colorSquare.close();

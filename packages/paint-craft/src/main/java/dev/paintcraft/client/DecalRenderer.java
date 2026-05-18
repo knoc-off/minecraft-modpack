@@ -54,7 +54,8 @@ public final class DecalRenderer {
 
             Decal decal = entry.decal;
             double distSq = cameraPos.distanceToSqr(Vec3.atCenterOf(decal.anchor()));
-            if (distSq > 256 * 256) continue;
+            int renderDist = dev.paintcraft.ModConfig.CONFIG.renderDistance.get();
+            if (distSq > (long) renderDist * renderDist) continue;
 
             float baseEpsilon = 0.0001f;
 
