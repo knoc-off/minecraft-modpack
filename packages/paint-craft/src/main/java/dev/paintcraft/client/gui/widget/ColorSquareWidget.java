@@ -49,8 +49,12 @@ public class ColorSquareWidget extends AbstractWidget {
     // Cached per-pixel color map for fast click lookup
     private int[] pixelColors;
 
-    // Mode toggle: true = smooth (with boundary anchors), false = raw (real seeds only)
+    // Mode toggle: true = full (with boundary anchors), false = focused (zoomed to seeds)
     private boolean smooth = true;
+
+    // View bounds for coordinate mapping (hue in degrees, lightness in [0,1])
+    private float viewMinHue = 0f, viewMaxHue = 360f;
+    private float viewMinL = 0f, viewMaxL = 1f;
 
     public ColorSquareWidget(int x, int y, int width, int height, IntConsumer onColorPicked) {
         super(x, y, width, height, Component.literal("Color Picker"));
@@ -78,7 +82,8 @@ public class ColorSquareWidget extends AbstractWidget {
 
     /**
      * Rebuild seeds from the current block set and repaint.
-     * In smooth mode, adds achromatic boundary anchors for full coverage.
+     * In full mode, adds achromatic boundary anchors for full coverage.
+     * In focused mode, zooms viewport to the seed bounding box.
      */
     public void rebuild(List<Block> blocks) {
         lastBlocks = blocks;
@@ -97,7 +102,31 @@ public class ColorSquareWidget extends AbstractWidget {
         }
 
         if (smooth) {
+            // Full mode: show entire color space
+            viewMinHue = 0f; viewMaxHue = 360f;
+            viewMinL = 0f; viewMaxL = 1f;
             addBoundaryAnchors();
+        } else {
+            // Focused mode: zoom to seed bounding box with padding
+            if (!seeds.isEmpty()) {
+                float minH = Float.MAX_VALUE, maxH = -Float.MAX_VALUE;
+                float minL = Float.MAX_VALUE, maxL = -Float.MAX_VALUE;
+                for (SeedColor s : seeds) {
+                    minH = Math.min(minH, s.hue());
+                    maxH = Math.max(maxH, s.hue());
+                    minL = Math.min(minL, s.lightness());
+                    maxL = Math.max(maxL, s.lightness());
+                }
+                float padH = Math.max(10f, (maxH - minH) * 0.1f);
+                float padL = Math.max(0.05f, (maxL - minL) * 0.1f);
+                viewMinHue = Math.max(0f, minH - padH);
+                viewMaxHue = Math.min(360f, maxH + padH);
+                viewMinL = Math.max(0f, minL - padL);
+                viewMaxL = Math.min(1f, maxL + padL);
+            } else {
+                viewMinHue = 0f; viewMaxHue = 360f;
+                viewMinL = 0f; viewMaxL = 1f;
+            }
         }
 
         repaint();
@@ -160,12 +189,12 @@ public class ColorSquareWidget extends AbstractWidget {
 
         int n = seeds.size();
 
-        // Build normalized coordinate arrays
+        // Build normalized coordinate arrays (relative to view bounds)
         float[] xs = new float[n];
         float[] ys = new float[n];
         for (int i = 0; i < n; i++) {
-            xs[i] = seeds.get(i).hue / 360f;
-            ys[i] = seeds.get(i).lightness;
+            xs[i] = (seeds.get(i).hue() - viewMinHue) / (viewMaxHue - viewMinHue);
+            ys[i] = (seeds.get(i).lightness() - viewMinL) / (viewMaxL - viewMinL);
         }
 
         // Triangulate
@@ -239,8 +268,8 @@ public class ColorSquareWidget extends AbstractWidget {
             for (int px = 0; px < TEX_W; px++) {
                 int idx = py * TEX_W + px;
                 if (!covered[idx]) {
-                    float h = (px + 0.5f) / TEX_W * 360f;
-                    float l = 1f - (py + 0.5f) / TEX_H;
+                    float h = pixelXToHue(px);
+                    float l = pixelYToLightness(py);
                     SeedColor nearest = findNearestIn(h, l, seeds);
                     int argb = nearest != null ? nearest.argb : 0xFF1A1A1A;
                     pixelColors[idx] = argb;
@@ -278,9 +307,9 @@ public class ColorSquareWidget extends AbstractWidget {
         pixelColors = new int[TEX_W * TEX_H];
 
         for (int py = 0; py < TEX_H; py++) {
-            float l = 1f - (py + 0.5f) / TEX_H;
             for (int px = 0; px < TEX_W; px++) {
-                float h = (px + 0.5f) / TEX_W * 360f;
+                float h = pixelXToHue(px);
+                float l = pixelYToLightness(py);
                 SeedColor nearest = findNearestIn(h, l, seeds);
                 int argb = nearest != null ? nearest.argb : 0xFF1A1A1A;
                 int idx = py * TEX_W + px;
@@ -343,14 +372,24 @@ public class ColorSquareWidget extends AbstractWidget {
         Minecraft.getInstance().getTextureManager().release(textureLoc);
     }
 
-    // --- Coordinate conversions ---
+    // --- Coordinate conversions (view-bounds aware) ---
 
-    private static int hueToPixelX(float hue) {
-        return Math.min((int) (hue / 360f * TEX_W), TEX_W - 1);
+    private int hueToPixelX(float hue) {
+        float t = (hue - viewMinHue) / (viewMaxHue - viewMinHue);
+        return Math.min(TEX_W - 1, Math.max(0, (int) (t * TEX_W)));
     }
 
-    private static int lightnessToPixelY(float lightness) {
-        return Math.min((int) ((1f - lightness) * TEX_H), TEX_H - 1);
+    private int lightnessToPixelY(float lightness) {
+        float t = 1f - (lightness - viewMinL) / (viewMaxL - viewMinL);
+        return Math.min(TEX_H - 1, Math.max(0, (int) (t * TEX_H)));
+    }
+
+    private float pixelXToHue(int px) {
+        return viewMinHue + (px + 0.5f) / TEX_W * (viewMaxHue - viewMinHue);
+    }
+
+    private float pixelYToLightness(int py) {
+        return viewMaxL - (py + 0.5f) / TEX_H * (viewMaxL - viewMinL);
     }
 
     private int screenToPixelX(int screenX) {

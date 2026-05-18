@@ -176,20 +176,20 @@ public class PaintScreen extends Screen {
         int curY = canvasY;
 
         // Color square
-        int squareH = Math.min(colWidth, this.height / 4);
+        int squareH = colWidth;
         colorSquare = new ColorSquareWidget(colX, curY, colWidth, squareH, this::onColorPicked);
         colorSquare.setSmooth(colorSquareSoft);
         colorSquare.rebuild(customBlocks);
         addRenderableWidget(colorSquare);
         curY += squareH + 2;
 
-        // Smooth/Raw toggle button
+        // Full/Focused toggle button
         addRenderableWidget(Button.builder(
-            Component.literal(colorSquareSoft ? "Smooth" : "Raw"),
+            Component.literal(colorSquareSoft ? "Full" : "Focused"),
             b -> {
                 colorSquare.toggleMode();
                 colorSquareSoft = colorSquare.isSmooth();
-                b.setMessage(Component.literal(colorSquareSoft ? "Smooth" : "Raw"));
+                b.setMessage(Component.literal(colorSquareSoft ? "Full" : "Focused"));
             })
             .bounds(colX, curY, colWidth, 14).build());
         curY += 18;
