@@ -24,6 +24,8 @@ public class Decal {
     private int heightPx;
     private float depth;
     private int[] pixels;
+    private int[] normals;   // packed LabPBR: (ao << 24) | (nx << 16) | (ny << 8) | height
+    private int[] specular;  // packed LabPBR: (emission << 24) | (smoothness << 16) | (f0 << 8) | porosity
     private byte flags;
     private String author;
 
@@ -39,6 +41,10 @@ public class Decal {
         this.heightPx = heightPx;
         this.depth = Math.min(depth, MAX_DEPTH);
         this.pixels = pixels;
+        this.normals = new int[widthPx * heightPx];
+        this.specular = new int[widthPx * heightPx];
+        java.util.Arrays.fill(this.normals, MaterialSample.DEFAULT.packNormal());
+        java.util.Arrays.fill(this.specular, MaterialSample.DEFAULT.packSpecular());
         this.flags = flags;
         this.author = "";
     }
@@ -68,6 +74,8 @@ public class Decal {
     public int heightPx() { return heightPx; }
     public float depth() { return depth; }
     public int[] pixels() { return pixels; }
+    public int[] normals() { return normals; }
+    public int[] specular() { return specular; }
     public byte flags() { return flags; }
     public String author() { return author; }
     public boolean isEmissive() { return (flags & FLAG_EMISSIVE) != 0; }
@@ -76,6 +84,24 @@ public class Decal {
         if (pixels.length != widthPx * heightPx)
             throw new IllegalArgumentException("Pixel array size mismatch: expected " + (widthPx * heightPx) + ", got " + pixels.length);
         this.pixels = pixels;
+    }
+
+    public void setNormals(int[] normals) {
+        if (normals.length != widthPx * heightPx)
+            throw new IllegalArgumentException("Normal array size mismatch");
+        this.normals = normals;
+    }
+
+    public void setSpecular(int[] specular) {
+        if (specular.length != widthPx * heightPx)
+            throw new IllegalArgumentException("Specular array size mismatch");
+        this.specular = specular;
+    }
+
+    public void setMaterialAt(int x, int y, MaterialSample mat) {
+        int idx = y * widthPx + x;
+        normals[idx] = mat.packNormal();
+        specular[idx] = mat.packSpecular();
     }
 
     public void setPixel(int x, int y, int rgba) {
@@ -112,7 +138,7 @@ public class Decal {
         tag.putByte("flags", flags);
         tag.putString("author", author);
 
-        // palette compression
+        // palette compression for albedo
         int[] palette = PaletteCodec.buildPalette(pixels);
         if (palette != null && palette.length <= 256) {
             tag.putIntArray("palette", palette);
@@ -121,7 +147,34 @@ public class Decal {
         } else {
             tag.putIntArray("px_raw", pixels);
         }
+
+        // material data (palette-compressed; material arrays compress very well
+        // since large regions share the same block's material properties)
+        savePalettized(tag, "norm", normals);
+        savePalettized(tag, "spec", specular);
+
         return tag;
+    }
+
+    private static void savePalettized(CompoundTag tag, String prefix, int[] data) {
+        int[] palette = PaletteCodec.buildPalette(data);
+        if (palette != null && palette.length <= 256) {
+            tag.putIntArray(prefix + "_pal", palette);
+            tag.putByteArray(prefix + "_idx", PaletteCodec.encode(data, palette));
+        } else {
+            tag.putIntArray(prefix + "_raw", data);
+        }
+    }
+
+    private static int[] loadPalettized(CompoundTag tag, String prefix, int defaultSize) {
+        if (tag.contains(prefix + "_pal", Tag.TAG_INT_ARRAY)) {
+            int[] palette = tag.getIntArray(prefix + "_pal");
+            byte[] indexed = tag.getByteArray(prefix + "_idx");
+            return PaletteCodec.decode(indexed, palette);
+        } else if (tag.contains(prefix + "_raw", Tag.TAG_INT_ARRAY)) {
+            return tag.getIntArray(prefix + "_raw");
+        }
+        return null; // not present (old format)
     }
 
     public static Decal load(CompoundTag tag) {
@@ -147,6 +200,17 @@ public class Decal {
         Decal decal = new Decal(id, seq, anchor, normal, up, w, h, depth, pixels, flags);
         decal.zOverride = tag.getLong("zOvr");
         decal.author = tag.getString("author");
+
+        // Load material data (backward compatible: old decals get DEFAULT)
+        int[] loadedNormals = loadPalettized(tag, "norm", w * h);
+        int[] loadedSpecular = loadPalettized(tag, "spec", w * h);
+        if (loadedNormals != null && loadedNormals.length == w * h) {
+            decal.normals = loadedNormals;
+        }
+        if (loadedSpecular != null && loadedSpecular.length == w * h) {
+            decal.specular = loadedSpecular;
+        }
+
         return decal;
     }
 }

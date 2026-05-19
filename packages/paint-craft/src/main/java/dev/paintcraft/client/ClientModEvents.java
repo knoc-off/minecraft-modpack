@@ -5,6 +5,7 @@ import dev.paintcraft.PaintCraft;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.neoforge.client.event.RegisterItemDecorationsEvent;
 
 /**
@@ -15,6 +16,11 @@ import net.neoforged.neoforge.client.event.RegisterItemDecorationsEvent;
 public final class ClientModEvents {
 
     private ClientModEvents() {}
+
+    @SubscribeEvent
+    public static void onClientSetup(FMLClientSetupEvent event) {
+        event.enqueueWork(IrisCompat::tryRegister);
+    }
 
     @SubscribeEvent
     public static void onRegisterItemDecorations(RegisterItemDecorationsEvent event) {

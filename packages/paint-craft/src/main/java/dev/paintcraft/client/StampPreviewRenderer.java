@@ -104,7 +104,8 @@ public final class StampPreviewRenderer {
         if (previewTexture != null) {
             previewTexture.close();
         }
-        previewTexture = new DecalTexture(previewDecal);
+        previewTexture = new DecalTexture(
+            previewDecal.widthPx(), previewDecal.heightPx(), previewDecal.pixels());
     }
 
     private static void renderGhostFragment(VertexConsumer consumer, Matrix4f matrix,
