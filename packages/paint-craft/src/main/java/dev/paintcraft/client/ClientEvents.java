@@ -52,6 +52,7 @@ public final class ClientEvents {
     public static void onDisconnect(ClientPlayerNetworkEvent.LoggingOut event) {
         ClientDecalCache.clear();
         DecalRenderer.invalidateAll();
+        DecalAtlas.destroyAll();
         ClientBrushHandler.clearPending();
         ClientSpatialIndex.clear();
         ClientDecalResolver.clear();

@@ -39,6 +39,8 @@ public final class DecalRenderer {
     public static void renderAll(PoseStack poseStack, MultiBufferSource bufferSource, Vec3 cameraPos) {
         if (resolvedCache.isEmpty()) return;
 
+        DecalAtlas.uploadAll();
+
         poseStack.pushPose();
         poseStack.translate(-cameraPos.x, -cameraPos.y, -cameraPos.z);
         Matrix4f matrix = poseStack.last().pose();
@@ -70,8 +72,9 @@ public final class DecalRenderer {
             for (var tierGroup : byTier.entrySet()) {
                 RenderType renderType = DecalRenderType.decal(entry.texture.location(), tierGroup.getKey());
                 VertexConsumer consumer = bufferSource.getBuffer(renderType);
+                DecalAtlas.Slot slot = entry.texture.atlasSlot();
                 for (SurfaceFragment frag : tierGroup.getValue()) {
-                    renderFragment(consumer, matrix, decal, frag, baseEpsilon);
+                    renderFragment(consumer, matrix, decal, frag, baseEpsilon, slot);
                 }
             }
         }
@@ -81,7 +84,7 @@ public final class DecalRenderer {
 
     private static void renderFragment(VertexConsumer consumer, Matrix4f matrix,
                                         Decal decal, SurfaceFragment frag,
-                                        float baseEpsilon) {
+                                        float baseEpsilon, DecalAtlas.Slot atlasSlot) {
         Direction normal = frag.faceNormal();
         float offset = baseEpsilon;
         float nx = normal.getStepX() * offset;
@@ -132,9 +135,12 @@ public final class DecalRenderer {
 
             int shade = (int) (ao * faceShade * 255);
 
+            float texU = atlasSlot != null ? atlasSlot.atlasU(uv[i * 2]) : uv[i * 2];
+            float texV = atlasSlot != null ? atlasSlot.atlasV(uv[i * 2 + 1]) : uv[i * 2 + 1];
+
             consumer.addVertex(matrix, vx + nx, vy + ny, vz + nz)
                 .setColor(shade, shade, shade, 255)
-                .setUv(uv[i * 2], uv[i * 2 + 1])
+                .setUv(texU, texV)
                 .setLight(light);
         }
     }
