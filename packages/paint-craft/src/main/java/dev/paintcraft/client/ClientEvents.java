@@ -11,11 +11,17 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 import net.neoforged.neoforge.event.level.ChunkEvent;
+import net.neoforged.neoforge.event.tick.ClientTickEvent;
 
 @EventBusSubscriber(modid = PaintCraft.MODID, value = Dist.CLIENT)
 public final class ClientEvents {
 
     private ClientEvents() {}
+
+    @SubscribeEvent
+    public static void onClientTick(ClientTickEvent.Post event) {
+        DeferredInvalidator.tick();
+    }
 
     @SubscribeEvent
     public static void onRenderLevelStage(RenderLevelStageEvent event) {
@@ -52,6 +58,7 @@ public final class ClientEvents {
     public static void onDisconnect(ClientPlayerNetworkEvent.LoggingOut event) {
         ClientDecalCache.clear();
         DecalRenderer.invalidateAll();
+        DeferredInvalidator.clear();
         ClientBrushHandler.clearPending();
         ClientSpatialIndex.clear();
         ClientDecalResolver.clear();

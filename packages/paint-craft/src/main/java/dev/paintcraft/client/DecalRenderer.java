@@ -49,10 +49,10 @@ public final class DecalRenderer {
         sorted.sort(Comparator.comparingLong(e -> e.decal.zOrder()));
 
         for (ResolvedEntry entry : sorted) {
-            ResolvedSurface resolved = entry.resolved;
+            ResolvedSurface resolved = entry.surface();
             if (resolved.isEmpty()) continue;
 
-            Decal decal = entry.decal;
+            Decal decal = entry.decal();
             double distSq = cameraPos.distanceToSqr(Vec3.atCenterOf(decal.anchor()));
             int renderDist = dev.paintcraft.ModConfig.CONFIG.renderDistance.get();
             if (distSq > (long) renderDist * renderDist) continue;
@@ -68,7 +68,7 @@ public final class DecalRenderer {
             }
 
             for (var tierGroup : byTier.entrySet()) {
-                RenderType renderType = DecalRenderType.decal(entry.texture.location(), tierGroup.getKey());
+                RenderType renderType = DecalRenderType.decal(entry.texture().location(), tierGroup.getKey());
                 VertexConsumer consumer = bufferSource.getBuffer(renderType);
                 for (SurfaceFragment frag : tierGroup.getValue()) {
                     renderFragment(consumer, matrix, decal, frag, baseEpsilon);
@@ -139,5 +139,9 @@ public final class DecalRenderer {
         }
     }
 
-    private record ResolvedEntry(Decal decal, DecalTexture texture, ResolvedSurface resolved) {}
+    public static ResolvedEntry getResolved(UUID decalId) {
+        return resolvedCache.get(decalId);
+    }
+
+    public record ResolvedEntry(Decal decal, DecalTexture texture, ResolvedSurface surface) {}
 }

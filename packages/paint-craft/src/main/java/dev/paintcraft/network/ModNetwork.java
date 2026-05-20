@@ -6,6 +6,7 @@ import dev.paintcraft.client.ClientDecalCache;
 import dev.paintcraft.client.ClientDecalResolver;
 import dev.paintcraft.client.ClientSpatialIndex;
 import dev.paintcraft.client.DecalRenderer;
+import dev.paintcraft.client.DeferredInvalidator;
 import dev.paintcraft.client.gui.DecalSelectionScreen;
 import dev.paintcraft.core.Decal;
 import dev.paintcraft.projection.ProjectionResolver;
@@ -62,6 +63,12 @@ public final class ModNetwork {
             DecalReorderPayload.TYPE,
             DecalReorderPayload.STREAM_CODEC,
             ModNetwork::handleDecalReorder
+        );
+
+        registrar.playToClient(
+            DecalInvalidatePayload.TYPE,
+            DecalInvalidatePayload.STREAM_CODEC,
+            ModNetwork::handleDecalInvalidate
         );
     }
 
@@ -205,6 +212,10 @@ public final class ModNetwork {
         });
     }
 
+    private static void handleDecalInvalidate(DecalInvalidatePayload payload, IPayloadContext ctx) {
+        ctx.enqueueWork(() -> DeferredInvalidator.invalidate(payload.decalIds()));
+    }
+
     /**
      * Re-tier all decals that overlap with the given decal.
      */
@@ -216,19 +227,18 @@ public final class ModNetwork {
     }
 
     /**
-     * Re-resolve tiers for a single decal and update the render cache.
+     * Re-assign z-tiers for a single decal using its existing resolved surface.
+     * Does NOT re-resolve geometry (which is expensive) -- only updates tier indices
+     * in the spatial index based on current overlap state.
      */
     private static void retierDecal(UUID decalId) {
         ClientDecalCache.Entry entry = ClientDecalCache.get(decalId);
         if (entry == null) return;
 
-        Level level = Minecraft.getInstance().level;
-        if (level == null) return;
+        DecalRenderer.ResolvedEntry existing = DecalRenderer.getResolved(decalId);
+        if (existing == null) return;
 
-        Decal decal = entry.decal();
-        ResolvedSurface resolved = ProjectionResolver.resolve(decal, level);
-        ClientSpatialIndex.register(decal.id(), decal.zOrder(), resolved.fragments());
-        ResolvedSurface tiered = ClientSpatialIndex.assignTiers(decal.id(), resolved);
-        DecalRenderer.cacheResolved(decal.id(), decal, entry.texture(), tiered);
+        ResolvedSurface retiered = ClientSpatialIndex.assignTiers(decalId, existing.surface());
+        DecalRenderer.cacheResolved(decalId, entry.decal(), entry.texture(), retiered);
     }
 }
