@@ -213,7 +213,8 @@ public final class ModNetwork {
     }
 
     private static void handleDecalInvalidate(DecalInvalidatePayload payload, IPayloadContext ctx) {
-        ctx.enqueueWork(() -> DeferredInvalidator.invalidate(payload.decalIds()));
+        ctx.enqueueWork(() -> DeferredInvalidator.invalidate(
+            payload.decalIds(), payload.changedPositions()));
     }
 
     /**

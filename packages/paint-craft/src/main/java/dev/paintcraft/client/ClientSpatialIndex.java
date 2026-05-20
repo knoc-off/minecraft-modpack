@@ -97,7 +97,8 @@ public final class ClientSpatialIndex {
             int tier = getTier(decalId, frag.pos(), frag.faceNormal());
             tiered.add(frag.withZTier(tier));
         }
-        return new ResolvedSurface(tiered, resolved.backgroundPixels(), resolved.depthMap(), resolved.minDepth());
+        return new ResolvedSurface(tiered, resolved.backgroundPixels(), resolved.depthMap(),
+            resolved.minDepth(), resolved.candidates());
     }
 
     /**

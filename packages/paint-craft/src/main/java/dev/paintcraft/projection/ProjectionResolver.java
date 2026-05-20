@@ -14,6 +14,7 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 
 public final class ProjectionResolver {
 
@@ -74,9 +75,140 @@ public final class ProjectionResolver {
         }
         if (minDepth == Float.MAX_VALUE) minDepth = 0;
 
-        // build final fragments: re-filter candidates, keeping only those
-        // build final fragments: for each candidate, find which pixels it owns
-        // in the depth buffer, merge into rectangles, emit sub-fragments
+        // build final fragments from candidates + depth buffer
+        List<SurfaceFragment> fragments = buildFragments(candidates, depthBuf, vol, wPx, hPx);
+
+        // background pixels and full depth map left for client-side capture pass
+        return new ResolvedSurface(fragments, null, depthBuf, minDepth, candidates);
+    }
+
+    /**
+     * Incrementally re-resolve a decal after specific blocks changed.
+     * Only queries block state for the changed positions, reuses candidates
+     * from unchanged blocks. Falls back to full resolve if previous data
+     * is unavailable or the change is too large.
+     *
+     * Cost: O(changedBlocks + candidates * affectedPixels) vs
+     *       O(allBlocksInAABB + candidates * allPixels) for full resolve.
+     */
+    public static ResolvedSurface resolveIncremental(
+            Decal decal, BlockGetter level,
+            ResolvedSurface previous,
+            Set<BlockPos> changedBlocks) {
+
+        if (previous == null || previous.candidates().isEmpty()) {
+            return resolve(decal, level);
+        }
+
+        Projection vol = Projection.fromDecal(decal);
+        int wPx = decal.widthPx();
+        int hPx = decal.heightPx();
+
+        // Determine which pixel region is affected by the old candidates from changed blocks
+        int dirtyPxMinX = wPx, dirtyPyMinY = hPx, dirtyPxMaxX = -1, dirtyPyMaxY = -1;
+
+        // Remove candidates from changed blocks, track their pixel footprint
+        List<FaceCandidate> survivors = new ArrayList<>();
+        for (FaceCandidate c : previous.candidates()) {
+            if (changedBlocks.contains(c.blockPos())) {
+                int px0 = vol.toPixelX(c.u0, wPx);
+                int py0 = vol.toPixelY(c.v0, hPx);
+                int px1 = vol.toPixelXMax(c.u1, wPx);
+                int py1 = vol.toPixelYMax(c.v1, hPx);
+                dirtyPxMinX = Math.min(dirtyPxMinX, px0);
+                dirtyPyMinY = Math.min(dirtyPyMinY, py0);
+                dirtyPxMaxX = Math.max(dirtyPxMaxX, px1);
+                dirtyPyMaxY = Math.max(dirtyPyMaxY, py1);
+            } else {
+                survivors.add(c);
+            }
+        }
+
+        // Query ONLY the changed blocks for new candidates
+        List<FaceCandidate> newCandidates = new ArrayList<>();
+        for (BlockPos pos : changedBlocks) {
+            BlockState state = level.getBlockState(pos);
+            if (state.isAir()) continue;
+            VoxelShape shape = state.getShape(level, pos, CollisionContext.empty());
+            if (shape.isEmpty()) continue;
+            Vec3 blockOrigin = Vec3.atLowerCornerOf(pos);
+            for (AABB box : shape.toAabbs()) {
+                AABB worldBox = box.move(blockOrigin);
+                collectFaces(vol, worldBox, pos.immutable(), decal.normal(), newCandidates);
+            }
+        }
+
+        // Expand dirty region to include new candidates' footprints
+        for (FaceCandidate c : newCandidates) {
+            int px0 = vol.toPixelX(c.u0, wPx);
+            int py0 = vol.toPixelY(c.v0, hPx);
+            int px1 = vol.toPixelXMax(c.u1, wPx);
+            int py1 = vol.toPixelYMax(c.v1, hPx);
+            dirtyPxMinX = Math.min(dirtyPxMinX, px0);
+            dirtyPyMinY = Math.min(dirtyPyMinY, py0);
+            dirtyPxMaxX = Math.max(dirtyPxMaxX, px1);
+            dirtyPyMaxY = Math.max(dirtyPyMaxY, py1);
+        }
+
+        // Clamp dirty region
+        dirtyPxMinX = Math.max(0, dirtyPxMinX);
+        dirtyPyMinY = Math.max(0, dirtyPyMinY);
+        dirtyPxMaxX = Math.min(wPx - 1, dirtyPxMaxX);
+        dirtyPyMaxY = Math.min(hPx - 1, dirtyPyMaxY);
+
+        if (dirtyPxMaxX < dirtyPxMinX || dirtyPyMaxY < dirtyPyMinY) {
+            // No pixel region affected: changed blocks were outside the projection
+            return previous;
+        }
+
+        // Merge candidate lists
+        List<FaceCandidate> allCandidates = new ArrayList<>(survivors.size() + newCandidates.size());
+        allCandidates.addAll(survivors);
+        allCandidates.addAll(newCandidates);
+
+        // Clone depth buffer, reset only the dirty region
+        float[] depthBuf = Arrays.copyOf(previous.depthMap(), previous.depthMap().length);
+        for (int py = dirtyPyMinY; py <= dirtyPyMaxY; py++) {
+            for (int px = dirtyPxMinX; px <= dirtyPxMaxX; px++) {
+                depthBuf[py * wPx + px] = Float.MAX_VALUE;
+            }
+        }
+
+        // Re-rasterize ALL candidates into ONLY the dirty region
+        // (survivors might have pixels in the dirty region that were previously
+        // occluded by removed candidates, so they need to compete for depth again)
+        for (FaceCandidate c : allCandidates) {
+            int px0 = Math.max(vol.toPixelX(c.u0, wPx), dirtyPxMinX);
+            int py0 = Math.max(vol.toPixelY(c.v0, hPx), dirtyPyMinY);
+            int px1 = Math.min(vol.toPixelXMax(c.u1, wPx), dirtyPxMaxX);
+            int py1 = Math.min(vol.toPixelYMax(c.v1, hPx), dirtyPyMaxY);
+
+            for (int py = py0; py <= py1; py++) {
+                for (int px = px0; px <= px1; px++) {
+                    int idx = py * wPx + px;
+                    if (c.depth < depthBuf[idx]) {
+                        depthBuf[idx] = c.depth;
+                    }
+                }
+            }
+        }
+
+        // Rebuild minDepth
+        float minDepth = Float.MAX_VALUE;
+        for (float d : depthBuf) {
+            if (d < minDepth) minDepth = d;
+        }
+        if (minDepth == Float.MAX_VALUE) minDepth = 0;
+
+        // Rebuild fragments from the full candidate list + updated depth buffer
+        List<SurfaceFragment> fragments = buildFragments(allCandidates, depthBuf, vol, wPx, hPx);
+
+        return new ResolvedSurface(fragments, null, depthBuf, minDepth, allCandidates);
+    }
+
+    private static List<SurfaceFragment> buildFragments(
+            List<FaceCandidate> candidates, float[] depthBuf,
+            Projection vol, int wPx, int hPx) {
         List<SurfaceFragment> fragments = new ArrayList<>();
         for (FaceCandidate c : candidates) {
             int px0 = vol.toPixelX(c.u0, wPx);
@@ -88,7 +220,6 @@ public final class ProjectionResolver {
             int regionH = py1 - py0 + 1;
             if (regionW <= 0 || regionH <= 0) continue;
 
-            // Build ownership bitmap for this candidate's pixel region
             boolean[] owned = new boolean[regionW * regionH];
             boolean ownsAny = false;
             for (int ry = 0; ry < regionH; ry++) {
@@ -103,10 +234,8 @@ public final class ProjectionResolver {
             }
             if (!ownsAny) continue;
 
-            // Merge owned pixels into rectangles (greedy row-merge)
             List<int[]> rects = mergeOwnedRects(owned, regionW, regionH);
 
-            // Emit a sub-fragment for each merged rectangle
             for (int[] rect : rects) {
                 int subPx0 = px0 + rect[0];
                 int subPy0 = py0 + rect[1];
@@ -129,9 +258,7 @@ public final class ProjectionResolver {
                 ));
             }
         }
-
-        // background pixels and full depth map left for client-side capture pass
-        return new ResolvedSurface(fragments, null, depthBuf, minDepth);
+        return fragments;
     }
 
     private static void collectFaces(Projection vol, AABB worldBox,
@@ -222,7 +349,7 @@ public final class ProjectionResolver {
         };
     }
 
-    private record FaceCandidate(
+    record FaceCandidate(
         BlockPos blockPos,
         Direction faceNormal,
         float u0, float v0, float u1, float v1,
