@@ -1,0 +1,9 @@
+# Nix build symlinks
+result
+result-*
+
+# direnv
+.direnv/
+
+# Server working dirs
+*-data/

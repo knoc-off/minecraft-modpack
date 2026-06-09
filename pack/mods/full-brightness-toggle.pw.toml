@@ -1,0 +1,13 @@
+name = "Full Brightness Toggle"
+filename = "fullbrightnesstoggle-1.21.1-4.4.jar"
+side = "client"
+
+[download]
+url = "https://cdn.modrinth.com/data/aEK1KhsC/versions/8S5iOkIh/fullbrightnesstoggle-1.21.1-4.4.jar"
+hash-format = "sha512"
+hash = "970c95a10655939a9c5eb2ab49adde59fcee87388ee6fdd0563ba14c1f78da06bfd5d12d5cba0720964e52c3f05ef1d5d770884f5161c4e6966da1ccbf3eb5ec"
+
+[update]
+[update.modrinth]
+mod-id = "aEK1KhsC"
+version = "8S5iOkIh"

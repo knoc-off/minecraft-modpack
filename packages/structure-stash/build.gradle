@@ -1,0 +1,76 @@
+plugins {
+    id 'net.neoforged.moddev' version '2.0.141'
+}
+
+version = project.mod_version
+group = project.mod_group_id
+
+base {
+    archivesName = project.mod_id
+}
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+
+neoForge {
+    version = project.neo_version
+
+    parchment {
+        minecraftVersion = project.parchment_minecraft_version
+        mappingsVersion = project.parchment_mappings_version
+    }
+
+    runs {
+        client {
+            client()
+            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+        }
+        server {
+            server()
+            programArgument '--nogui'
+            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+        }
+    }
+
+    mods {
+        "${mod_id}" {
+            sourceSet sourceSets.main
+        }
+    }
+}
+
+sourceSets.main.resources { srcDir 'src/main/templates' }
+
+repositories {
+    mavenLocal()
+}
+
+dependencies {
+    compileOnly files("${projectDir}/libs/chisels-and-bits-api-21.1.32.jar")
+    compileOnly files("${projectDir}/libs/chisels-and-bits-core-21.1.32.jar")
+    compileOnly files("${projectDir}/libs/scena-core-21.1.20.jar")
+    compileOnly files("${projectDir}/../asset-shelf/build/libs/assetshelf-0.1.0.jar")
+}
+
+tasks.withType(ProcessResources).configureEach {
+    var replaceProperties = [
+        minecraft_version   : minecraft_version,
+        minecraft_version_range: minecraft_version_range,
+        neo_version         : neo_version,
+        loader_version_range: loader_version_range,
+        mod_id              : mod_id,
+        mod_name            : mod_name,
+        mod_license         : mod_license,
+        mod_version         : mod_version,
+        mod_group_id        : mod_group_id,
+    ]
+    inputs.properties replaceProperties
+    filesMatching(['META-INF/neoforge.mods.toml']) {
+        expand replaceProperties
+    }
+}
+
+tasks.register('install', Copy) {
+    dependsOn 'jar'
+    from jar.archiveFile
+    into "${projectDir}/../../local-mods"
+}

@@ -1,0 +1,17 @@
+build/
+.gradle/
+run/
+logs/
+*.iml
+.idea/
+out/
+classes/
+src/generated/
+libs/
+
+# build outputs / IDE / direnv (kept locally)
+bin/
+out/
+.direnv/
+.settings/
+.eclipse/
