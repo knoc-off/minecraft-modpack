@@ -27,7 +27,6 @@ import net.minecraft.world.level.block.Blocks;
 import net.neoforged.neoforge.network.PacketDistributor;
 
 import java.io.FileInputStream;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.*;
 
@@ -203,7 +202,6 @@ public class PaintScreen extends Screen {
         curY += blockListH + 4;
 
         // Action row 1: [undo] [redo] [discard]
-        int halfCol = colWidth / 2;
         int thirdCol = colWidth / 3;
         addRenderableWidget(Button.builder(Component.literal("undo"), b -> undo())
             .bounds(colX, curY, thirdCol - 1, 16).build());

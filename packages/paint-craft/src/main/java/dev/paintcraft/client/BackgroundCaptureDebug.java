@@ -138,7 +138,6 @@ public final class BackgroundCaptureDebug {
 
         // Pixel stats
         int pixelsWithCandidate = 0;
-        int pixelsWithColor = 0;
         for (int i = 0; i < wPx * hPx; i++) {
             if (winnerIdx[i] >= 0) pixelsWithCandidate++;
         }

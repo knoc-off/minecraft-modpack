@@ -37,9 +37,6 @@ public class BitsStashScreen extends Screen {
     private static final int SLOT_HOVER      = 0x80FFFFFF;
     private static final int SORT_ACTIVE     = 0xFFD4A858;
     private static final int SORT_INACTIVE   = 0xFF8B8B8B;
-    private static final int TOOLTIP_BG      = 0xF0100010;
-    private static final int TOOLTIP_BORDER1 = 0x505000FF;
-    private static final int TOOLTIP_BORDER2 = 0x5028007F;
     private static final int HOTBAR_TINT     = 0x18FFFFFF;
     private static final int SEARCH_BG       = 0xFF373737;
     private static final int GRAYED_OVERLAY  = 0xA0404040;
@@ -485,7 +482,6 @@ public class BitsStashScreen extends Screen {
 
     private boolean clickInventory(double mx, double my, int btn, boolean shift) {
         if (minecraft == null || minecraft.player == null) return false;
-        var inv = minecraft.player.getInventory();
 
         int invX = panelX + PAD;
         int invY = panelY + HEADER_H + STASH_ROWS * SLOT + INV_GAP + INV_LABEL_H;

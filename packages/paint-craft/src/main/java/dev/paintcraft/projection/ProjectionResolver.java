@@ -1,7 +1,6 @@
 package dev.paintcraft.projection;
 
 import dev.paintcraft.core.Decal;
-import dev.paintcraft.core.FaceFrame;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.BlockGetter;

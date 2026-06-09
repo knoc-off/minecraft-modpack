@@ -13,13 +13,11 @@ import net.minecraft.world.phys.Vec3;
  */
 public final class Projection {
 
-    private final FaceFrame frame;
     private final Vec3 origin;
     private final Vec3 right, up, forward;
     private final float width, height, depth;
 
     public Projection(FaceFrame frame, BlockPos anchor, int widthBlocks, int heightBlocks, float depth) {
-        this.frame = frame;
         this.origin = frame.projectionOrigin(anchor);
         this.right = frame.rightVec();
         this.up = frame.upVec();

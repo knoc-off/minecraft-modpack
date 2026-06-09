@@ -5,7 +5,6 @@ import dev.paintcraft.projection.Projection;
 import dev.paintcraft.projection.ProjectionResult;
 import dev.paintcraft.projection.ProjectionResolver;
 import net.minecraft.client.Minecraft;
-import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;

@@ -461,7 +461,6 @@ public class SaveAssetScreen extends Screen {
         // ── Buttons ──
         int btnGap = 8;
         int cancelW = 80;
-        int actionW = contentW - cancelW - btnGap;
 
         // Cancel (ghost)
         cancelBtnL = cx;

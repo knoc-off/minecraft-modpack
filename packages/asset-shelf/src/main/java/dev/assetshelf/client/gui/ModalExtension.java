@@ -2,7 +2,6 @@ package dev.assetshelf.client.gui;
 
 import net.minecraft.client.gui.GuiGraphics;
 
-import javax.annotation.Nullable;
 
 /**
  * Callback widget slot for mod-specific content in the SaveAssetScreen.
