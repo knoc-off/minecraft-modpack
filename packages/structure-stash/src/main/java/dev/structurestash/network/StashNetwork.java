@@ -1,14 +1,12 @@
 package dev.structurestash.network;
 
 import dev.structurestash.StructureStash;
-import dev.structurestash.client.BitsStashClientCache;
+import dev.structurestash.client.ClientStashHandlers;
 import dev.structurestash.compat.BlockNormalizer;
-import dev.structurestash.compat.ChiseledAssetType;
 import dev.structurestash.item.BlueprintItem;
 import dev.structurestash.item.BlueprintWandItem;
 import dev.structurestash.item.ModDataComponents;
 import dev.structurestash.stash.BitsStash;
-import dev.assetshelf.api.AssetShelfApi;
 import mod.chiselsandbits.api.blockinformation.BlockInformation;
 import mod.chiselsandbits.api.chiseling.eligibility.IEligibilityManager;
 import mod.chiselsandbits.api.item.bit.IBitItem;
@@ -342,40 +340,11 @@ public final class StashNetwork {
     // --- Client handlers ---
 
     private static void handleStashSync(StashSyncPayload payload, IPayloadContext ctx) {
-        ctx.enqueueWork(() -> {
-            BitsStashClientCache.receive(payload.stash());
-        });
+        ctx.enqueueWork(() -> ClientStashHandlers.handleStashSync(payload));
     }
 
     private static void handleCapturedStructure(CapturedStructurePayload payload, IPayloadContext ctx) {
-        ctx.enqueueWork(() -> {
-            var mc = net.minecraft.client.Minecraft.getInstance();
-            dev.assetshelf.api.AssetType type = AssetShelfApi.getType(ChiseledAssetType.TYPE_ID);
-            String typeName = type != null ? type.displayName().getString() : "Chiseled Blocks";
-            int accent = type != null ? type.accentColor() : 0xFF6AAFCF;
-
-            dev.assetshelf.client.gui.SaveAssetScreen.Builder builder =
-                dev.assetshelf.client.gui.SaveAssetScreen.saveLocal(mc.screen)
-                    .assetTypeInfo(typeName, accent)
-                    .heroSubtitle("save captured structure to\nyour local library")
-                    .defaultName(payload.name())
-                    .defaultTags(java.util.List.of(payload.sizeX() + "x" + payload.sizeZ()))
-                    .onAction((name, description, tags) -> {
-                        AssetShelfApi.saveLocal(ChiseledAssetType.TYPE_ID, payload.data(),
-                            name, payload.sizeX(), payload.sizeZ(), tags);
-                        if (mc.player != null)
-                            mc.player.displayClientMessage(
-                                Component.literal("Saved to library: " + name), true);
-                    });
-
-            if (type != null) {
-                builder.thumbnailFromBytes(payload.data(), type, payload.sizeX(), payload.sizeZ());
-                var ext = type.createModalExtension(payload.data(), false);
-                if (ext != null) builder.extension(ext);
-            }
-
-            mc.setScreen(builder.build());
-        });
+        ctx.enqueueWork(() -> ClientStashHandlers.handleCapturedStructure(payload));
     }
 
     // --- Utilities ---

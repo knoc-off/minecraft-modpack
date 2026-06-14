@@ -3,10 +3,9 @@ package dev.assetshelf.network;
 import dev.assetshelf.AssetShelf;
 import dev.assetshelf.api.AssetShelfApi;
 import dev.assetshelf.api.AssetType;
-import dev.assetshelf.client.gui.ShelfBrowserScreen;
+import dev.assetshelf.client.ClientShelfHandlers;
 import dev.assetshelf.core.AssetMeta;
 import dev.assetshelf.storage.ServerLibrary;
-import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
@@ -268,11 +267,6 @@ public final class ShelfNetwork {
     // --- Client-side handlers ---
 
     private static void handleBrowseResponse(BrowseResponsePayload payload, IPayloadContext ctx) {
-        ctx.enqueueWork(() -> {
-            var screen = Minecraft.getInstance().screen;
-            if (screen instanceof ShelfBrowserScreen browser) {
-                browser.receiveServerAssets(payload.entries(), payload.totalCount(), payload.page());
-            }
-        });
+        ctx.enqueueWork(() -> ClientShelfHandlers.handleBrowseResponse(payload));
     }
 }

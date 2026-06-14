@@ -2,25 +2,14 @@ package dev.paintcraft.network;
 
 import dev.paintcraft.PaintCraft;
 import dev.paintcraft.ModServerConfig;
-import dev.paintcraft.client.ClientBrushHandler;
-import dev.paintcraft.client.ClientDecalCache;
-import dev.paintcraft.client.ClientDecalResolver;
-import dev.paintcraft.client.ClientSpatialIndex;
-import dev.paintcraft.client.CellCompositor;
-import dev.paintcraft.client.DecalRenderer;
-import dev.paintcraft.client.DeferredInvalidator;
-import dev.paintcraft.client.gui.DecalSelectionScreen;
+import dev.paintcraft.client.ClientPayloadHandlers;
 import dev.paintcraft.core.Decal;
 import dev.paintcraft.item.EraserItem;
-import dev.paintcraft.projection.ProjectionResult;
-import dev.paintcraft.projection.ProjectionResolver;
 import dev.paintcraft.storage.ChunkPaintStorage;
-import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.ChunkPos;
-import net.minecraft.world.level.Level;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
@@ -90,7 +79,7 @@ public final class ModNetwork {
             if (ctx.player() instanceof ServerPlayer player) {
                 handleDecalCreateOnServer(payload, player);
             } else {
-                handleDecalCreateOnClient(payload);
+                ClientPayloadHandlers.handleDecalCreate(payload);
             }
         });
     }
@@ -228,30 +217,6 @@ public final class ModNetwork {
         PaintCraft.LOGGER.debug("Server stored and broadcast decal {} from {}", decal.id(), player.getName().getString());
     }
 
-    private static void handleDecalCreateOnClient(DecalCreatePayload payload) {
-        Decal decal = new Decal(
-            payload.id(), payload.seqNo(), payload.anchor(),
-            payload.normal(), payload.up(),
-            payload.widthPx(), payload.heightPx(), payload.depth(),
-            payload.pixels(), payload.flags()
-        );
-
-        ClientDecalCache.put(decal);
-
-        Level level = Minecraft.getInstance().level;
-        if (level != null) {
-            ProjectionResult result = ProjectionResolver.resolve(decal, level);
-            ClientSpatialIndex.register(decal.id(), decal.zOrder(), result.surface().fragments());
-            DecalRenderer.cacheResolved(decal.id(), decal,
-                result.surface(), result.state());
-
-            // Track for re-resolution if not all chunks in the decal's volume are loaded yet
-            ClientDecalResolver.markPendingIfIncomplete(decal, level);
-        }
-
-        PaintCraft.LOGGER.debug("Client resolved and cached decal {}", payload.id());
-    }
-
     private static void handleDecalDelete(DecalDeletePayload payload, IPayloadContext ctx) {
         ctx.enqueueWork(() -> {
             if (ctx.player() instanceof ServerPlayer serverPlayer) {
@@ -274,31 +239,17 @@ public final class ModNetwork {
                     );
                 });
             } else {
-                // Client side: mark compositor dirty BEFORE unregistering spatial index
-                CellCompositor.markDecalDirty(payload.id());
-                ClientSpatialIndex.unregister(payload.id());
-                ClientDecalCache.remove(payload.id());
-                DecalRenderer.invalidate(payload.id());
+                ClientPayloadHandlers.handleDecalDelete(payload);
             }
         });
     }
 
     private static void handleOpenEditor(OpenEditorPayload payload, IPayloadContext ctx) {
-        ctx.enqueueWork(() -> {
-            ClientBrushHandler.openExistingEditor(
-                payload.anchor(), payload.normal(), payload.up(),
-                payload.widthPx() / Decal.PX_PER_BLOCK,
-                payload.heightPx() / Decal.PX_PER_BLOCK,
-                payload.depth(), payload.pixels(), payload.id()
-            );
-        });
+        ctx.enqueueWork(() -> ClientPayloadHandlers.handleOpenEditor(payload));
     }
 
     private static void handleDecalSelection(DecalSelectionPayload payload, IPayloadContext ctx) {
-        ctx.enqueueWork(() -> {
-            Minecraft.getInstance().setScreen(
-                new DecalSelectionScreen(payload.entries(), payload.eraseMode()));
-        });
+        ctx.enqueueWork(() -> ClientPayloadHandlers.handleDecalSelection(payload));
     }
 
     private static void handleDecalReorder(DecalReorderPayload payload, IPayloadContext ctx) {
@@ -339,16 +290,11 @@ public final class ModNetwork {
     }
 
     private static void handleDecalInvalidate(DecalInvalidatePayload payload, IPayloadContext ctx) {
-        ctx.enqueueWork(() -> DeferredInvalidator.invalidate(
-            payload.decalIds(), payload.changedPositions()));
+        ctx.enqueueWork(() -> ClientPayloadHandlers.handleDecalInvalidate(payload));
     }
 
     private static void handleChunkDecalBatch(ChunkDecalBatchPayload payload, IPayloadContext ctx) {
-        ctx.enqueueWork(() -> {
-            for (DecalCreatePayload decal : payload.decals()) {
-                handleDecalCreateOnClient(decal);
-            }
-        });
+        ctx.enqueueWork(() -> ClientPayloadHandlers.handleChunkDecalBatch(payload));
     }
 
     private static void handleDecalErase(DecalErasePayload payload, IPayloadContext ctx) {
