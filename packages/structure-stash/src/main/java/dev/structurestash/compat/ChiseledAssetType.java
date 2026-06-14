@@ -76,8 +76,18 @@ public class ChiseledAssetType implements AssetType {
 
     // ── Deferred thumbnail pipeline ──
 
-    private final DeferredThumbnailPipeline pipeline = new DeferredThumbnailPipeline();
+    /**
+     * Lazily created on first client-side use. Instantiating {@link DeferredThumbnailPipeline}
+     * eagerly would load a {@code @OnlyIn(Dist.CLIENT)} class during {@code <init>}, which
+     * crashes the dedicated server (this AssetType is registered on both dists).
+     */
+    private DeferredThumbnailPipeline pipeline;
     private final List<PendingThumb> pendingCallbacks = new ArrayList<>();
+
+    private DeferredThumbnailPipeline pipeline() {
+        if (pipeline == null) pipeline = new DeferredThumbnailPipeline();
+        return pipeline;
+    }
 
     private record PendingThumb(long key, NativeImage target, int size, Runnable onReady) {}
 
@@ -596,7 +606,7 @@ public class ChiseledAssetType implements AssetType {
         // Submit to background pipeline for deferred rendering
         HolderLookup.Provider registries = getRegistries();
         if (registries == null) return;
-        pipeline.submit(cacheKey, data, registries);
+        pipeline().submit(cacheKey, data, registries);
         pendingCallbacks.add(new PendingThumb(cacheKey, target, size, onReady));
     }
 
@@ -604,7 +614,7 @@ public class ChiseledAssetType implements AssetType {
     public void tickDeferredThumbnails() {
         if (pendingCallbacks.isEmpty()) return;
 
-        DeferredThumbnailPipeline.PreparedJob job = pipeline.poll();
+        DeferredThumbnailPipeline.PreparedJob job = pipeline().poll();
         if (job == null) return;
 
         // Find the callback for this key
@@ -633,7 +643,7 @@ public class ChiseledAssetType implements AssetType {
 
     @Override
     public void cancelDeferredThumbnails() {
-        pipeline.cancelAll();
+        if (pipeline != null) pipeline.cancelAll();
         pendingCallbacks.clear();
     }
 
