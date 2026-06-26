@@ -92,6 +92,7 @@ public final class ClientBrushHandler {
 
         int[] background = BackgroundCapture.capture(
             Minecraft.getInstance().level, anchor, face, up, widthBlocks, heightBlocks, maxDepth());
+        EditorUnderlay.build(background, anchor, frame, widthBlocks, heightBlocks, maxDepth(), null);
 
         Minecraft.getInstance().setScreen(new PaintScreen(
             anchor, frame, widthBlocks, heightBlocks, background));
@@ -108,6 +109,7 @@ public final class ClientBrushHandler {
 
         int[] background = BackgroundCapture.capture(
             Minecraft.getInstance().level, pos, face, frame.up(), 1, 1, maxDepth());
+        EditorUnderlay.build(background, pos, frame, 1, 1, maxDepth(), null);
 
         Minecraft.getInstance().setScreen(new PaintScreen(pos, frame, 1, 1, background));
     }
@@ -157,6 +159,8 @@ public final class ClientBrushHandler {
         int[] background = BackgroundCapture.capture(
             Minecraft.getInstance().level, bgAnchor, normal, displayFrame.up(),
             display.widthBlocks(), display.heightBlocks(), depth);
+        EditorUnderlay.build(background, bgAnchor, displayFrame,
+            display.widthBlocks(), display.heightBlocks(), depth, decalId);
 
         Minecraft.getInstance().setScreen(new PaintScreen(
             anchor, storedFrame, displayFrame, transform,

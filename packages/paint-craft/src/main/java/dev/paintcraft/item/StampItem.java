@@ -69,7 +69,7 @@ public class StampItem extends Item {
 
         // Create decal via the normal pipeline
         DecalCreatePayload payload = new DecalCreatePayload(
-            UUID.randomUUID(), 0, pos, face, up,
+            UUID.randomUUID(), 0, 0, pos, face, up,
             data.widthPx(), data.heightPx(), ModServerConfig.CONFIG.maxDepth.get().floatValue(), (byte) 0, data.pixels()
         );
 

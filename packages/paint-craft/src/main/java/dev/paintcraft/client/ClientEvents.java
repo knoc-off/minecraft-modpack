@@ -19,6 +19,8 @@ import net.neoforged.neoforge.client.event.RegisterShadersEvent;
 import net.neoforged.neoforge.client.event.RenderGuiEvent;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 import net.neoforged.neoforge.event.level.ChunkEvent;
+import net.neoforged.fml.event.config.ModConfigEvent;
+import net.neoforged.fml.config.ModConfig;
 import org.lwjgl.glfw.GLFW;
 
 import java.io.IOException;
@@ -69,6 +71,18 @@ public final class ClientEvents {
     @SubscribeEvent
     public static void onRenderGui(RenderGuiEvent.Post event) {
         DebugOverlay.render(event.getGuiGraphics());
+    }
+
+    // ModConfigEvent implements IModBusEvent, so NeoForge auto-routes these to the mod bus.
+    // Re-mesh decals when the client config is loaded or edited so reliefEnabled toggles live.
+    @SubscribeEvent
+    public static void onConfigLoad(ModConfigEvent.Loading event) {
+        if (event.getConfig().getType() == ModConfig.Type.CLIENT) DecalRenderer.onConfigReloaded();
+    }
+
+    @SubscribeEvent
+    public static void onConfigReload(ModConfigEvent.Reloading event) {
+        if (event.getConfig().getType() == ModConfig.Type.CLIENT) DecalRenderer.onConfigReloaded();
     }
 
     @SubscribeEvent

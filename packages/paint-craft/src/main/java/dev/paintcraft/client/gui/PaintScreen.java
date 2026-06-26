@@ -736,7 +736,7 @@ public class PaintScreen extends Screen {
         PixelGrid stored = transform.toStored(displayGrid);
 
         DecalCreatePayload payload = new DecalCreatePayload(
-            decalId, 0, anchor, storedFrame.normal(), storedFrame.up(),
+            decalId, 0, 0, anchor, storedFrame.normal(), storedFrame.up(),
             stored.width(), stored.height(), depth, (byte) 0, stored.data()
         );
         PacketDistributor.sendToServer(payload);

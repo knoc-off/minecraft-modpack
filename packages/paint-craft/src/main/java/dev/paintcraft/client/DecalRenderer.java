@@ -46,7 +46,16 @@ public final class DecalRenderer {
 
     private static final Matrix4f viewMat = new Matrix4f();
 
+    // Set off-thread when the client config is (re)loaded; consumed on the render thread in
+    // renderAll() to re-mesh all decal chunks so toggling reliefEnabled takes effect immediately.
+    private static volatile boolean configReloaded = false;
+
     private DecalRenderer() {}
+
+    /** Called when the client config reloads — forces a full re-mesh of all decal chunks. */
+    public static void onConfigReloaded() {
+        configReloaded = true;
+    }
 
     // --- Public API ---
 
@@ -210,6 +219,12 @@ public final class DecalRenderer {
         if (profiling) dbg.reset();
 
         Level level = Minecraft.getInstance().level;
+
+        // Config (re)loaded: re-mesh every decal chunk so reliefEnabled / relief params apply now.
+        if (configReloaded) {
+            configReloaded = false;
+            dirtyChunks.addAll(chunkVBOs.keySet());
+        }
 
         // 0a. Detect client-side block changes (instant, no server round-trip)
         detectLocalBlockChanges(level);
@@ -480,63 +495,67 @@ public final class DecalRenderer {
             for (int gu = 0; gu < res; gu++) {
                 int hc = h[gv * res + gu] & 0xFF;
                 if (hc == 0) continue;
-                float capW = hc * t;
+                // Layer 0 (the first layer, directly on the block) has zero thickness so it looks
+                // exactly as before; only layer 1+ extrudes. depth(h) = max(0, h-1) * thickness.
+                float capW = Math.max(0, hc - 1) * t;
 
                 float uR0 = gu * inv, uR1 = (gu + 1) * inv;
                 float vUp1 = 1f - gv * inv;        // top edge of this grid row (toward +up)
                 float vUp0 = 1f - (gv + 1) * inv;  // bottom edge
 
-                // Cap (top face), CCW from outside; NO_CULL so winding is forgiving.
+                // Walls sample this cell's OWN centre texel (always opaque) rather than the texel at
+                // the shared edge — otherwise the boundary texel rounds onto the transparent
+                // neighbour under NEAREST filtering and the whole wall is alpha-discarded.
+                float wu = (gu + 0.5f) * inv;
+                float wv = 1f - (gv + 0.5f) * inv;
+
+                // Cap (top face): per-texel UV. NO_CULL so winding is forgiving.
                 cu[0] = uR0; cv[0] = vUp0; cw[0] = capW;
                 cu[1] = uR1; cv[1] = vUp0; cw[1] = capW;
                 cu[2] = uR1; cv[2] = vUp1; cw[2] = capW;
                 cu[3] = uR0; cv[3] = vUp1; cw[3] = capW;
                 emitReliefQuad(builder, bnds, ox, oy, oz, rx, ry, rz, ux, uy, uz, nx, ny, nz,
-                    slot, cornerAO, cornerLight, faceShade, 1.0f, cu, cv, cw, nx, ny, nz);
+                    slot, cornerAO, cornerLight, faceShade, 1.0f, cu, cv, cw, nx, ny, nz, false, 0f, 0f);
 
                 // Right wall (+right) where right neighbour is lower
-                int hr = heightAt(cell, gu + 1, gv, res, right, up, face);
-                if (hr < hc) {
-                    float w0 = hr * t;
+                float w0 = Math.max(0, heightAt(cell, gu + 1, gv, res, right, up, face) - 1) * t;
+                if (w0 < capW) {
                     cu[0] = uR1; cv[0] = vUp0; cw[0] = w0;
                     cu[1] = uR1; cv[1] = vUp1; cw[1] = w0;
                     cu[2] = uR1; cv[2] = vUp1; cw[2] = capW;
                     cu[3] = uR1; cv[3] = vUp0; cw[3] = capW;
                     emitReliefQuad(builder, bnds, ox, oy, oz, rx, ry, rz, ux, uy, uz, nx, ny, nz,
-                        slot, cornerAO, cornerLight, faceShade, 0.75f, cu, cv, cw, rx, ry, rz);
+                        slot, cornerAO, cornerLight, faceShade, 0.75f, cu, cv, cw, rx, ry, rz, true, wu, wv);
                 }
                 // Left wall (-right)
-                int hl = heightAt(cell, gu - 1, gv, res, right, up, face);
-                if (hl < hc) {
-                    float w0 = hl * t;
+                w0 = Math.max(0, heightAt(cell, gu - 1, gv, res, right, up, face) - 1) * t;
+                if (w0 < capW) {
                     cu[0] = uR0; cv[0] = vUp0; cw[0] = w0;
                     cu[1] = uR0; cv[1] = vUp1; cw[1] = w0;
                     cu[2] = uR0; cv[2] = vUp1; cw[2] = capW;
                     cu[3] = uR0; cv[3] = vUp0; cw[3] = capW;
                     emitReliefQuad(builder, bnds, ox, oy, oz, rx, ry, rz, ux, uy, uz, nx, ny, nz,
-                        slot, cornerAO, cornerLight, faceShade, 0.75f, cu, cv, cw, -rx, -ry, -rz);
+                        slot, cornerAO, cornerLight, faceShade, 0.75f, cu, cv, cw, -rx, -ry, -rz, true, wu, wv);
                 }
                 // Top wall (+up): grid neighbour gv-1
-                int hu = heightAt(cell, gu, gv - 1, res, right, up, face);
-                if (hu < hc) {
-                    float w0 = hu * t;
+                w0 = Math.max(0, heightAt(cell, gu, gv - 1, res, right, up, face) - 1) * t;
+                if (w0 < capW) {
                     cu[0] = uR0; cv[0] = vUp1; cw[0] = w0;
                     cu[1] = uR1; cv[1] = vUp1; cw[1] = w0;
                     cu[2] = uR1; cv[2] = vUp1; cw[2] = capW;
                     cu[3] = uR0; cv[3] = vUp1; cw[3] = capW;
                     emitReliefQuad(builder, bnds, ox, oy, oz, rx, ry, rz, ux, uy, uz, nx, ny, nz,
-                        slot, cornerAO, cornerLight, faceShade, 0.85f, cu, cv, cw, ux, uy, uz);
+                        slot, cornerAO, cornerLight, faceShade, 0.85f, cu, cv, cw, ux, uy, uz, true, wu, wv);
                 }
                 // Bottom wall (-up): grid neighbour gv+1
-                int hd = heightAt(cell, gu, gv + 1, res, right, up, face);
-                if (hd < hc) {
-                    float w0 = hd * t;
+                w0 = Math.max(0, heightAt(cell, gu, gv + 1, res, right, up, face) - 1) * t;
+                if (w0 < capW) {
                     cu[0] = uR0; cv[0] = vUp0; cw[0] = w0;
                     cu[1] = uR1; cv[1] = vUp0; cw[1] = w0;
                     cu[2] = uR1; cv[2] = vUp0; cw[2] = capW;
                     cu[3] = uR0; cv[3] = vUp0; cw[3] = capW;
                     emitReliefQuad(builder, bnds, ox, oy, oz, rx, ry, rz, ux, uy, uz, nx, ny, nz,
-                        slot, cornerAO, cornerLight, faceShade, 0.65f, cu, cv, cw, -ux, -uy, -uz);
+                        slot, cornerAO, cornerLight, faceShade, 0.65f, cu, cv, cw, -ux, -uy, -uz, true, wu, wv);
                 }
             }
         }
@@ -570,7 +589,8 @@ public final class DecalRenderer {
                                        float nx, float ny, float nz, int slot,
                                        float[] cornerAO, int[] cornerLight, float faceShade,
                                        float shadeMul, float[] cu, float[] cv, float[] cw,
-                                       float emitNx, float emitNy, float emitNz) {
+                                       float emitNx, float emitNy, float emitNz,
+                                       boolean flatUV, float flatU, float flatV) {
         for (int i = 0; i < 4; i++) {
             float uR = cu[i], vUp = cv[i], w = cw[i];
             double wx = ox + rx * uR + ux * vUp + nx * w;
@@ -582,8 +602,10 @@ public final class DecalRenderer {
             int shade = (int) (ao * faceShade * shadeMul * 255f);
             if (shade > 255) shade = 255;
 
-            float texU = CellCompositor.atlasU(slot, uR);
-            float texV = CellCompositor.atlasV(slot, 1f - vUp);
+            // Walls (flatUV) sample the owning cell's centre texel so they never hit the transparent
+            // neighbour texel at the shared edge; caps sample per-corner for full detail.
+            float texU = flatUV ? CellCompositor.atlasU(slot, flatU) : CellCompositor.atlasU(slot, uR);
+            float texV = flatUV ? CellCompositor.atlasV(slot, 1f - flatV) : CellCompositor.atlasV(slot, 1f - vUp);
 
             builder.addVertex((float) wx, (float) wy, (float) wz)
                 .setColor(shade, shade, shade, 255)

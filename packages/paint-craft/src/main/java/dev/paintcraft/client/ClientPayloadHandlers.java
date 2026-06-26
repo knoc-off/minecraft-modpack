@@ -35,6 +35,7 @@ public final class ClientPayloadHandlers {
             payload.widthPx(), payload.heightPx(), payload.depth(),
             payload.pixels(), payload.flags()
         );
+        decal.setZOverride(payload.zOverride());
 
         ClientDecalCache.put(decal);
 
