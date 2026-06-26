@@ -36,10 +36,35 @@ public final class ModConfig {
         }
     }
 
+    /** Grid resolution (cells per block face) for derived stack-height relief. Must divide 32. */
+    public enum HeightRes implements TranslatableEnum {
+        PER_FACE(1),
+        COARSE(8),
+        MEDIUM(16),
+        PER_PIXEL(32);
+
+        public final int cells;
+
+        HeightRes(int cells) {
+            this.cells = cells;
+        }
+
+        @Override
+        public Component getTranslatedName() {
+            return Component.literal(cells + "x" + cells);
+        }
+    }
+
     public static class Config {
         // -- Rendering --
         public final ModConfigSpec.IntValue renderDistance;
         public final ModConfigSpec.EnumValue<AtlasSize> atlasSize;
+
+        // -- Relief (derived stack-height extrusion) --
+        public final ModConfigSpec.BooleanValue reliefEnabled;
+        public final ModConfigSpec.EnumValue<HeightRes> reliefHeightRes;
+        public final ModConfigSpec.DoubleValue reliefLayerThickness;
+        public final ModConfigSpec.IntValue reliefMaxLayers;
 
         // -- Editor --
         public final ModConfigSpec.IntValue maxBrushSize;
@@ -70,6 +95,24 @@ public final class ModConfig {
             ghostPreviewOpacity = builder
                 .comment("Opacity of the stamp placement preview (0=invisible, 255=fully opaque).")
                 .defineInRange("ghostPreviewOpacity", 160, 0, 255);
+
+            reliefEnabled = builder
+                .comment("Render decals as 3D relief: each painted spot is extruded outward by",
+                         "the number of stacked layers covering it (derived, nothing stored).")
+                .define("reliefEnabled", true);
+
+            reliefHeightRes = builder
+                .comment("Grid resolution (cells per block face) for relief height.",
+                         "Lower = chunkier relief and far less geometry. Independent of texture resolution.")
+                .defineEnum("reliefHeightRes", HeightRes.MEDIUM);
+
+            reliefLayerThickness = builder
+                .comment("World-space thickness (in blocks) added per stacked layer. 0.0625 = 1/16 block.")
+                .defineInRange("reliefLayerThickness", 0.0625, 0.0, 0.5);
+
+            reliefMaxLayers = builder
+                .comment("Maximum stack height (in layers) used for relief, clamps total extrusion.")
+                .defineInRange("reliefMaxLayers", 8, 1, 64);
 
             builder.pop();
 

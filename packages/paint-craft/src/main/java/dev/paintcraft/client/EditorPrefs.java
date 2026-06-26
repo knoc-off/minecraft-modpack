@@ -31,6 +31,7 @@ public final class EditorPrefs {
     public int selectedColor = 0xFF000000;
     public boolean softMode = true;
     public int brushSize = 1;
+    public int brushAlpha = 255;
 
     public static EditorPrefs load() {
         Path path = Minecraft.getInstance().gameDirectory.toPath().resolve(FILE_NAME);
@@ -71,7 +72,7 @@ public final class EditorPrefs {
     /** Snapshot current editor state into a saveable prefs object. */
     public static EditorPrefs from(List<Block> blocks, List<Integer> recents,
                                     Collection<Integer> pinned, int selectedColor,
-                                    boolean softMode, int brushSize) {
+                                    boolean softMode, int brushSize, int brushAlpha) {
         EditorPrefs p = new EditorPrefs();
         p.blocks = blocks.stream()
             .map(b -> BuiltInRegistries.BLOCK.getKey(b).toString())
@@ -81,6 +82,7 @@ public final class EditorPrefs {
         p.selectedColor = selectedColor;
         p.softMode = softMode;
         p.brushSize = Math.max(1, Math.min(dev.paintcraft.ModConfig.CONFIG.maxBrushSize.get(), brushSize));
+        p.brushAlpha = Math.max(1, Math.min(255, brushAlpha));
         return p;
     }
 }

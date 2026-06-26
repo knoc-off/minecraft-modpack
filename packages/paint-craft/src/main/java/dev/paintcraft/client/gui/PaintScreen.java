@@ -55,6 +55,7 @@ public class PaintScreen extends Screen {
 
     // Color state
     private int selectedColor = 0xFF000000;
+    private int brushAlpha = 255; // paint opacity (1-255), independent of selectedColor's RGB
     private final List<Integer> recentColors = new ArrayList<>();
     private final LinkedHashSet<Integer> pinnedColors = new LinkedHashSet<>();
 
@@ -126,6 +127,7 @@ public class PaintScreen extends Screen {
         this.selectedColor = prefs.selectedColor;
         this.colorSquareSoft = prefs.softMode;
         this.        brushSize = Math.max(1, Math.min(ModConfig.CONFIG.maxBrushSize.get(), prefs.brushSize));
+        this.brushAlpha = Math.max(1, Math.min(255, prefs.brushAlpha));
         if (prefs.pinnedColors != null) {
             this.pinnedColors.addAll(prefs.pinnedColors);
         }
@@ -282,9 +284,19 @@ public class PaintScreen extends Screen {
         // === Selected color preview ===
         int previewX = canvasX + canvasW * pixelSize + 12;
         int previewY = this.height - 28;
-        gfx.fill(previewX, previewY, previewX + 16, previewY + 16, selectedColor);
+        // Checkerboard behind the swatch so partial opacity reads correctly.
+        for (int cy = 0; cy < 16; cy++) {
+            for (int cx = 0; cx < 16; cx++) {
+                boolean checker = ((cx / 4) + (cy / 4)) % 2 == 0;
+                gfx.fill(previewX + cx, previewY + cy, previewX + cx + 1, previewY + cy + 1,
+                    checker ? 0xFF999999 : 0xFF666666);
+            }
+        }
+        gfx.fill(previewX, previewY, previewX + 16, previewY + 16, paintColor());
         gfx.renderOutline(previewX - 1, previewY - 1, 18, 18, 0xFFFFFFFF);
         gfx.drawString(this.font, "" + brushSize, previewX + 22, previewY + 4, 0xFFFFFF);
+        gfx.drawString(this.font, "A: " + Math.round(brushAlpha / 255f * 100f) + "%",
+            previewX + 22, previewY - 18, 0xFFD4A858);
         if (Decal.SNAP > 1) {
             String mode = subPixelMode() ? "sub-px" : "16-grid";
             gfx.drawString(this.font, mode, previewX + 22, previewY - 8,
@@ -310,15 +322,16 @@ public class PaintScreen extends Screen {
                 int bgIdx = py * canvasW + transform.toDataX(screenPx, canvasW);
 
                 int pixelColor = canvas[canvasIdx];
-                int color;
-                if (ColorFormat.isOpaque(pixelColor)) {
-                    color = pixelColor;
-                } else if (backgroundPixels != null && ColorFormat.isOpaque(backgroundPixels[bgIdx])) {
-                    color = backgroundPixels[bgIdx];
+                // Opaque base: the background block pixel if present, else the checker.
+                int base;
+                if (backgroundPixels != null && ColorFormat.isOpaque(backgroundPixels[bgIdx])) {
+                    base = backgroundPixels[bgIdx];
                 } else {
                     boolean checker = ((screenPx / 2) + (py / 2)) % 2 == 0;
-                    color = checker ? 0xFF666666 : 0xFF999999;
+                    base = checker ? 0xFF666666 : 0xFF999999;
                 }
+                // Alpha-blend the painted pixel over the base so translucency is WYSIWYG.
+                int color = (pixelColor >>> 24) == 0 ? base : ColorFormat.alphaOver(pixelColor, base);
 
                 img.setPixelRGBA(screenPx, py, ColorFormat.argbToAbgr(color));
             }
@@ -441,8 +454,9 @@ public class PaintScreen extends Screen {
         int canvasIdx = py * canvasW + px;
         int paintColor = canvas[canvasIdx];
         if (ColorFormat.isOpaque(paintColor)) {
-            selectedColor = paintColor;
-            addToRecents(paintColor);
+            brushAlpha = paintColor >>> 24;
+            selectedColor = 0xFF000000 | (paintColor & 0x00FFFFFF);
+            addToRecents(selectedColor);
             return;
         }
         if (backgroundPixels != null) {
@@ -450,8 +464,9 @@ public class PaintScreen extends Screen {
             if (bgIdx >= 0 && bgIdx < backgroundPixels.length) {
                 int bgColor = backgroundPixels[bgIdx];
                 if (ColorFormat.isOpaque(bgColor)) {
-                    selectedColor = bgColor;
-                    addToRecents(bgColor);
+                    brushAlpha = bgColor >>> 24;
+                    selectedColor = 0xFF000000 | (bgColor & 0x00FFFFFF);
+                    addToRecents(selectedColor);
                 }
             }
         }
@@ -486,16 +501,21 @@ public class PaintScreen extends Screen {
         return Decal.SNAP <= 1 || hasShiftDown();
     }
 
+    /** Effective paint color: selected RGB combined with the current brush opacity. */
+    private int paintColor() {
+        return (brushAlpha << 24) | (selectedColor & 0x00FFFFFF);
+    }
+
     /**
      * Apply the brush at texel (px, py). In snapped mode (default) the brush operates on
      * the 16px logical grid — each logical pixel fills a {@link Decal#SNAP}² texel block,
      * so it behaves exactly like a 16px canvas. Holding Shift switches to free 32px editing.
      */
     private void applyBrush(int px, int py, boolean erase) {
-        int color = erase ? 0x00000000 : selectedColor;
+        int color = erase ? 0x00000000 : paintColor();
         if (subPixelMode()) {
             (erase ? PaintTool.ERASER : PaintTool.PENCIL)
-                .draw(canvas, canvasW, canvasH, px, py, brushSize, selectedColor);
+                .draw(canvas, canvasW, canvasH, px, py, brushSize, color);
             return;
         }
         int snap = Decal.SNAP;
@@ -541,7 +561,12 @@ public class PaintScreen extends Screen {
         int px = screenToPixelX((int) mouseX);
         int py = ((int) mouseY - canvasY) / pixelSize;
         if (px >= 0 && px < canvasW && py >= 0 && py < canvasH) {
-            if (scrollY > 0) {
+            if (hasAltDown()) {
+                // Alt+scroll adjusts brush opacity in 16 discrete levels (~6%..100%).
+                int level = Math.round(brushAlpha / 255f * 16f);
+                level = Math.max(1, Math.min(16, level + (scrollY > 0 ? 1 : -1)));
+                brushAlpha = Math.round(level / 16f * 255f);
+            } else if (scrollY > 0) {
                 brushSize = Math.min(brushSize + 1, ModConfig.CONFIG.maxBrushSize.get());
             } else if (scrollY < 0) {
                 brushSize = Math.max(brushSize - 1, 1);
@@ -737,7 +762,7 @@ public class PaintScreen extends Screen {
     public void removed() {
         super.removed();
         EditorPrefs.from(customBlocks, recentColors, pinnedColors, selectedColor,
-                         colorSquareSoft, brushSize).save();
+                         colorSquareSoft, brushSize, brushAlpha).save();
         if (colorSquare != null) {
             colorSquare.close();
             colorSquare = null;

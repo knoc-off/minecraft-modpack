@@ -379,10 +379,16 @@ public final class CellCompositor {
         int opaquePixels = 0;
         int maxPixels = CELL_SIZE * CELL_SIZE;
 
+        // Derived stack-height: count EVERY non-transparent layer at each texel (even those
+        // hidden under an opaque layer above), independent of color compositing. null when off.
+        boolean relief = ModConfig.CONFIG.reliefEnabled.get();
+        int[] layerCount = relief ? new int[CELL_SIZE * CELL_SIZE] : null;
+
         // Walk from HIGHEST priority to LOWEST, accumulating with alpha-over: each
         // lower decal is composited *under* what's already been written. A texel that
         // has reached full opacity is final — once every texel is opaque we can stop.
-        for (int i = refs.size() - 1; i >= 0 && opaquePixels < maxPixels; i--) {
+        // When relief is on we must visit ALL layers (no early-out) to count true height.
+        for (int i = refs.size() - 1; i >= 0 && (relief || opaquePixels < maxPixels); i--) {
             ClientSpatialIndex.DecalRef ref = refs.get(i);
             DecalRenderer.ResolvedEntry entry = DecalRenderer.getResolved(ref.decalId());
             if (entry == null) continue;
@@ -397,7 +403,7 @@ public final class CellCompositor {
             // Iterate ALL matching fragments (a stair block may have multiple sub-faces)
             for (SurfaceFragment frag : entry.surface().fragments()) {
                 if (!frag.pos().equals(pos) || frag.faceNormal() != face) continue;
-                opaquePixels += blitDecalPixels(composite, decal.pixels(), decal.widthPx(), decal.heightPx(), frag, cwSteps);
+                opaquePixels += blitDecalPixels(composite, layerCount, decal.pixels(), decal.widthPx(), decal.heightPx(), frag, cwSteps);
             }
         }
 
@@ -411,16 +417,45 @@ public final class CellCompositor {
             return;
         }
 
-        // Allocate or reuse atlas slot
-        CellData cell = cells.get(cellKey);
-        if (cell == null) {
-            int slotIndex = allocateSlot();
+        // Derived height grid (downsampled from the per-texel layer count by max-pool).
+        byte[] heights = relief ? downsampleHeights(layerCount) : null;
+
+        // Allocate or reuse atlas slot. CellData is immutable, so replace it each composite
+        // (reusing the slot) to refresh the height grid.
+        CellData existing = cells.get(cellKey);
+        int slotIndex;
+        if (existing == null) {
+            slotIndex = allocateSlot();
             if (slotIndex < 0) return; // atlas full — skip gracefully
-            cell = new CellData(pos, face, slotIndex);
-            cells.put(cellKey, cell);
             chunkCells.computeIfAbsent(chunk, k -> new HashSet<>()).add(cellKey);
+        } else {
+            slotIndex = existing.slotIndex();
         }
-        writeToAtlas(cell.slotIndex, composite);
+        cells.put(cellKey, new CellData(pos, face, slotIndex, heights));
+        writeToAtlas(slotIndex, composite);
+    }
+
+    /** Max-pool the per-texel layer count (CELL_SIZE²) into a height grid (res²), clamped. */
+    private static byte[] downsampleHeights(int[] layerCount) {
+        int res = ModConfig.CONFIG.reliefHeightRes.get().cells;
+        int maxLayers = ModConfig.CONFIG.reliefMaxLayers.get();
+        int factor = CELL_SIZE / res; // CELL_SIZE (32) is divisible by all HeightRes values
+        byte[] heights = new byte[res * res];
+        for (int gv = 0; gv < res; gv++) {
+            for (int gu = 0; gu < res; gu++) {
+                int max = 0;
+                for (int dy = 0; dy < factor; dy++) {
+                    int cy = gv * factor + dy;
+                    for (int dx = 0; dx < factor; dx++) {
+                        int v = layerCount[cy * CELL_SIZE + (gu * factor + dx)];
+                        if (v > max) max = v;
+                    }
+                }
+                if (max > maxLayers) max = maxLayers;
+                heights[gv * res + gu] = (byte) max;
+            }
+        }
+        return heights;
     }
 
     /**
@@ -431,7 +466,7 @@ public final class CellCompositor {
      * @return the number of texels that became fully opaque as a result of this blit
      *         (used to drive the all-opaque early exit in {@link #compositeCell}).
      */
-    private static int blitDecalPixels(int[] composite, int[] pixels, int srcWidth,
+    private static int blitDecalPixels(int[] composite, int[] layerCount, int[] pixels, int srcWidth,
                                          int srcHeight, SurfaceFragment frag, int cwSteps) {
         int px0 = frag.u0(), py0 = frag.v0();
         int px1 = frag.u1(), py1 = frag.v1();
@@ -458,36 +493,19 @@ public final class CellCompositor {
                 }
 
                 int idx = cy * CELL_SIZE + cx;
+
+                // Stack height: every non-transparent source layer counts, even occluded ones.
+                if (layerCount != null) layerCount[idx]++;
+
                 int existing = composite[idx];
                 if ((existing >>> 24) == 0xFF) continue; // already opaque — nothing below shows
 
-                int blended = alphaOver(existing, color);
+                int blended = ColorFormat.alphaOver(existing, color);
                 composite[idx] = blended;
                 if ((blended >>> 24) == 0xFF) newlyOpaque++;
             }
         }
         return newlyOpaque;
-    }
-
-    /**
-     * Straight-alpha "over" compositing of ARGB colors: {@code fg} over {@code bg}.
-     * {@code fg} is the higher-priority (front) layer.
-     */
-    private static int alphaOver(int fg, int bg) {
-        int fa = (fg >>> 24) & 0xFF;
-        if (fa == 0xFF) return fg;   // opaque front fully hides back
-        if (fa == 0)    return bg;   // transparent front: back shows through
-        int ba = (bg >>> 24) & 0xFF;
-        int inv = 255 - fa;
-        int oa = fa + ba * inv / 255;
-        if (oa == 0) return 0;
-        int baInv = ba * inv / 255;
-        int fr = (fg >> 16) & 0xFF, fgC = (fg >> 8) & 0xFF, fb = fg & 0xFF;
-        int br = (bg >> 16) & 0xFF, bgC = (bg >> 8) & 0xFF, bb = bg & 0xFF;
-        int or = (fr * fa + br * baInv) / oa;
-        int og = (fgC * fa + bgC * baInv) / oa;
-        int ob = (fb * fa + bb * baInv) / oa;
-        return (oa << 24) | (or << 16) | (og << 8) | ob;
     }
 
     private static void writeToAtlas(int slotIndex, int[] argbPixels) {
@@ -507,5 +525,11 @@ public final class CellCompositor {
 
     record CellId(BlockPos pos, Direction face) {}
 
-    public record CellData(BlockPos pos, Direction face, int slotIndex) {}
+    /**
+     * A composited face cell.
+     *
+     * @param heights derived stack-height grid (reliefHeightRes², row-major, gv=0 at face top,
+     *                values clamped to reliefMaxLayers). {@code null} when relief is disabled.
+     */
+    public record CellData(BlockPos pos, Direction face, int slotIndex, byte[] heights) {}
 }

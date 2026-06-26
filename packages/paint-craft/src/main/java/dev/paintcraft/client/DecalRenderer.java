@@ -329,11 +329,13 @@ public final class DecalRenderer {
             return;
         }
 
-        int estimatedQuads = chunkCells.size() * 2;
+        boolean relief = ModConfig.CONFIG.reliefEnabled.get();
+        int estimatedQuads = chunkCells.size() * (relief ? 16 : 2);
         int vertexBytes = estimatedQuads * 4 * DefaultVertexFormat.BLOCK.getVertexSize();
 
-        double minX = Double.MAX_VALUE, minY = Double.MAX_VALUE, minZ = Double.MAX_VALUE;
-        double maxX = -Double.MAX_VALUE, maxY = -Double.MAX_VALUE, maxZ = -Double.MAX_VALUE;
+        // bounds: { minX, minY, minZ, maxX, maxY, maxZ }
+        double[] bnds = { Double.MAX_VALUE, Double.MAX_VALUE, Double.MAX_VALUE,
+                          -Double.MAX_VALUE, -Double.MAX_VALUE, -Double.MAX_VALUE };
 
         BlockAndTintGetter level = Minecraft.getInstance().level;
 
@@ -342,6 +344,10 @@ public final class DecalRenderer {
                 VertexFormat.Mode.QUADS, DefaultVertexFormat.BLOCK);
 
             for (CellCompositor.CellData cell : chunkCells) {
+                if (relief && cell.heights() != null) {
+                    emitCellRelief(builder, level, cell, bnds);
+                    continue;
+                }
                 BlockPos pos = cell.pos();
                 Direction face = cell.face();
                 int slotIndex = cell.slotIndex();
@@ -377,12 +383,12 @@ public final class DecalRenderer {
                         float worldY = vy;
                         float worldZ = vz;
 
-                        if (worldX < minX) minX = worldX;
-                        if (worldY < minY) minY = worldY;
-                        if (worldZ < minZ) minZ = worldZ;
-                        if (worldX > maxX) maxX = worldX;
-                        if (worldY > maxY) maxY = worldY;
-                        if (worldZ > maxZ) maxZ = worldZ;
+                        if (worldX < bnds[0]) bnds[0] = worldX;
+                        if (worldY < bnds[1]) bnds[1] = worldY;
+                        if (worldZ < bnds[2]) bnds[2] = worldZ;
+                        if (worldX > bnds[3]) bnds[3] = worldX;
+                        if (worldY > bnds[4]) bnds[4] = worldY;
+                        if (worldZ > bnds[5]) bnds[5] = worldZ;
 
                         float ao = DecalLighting.interpolateAO(cornerAO, fracRight, fracUp);
                         int light = DecalLighting.interpolateLight(cornerLight, fracRight, fracUp);
@@ -412,7 +418,7 @@ public final class DecalRenderer {
                 vbo.bind();
                 vbo.upload(mesh);
                 VertexBuffer.unbind();
-                chunkVBOs.put(chunk, new ChunkVBO(vbo, new AABB(minX, minY, minZ, maxX, maxY, maxZ)));
+                chunkVBOs.put(chunk, new ChunkVBO(vbo, new AABB(bnds[0], bnds[1], bnds[2], bnds[3], bnds[4], bnds[5])));
             } else {
                 ChunkVBO old = chunkVBOs.remove(chunk);
                 if (old != null) old.vbo.close();
@@ -430,6 +436,168 @@ public final class DecalRenderer {
             if (!matches.isEmpty()) return matches;
         }
         return List.of();
+    }
+
+    // --- Derived stack-height relief meshing ---
+
+    /**
+     * Emit 3D relief geometry for one cell from its derived height grid: a top "cap" quad per
+     * painted grid cell (extruded outward by stackHeight × thickness), plus side walls wherever a
+     * neighbour grid cell (including across block boundaries) is lower. Geometry is generated in the
+     * canonical face's local (right, up) space over the full block face plane.
+     */
+    private static void emitCellRelief(BufferBuilder builder, BlockAndTintGetter level,
+                                       CellCompositor.CellData cell, double[] bnds) {
+        byte[] h = cell.heights();
+        int res = ModConfig.CONFIG.reliefHeightRes.get().cells;
+        if (h.length != res * res) return; // res changed since composite; will rebuild on recomposite
+        float t = (float) ModConfig.CONFIG.reliefLayerThickness.get().doubleValue();
+
+        BlockPos pos = cell.pos();
+        Direction face = cell.face();
+        int slot = cell.slotIndex();
+
+        FaceFrame frame = FaceFrame.canonical(face);
+        Direction right = frame.right();
+        Direction up = frame.up();
+
+        float nx = face.getStepX(), ny = face.getStepY(), nz = face.getStepZ();
+        Vec3 origin = frame.projectionOrigin(pos);
+        double ox = origin.x, oy = origin.y, oz = origin.z;
+        float rx = right.getStepX(), ry = right.getStepY(), rz = right.getStepZ();
+        float ux = up.getStepX(), uy = up.getStepY(), uz = up.getStepZ();
+
+        float[] cornerAO = DecalLighting.computeCornerAO(level, pos, face, right, up);
+        int[] cornerLight = DecalLighting.computeCornerLight(level, pos, face, right, up);
+        float faceShade = level.getShade(face, true);
+
+        float inv = 1f / res;
+
+        // reusable corner buffers (uR, vUp, depth)
+        float[] cu = new float[4], cv = new float[4], cw = new float[4];
+
+        for (int gv = 0; gv < res; gv++) {
+            for (int gu = 0; gu < res; gu++) {
+                int hc = h[gv * res + gu] & 0xFF;
+                if (hc == 0) continue;
+                float capW = hc * t;
+
+                float uR0 = gu * inv, uR1 = (gu + 1) * inv;
+                float vUp1 = 1f - gv * inv;        // top edge of this grid row (toward +up)
+                float vUp0 = 1f - (gv + 1) * inv;  // bottom edge
+
+                // Cap (top face), CCW from outside; NO_CULL so winding is forgiving.
+                cu[0] = uR0; cv[0] = vUp0; cw[0] = capW;
+                cu[1] = uR1; cv[1] = vUp0; cw[1] = capW;
+                cu[2] = uR1; cv[2] = vUp1; cw[2] = capW;
+                cu[3] = uR0; cv[3] = vUp1; cw[3] = capW;
+                emitReliefQuad(builder, bnds, ox, oy, oz, rx, ry, rz, ux, uy, uz, nx, ny, nz,
+                    slot, cornerAO, cornerLight, faceShade, 1.0f, cu, cv, cw, nx, ny, nz);
+
+                // Right wall (+right) where right neighbour is lower
+                int hr = heightAt(cell, gu + 1, gv, res, right, up, face);
+                if (hr < hc) {
+                    float w0 = hr * t;
+                    cu[0] = uR1; cv[0] = vUp0; cw[0] = w0;
+                    cu[1] = uR1; cv[1] = vUp1; cw[1] = w0;
+                    cu[2] = uR1; cv[2] = vUp1; cw[2] = capW;
+                    cu[3] = uR1; cv[3] = vUp0; cw[3] = capW;
+                    emitReliefQuad(builder, bnds, ox, oy, oz, rx, ry, rz, ux, uy, uz, nx, ny, nz,
+                        slot, cornerAO, cornerLight, faceShade, 0.75f, cu, cv, cw, rx, ry, rz);
+                }
+                // Left wall (-right)
+                int hl = heightAt(cell, gu - 1, gv, res, right, up, face);
+                if (hl < hc) {
+                    float w0 = hl * t;
+                    cu[0] = uR0; cv[0] = vUp0; cw[0] = w0;
+                    cu[1] = uR0; cv[1] = vUp1; cw[1] = w0;
+                    cu[2] = uR0; cv[2] = vUp1; cw[2] = capW;
+                    cu[3] = uR0; cv[3] = vUp0; cw[3] = capW;
+                    emitReliefQuad(builder, bnds, ox, oy, oz, rx, ry, rz, ux, uy, uz, nx, ny, nz,
+                        slot, cornerAO, cornerLight, faceShade, 0.75f, cu, cv, cw, -rx, -ry, -rz);
+                }
+                // Top wall (+up): grid neighbour gv-1
+                int hu = heightAt(cell, gu, gv - 1, res, right, up, face);
+                if (hu < hc) {
+                    float w0 = hu * t;
+                    cu[0] = uR0; cv[0] = vUp1; cw[0] = w0;
+                    cu[1] = uR1; cv[1] = vUp1; cw[1] = w0;
+                    cu[2] = uR1; cv[2] = vUp1; cw[2] = capW;
+                    cu[3] = uR0; cv[3] = vUp1; cw[3] = capW;
+                    emitReliefQuad(builder, bnds, ox, oy, oz, rx, ry, rz, ux, uy, uz, nx, ny, nz,
+                        slot, cornerAO, cornerLight, faceShade, 0.85f, cu, cv, cw, ux, uy, uz);
+                }
+                // Bottom wall (-up): grid neighbour gv+1
+                int hd = heightAt(cell, gu, gv + 1, res, right, up, face);
+                if (hd < hc) {
+                    float w0 = hd * t;
+                    cu[0] = uR0; cv[0] = vUp0; cw[0] = w0;
+                    cu[1] = uR1; cv[1] = vUp0; cw[1] = w0;
+                    cu[2] = uR1; cv[2] = vUp0; cw[2] = capW;
+                    cu[3] = uR0; cv[3] = vUp0; cw[3] = capW;
+                    emitReliefQuad(builder, bnds, ox, oy, oz, rx, ry, rz, ux, uy, uz, nx, ny, nz,
+                        slot, cornerAO, cornerLight, faceShade, 0.65f, cu, cv, cw, -ux, -uy, -uz);
+                }
+            }
+        }
+    }
+
+    /** Stack height at a grid cell, falling back to the adjacent block's cell at the borders. */
+    private static int heightAt(CellCompositor.CellData cell, int gu, int gv, int res,
+                                Direction right, Direction up, Direction face) {
+        byte[] h = cell.heights();
+        if (gu >= 0 && gu < res && gv >= 0 && gv < res) {
+            return h[gv * res + gu] & 0xFF;
+        }
+        BlockPos p = cell.pos();
+        int ngu = gu, ngv = gv;
+        if (gu < 0)        { p = p.relative(right.getOpposite()); ngu = res - 1; }
+        else if (gu >= res) { p = p.relative(right);              ngu = 0; }
+        if (gv < 0)         { p = p.relative(up);                 ngv = res - 1; } // above top
+        else if (gv >= res) { p = p.relative(up.getOpposite());   ngv = 0; }       // below bottom
+
+        CellCompositor.CellData nc = CellCompositor.getCell(p, face);
+        if (nc == null || nc.heights() == null || nc.heights().length != res * res) return 0;
+        if (ngu < 0) ngu = 0; else if (ngu >= res) ngu = res - 1;
+        if (ngv < 0) ngv = 0; else if (ngv >= res) ngv = res - 1;
+        return nc.heights()[ngv * res + ngu] & 0xFF;
+    }
+
+    /** Emit one relief quad (cap or wall) with per-corner lighting + atlas UVs, updating bounds. */
+    private static void emitReliefQuad(BufferBuilder builder, double[] bnds,
+                                       double ox, double oy, double oz,
+                                       float rx, float ry, float rz, float ux, float uy, float uz,
+                                       float nx, float ny, float nz, int slot,
+                                       float[] cornerAO, int[] cornerLight, float faceShade,
+                                       float shadeMul, float[] cu, float[] cv, float[] cw,
+                                       float emitNx, float emitNy, float emitNz) {
+        for (int i = 0; i < 4; i++) {
+            float uR = cu[i], vUp = cv[i], w = cw[i];
+            double wx = ox + rx * uR + ux * vUp + nx * w;
+            double wy = oy + ry * uR + uy * vUp + ny * w;
+            double wz = oz + rz * uR + uz * vUp + nz * w;
+
+            float ao = DecalLighting.interpolateAO(cornerAO, uR, vUp);
+            int light = DecalLighting.interpolateLight(cornerLight, uR, vUp);
+            int shade = (int) (ao * faceShade * shadeMul * 255f);
+            if (shade > 255) shade = 255;
+
+            float texU = CellCompositor.atlasU(slot, uR);
+            float texV = CellCompositor.atlasV(slot, 1f - vUp);
+
+            builder.addVertex((float) wx, (float) wy, (float) wz)
+                .setColor(shade, shade, shade, 255)
+                .setUv(texU, texV)
+                .setLight(light)
+                .setNormal(emitNx, emitNy, emitNz);
+
+            if (wx < bnds[0]) bnds[0] = wx;
+            if (wy < bnds[1]) bnds[1] = wy;
+            if (wz < bnds[2]) bnds[2] = wz;
+            if (wx > bnds[3]) bnds[3] = wx;
+            if (wy > bnds[4]) bnds[4] = wy;
+            if (wz > bnds[5]) bnds[5] = wz;
+        }
     }
 
     // --- Records ---
