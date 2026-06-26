@@ -3,6 +3,7 @@ package dev.structurestash.client;
 import com.mojang.blaze3d.platform.InputConstants;
 import dev.structurestash.StructureStash;
 import dev.structurestash.client.gui.BitsStashScreen;
+import dev.structurestash.compat.CnBCompat;
 import dev.structurestash.item.BlueprintItem;
 import dev.structurestash.item.BlueprintWandItem;
 import dev.structurestash.item.ModDataComponents;
@@ -49,7 +50,10 @@ public class BitsClientEvents {
         var mc = Minecraft.getInstance();
         if (mc.player == null || mc.screen != null) return;
 
-        if (OPEN_STASH.consumeClick()) {
+        // Always drain the keybind so presses don't queue up, but only open the
+        // bits stash when Chisels & Bits is present — the stash stores C&B bits,
+        // so it has nothing to show without the mod.
+        if (OPEN_STASH.consumeClick() && CnBCompat.isLoaded()) {
             PacketDistributor.sendToServer(new StashRequestPayload());
             mc.setScreen(new BitsStashScreen());
         }

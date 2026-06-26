@@ -1,5 +1,6 @@
 package dev.structurestash.stash;
 
+import dev.structurestash.compat.CnBCompat;
 import mod.chiselsandbits.api.blockinformation.BlockInformation;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
@@ -22,6 +23,14 @@ public class BitsStash {
 
     private final Map<BlockInformation, Long> bits = new LinkedHashMap<>();
     private final Map<BlockInformation, Long> lastModified = new LinkedHashMap<>();
+
+    /**
+     * Raw saved NBT, kept verbatim when the stash is loaded while Chisels &amp; Bits
+     * is absent. Decoding entries requires C&B types ({@link BlockInformation}), so
+     * instead of dropping the player's bits we round-trip the unparsed tag back out
+     * on save — the data survives intact until C&B is reinstalled.
+     */
+    private CompoundTag rawFallback;
 
     public BitsStash() {}
 
@@ -82,6 +91,8 @@ public class BitsStash {
     // --- NBT Serialization ---
 
     public CompoundTag save(HolderLookup.Provider registries) {
+        // C&B absent: write back the untouched tag we loaded, preserving the data.
+        if (rawFallback != null) return rawFallback.copy();
         CompoundTag root = new CompoundTag();
         ListTag list = new ListTag();
         var ops = registries.createSerializationContext(NbtOps.INSTANCE);
@@ -100,6 +111,12 @@ public class BitsStash {
 
     public static BitsStash load(CompoundTag root, HolderLookup.Provider registries) {
         BitsStash stash = new BitsStash();
+        // C&B absent: cannot decode BlockInformation entries. Keep the raw tag so the
+        // data is preserved and written back unchanged on the next save.
+        if (!CnBCompat.isLoaded()) {
+            stash.rawFallback = root.copy();
+            return stash;
+        }
         var ops = registries.createSerializationContext(NbtOps.INSTANCE);
         ListTag list = root.getList("entries", Tag.TAG_COMPOUND);
         for (int i = 0; i < list.size(); i++) {

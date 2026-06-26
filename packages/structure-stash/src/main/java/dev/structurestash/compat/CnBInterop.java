@@ -47,8 +47,9 @@ public final class CnBInterop {
     // ── Block Identity ────────────────────────────────────────────────
     // Internal: ModBlocks
 
-    /** Check if a block is C&B's chiseled block. */
+    /** Check if a block is C&B's chiseled block. Always false when C&B is absent. */
     public static boolean isChiseledBlock(Block block) {
+        if (!CnBCompat.isLoaded()) return false;
         return block == ModBlocks.CHISELED_BLOCK.get();
     }
 
@@ -64,11 +65,23 @@ public final class CnBInterop {
      * Codec that decodes a {@link StateEntryStorage} from a C&B block entity's
      * {@code data} compound tag. Uses the API-level compressed codec and
      * storage codec — no dependency on internal Payload/StorageEngine classes.
+     * <p>
+     * Lazily initialised: building it touches C&B API classes, so it must not run
+     * during class-load (which can happen on a server without C&B). It is only
+     * ever reached through {@link #decodeStorage}, which is C&B-present-only.
      */
-    private static final Codec<StateEntryStorage> STORAGE_CODEC =
-        CBCodecs.compressed(
-            StateEntryStorage.CODEC.fieldOf(NbtConstants.STORAGE).codec()
-        ).fieldOf(NbtConstants.PAYLOAD).codec();
+    private static Codec<StateEntryStorage> storageCodec;
+
+    private static Codec<StateEntryStorage> storageCodec() {
+        Codec<StateEntryStorage> c = storageCodec;
+        if (c == null) {
+            c = CBCodecs.compressed(
+                StateEntryStorage.CODEC.fieldOf(NbtConstants.STORAGE).codec()
+            ).fieldOf(NbtConstants.PAYLOAD).codec();
+            storageCodec = c;
+        }
+        return c;
+    }
 
     /**
      * Decode voxel storage from a C&B block entity's raw NBT.
@@ -84,7 +97,7 @@ public final class CnBInterop {
         CompoundTag dataTag = beNbt.getCompound(NbtConstants.DATA);
         try {
             var ops = registries.createSerializationContext(NbtOps.INSTANCE);
-            return STORAGE_CODEC.parse(ops, dataTag).result().orElse(null);
+            return storageCodec().parse(ops, dataTag).result().orElse(null);
         } catch (Exception e) {
             return null;
         }

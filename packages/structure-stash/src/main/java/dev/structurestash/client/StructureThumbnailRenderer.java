@@ -7,6 +7,7 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexSorting;
 import dev.structurestash.StructureStash;
+import dev.structurestash.compat.CnBCompat;
 import dev.structurestash.compat.CnBInterop;
 import mod.chiselsandbits.api.block.storage.StateEntryStorage;
 import net.minecraft.client.Minecraft;
@@ -87,7 +88,11 @@ public final class StructureThumbnailRenderer {
 
         BlockState[][][] states = new BlockState[sx][sy][sz];
         CompoundTag[][][] nbt = new CompoundTag[sx][sy][sz];
-        StateEntryStorage[][][] storages = new StateEntryStorage[sx][sy][sz];
+        // The storages array holds C&B voxel data. Only allocate it (which loads a
+        // C&B class) when C&B is present; otherwise leave it null and chiseled cells
+        // are simply skipped — chiseled blocks don't resolve without the mod anyway.
+        StateEntryStorage[][][] storages =
+            CnBCompat.isLoaded() ? new StateEntryStorage[sx][sy][sz] : null;
         BlockState[][][] camoOverrides = new BlockState[sx][sy][sz];
 
         ListTag blocksList = root.getList("blocks", Tag.TAG_COMPOUND);
@@ -253,7 +258,8 @@ public final class StructureThumbnailRenderer {
                     poseStack.pushPose();
                     poseStack.translate(bx, by, bz);
 
-                    StateEntryStorage storage = grid.storages[bx][by][bz];
+                    StateEntryStorage storage =
+                        grid.storages != null ? grid.storages[bx][by][bz] : null;
                     if (storage != null) {
                         // C&B block with pre-decoded storage
                         renderChiseledBlock(poseStack, bufferSource, blockRenderer, state, storage);

@@ -5,6 +5,7 @@ import com.mojang.math.Axis;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import dev.structurestash.StructureStash;
 import dev.structurestash.client.StructureThumbnailRenderer.StructureGrid;
+import dev.structurestash.compat.CnBCompat;
 import dev.structurestash.compat.CnBInterop;
 import dev.structurestash.item.BlueprintItem;
 import dev.structurestash.item.ModDataComponents;
@@ -260,21 +261,25 @@ public class BlueprintGhostRenderer {
 
             cachedGrid = grid;
 
-            // Pre-build all C&B baked models so rendering is just a cheap renderModel() call
-            @SuppressWarnings("unchecked")
-            List<BakedModel>[][][] models = new List[grid.sx()][grid.sy()][grid.sz()];
-            for (int x = 0; x < grid.sx(); x++) {
-                for (int y = 0; y < grid.sy(); y++) {
-                    for (int z = 0; z < grid.sz(); z++) {
-                        StateEntryStorage storage = grid.storages()[x][y][z];
-                        if (storage != null) {
-                            List<BakedModel> blockModels = CnBInterop.buildBakedModels(storage);
-                            if (!blockModels.isEmpty()) models[x][y][z] = blockModels;
+            // Pre-build all C&B baked models so rendering is just a cheap renderModel() call.
+            // Only attempt this when C&B is present — without it, grid.storages() is null
+            // and there are no chiseled cells to bake.
+            if (CnBCompat.isLoaded() && grid.storages() != null) {
+                @SuppressWarnings("unchecked")
+                List<BakedModel>[][][] models = new List[grid.sx()][grid.sy()][grid.sz()];
+                for (int x = 0; x < grid.sx(); x++) {
+                    for (int y = 0; y < grid.sy(); y++) {
+                        for (int z = 0; z < grid.sz(); z++) {
+                            StateEntryStorage storage = grid.storages()[x][y][z];
+                            if (storage != null) {
+                                List<BakedModel> blockModels = CnBInterop.buildBakedModels(storage);
+                                if (!blockModels.isEmpty()) models[x][y][z] = blockModels;
+                            }
                         }
                     }
                 }
+                cachedChiselModels = models;
             }
-            cachedChiselModels = models;
 
             return cachedGrid;
         } catch (Exception e) {
