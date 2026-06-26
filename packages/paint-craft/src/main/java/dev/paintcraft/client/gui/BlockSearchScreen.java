@@ -103,6 +103,11 @@ public class BlockSearchScreen extends Screen {
     }
 
     @Override
+    protected void renderBlurredBackground(float partialTick) {
+        // Skip vanilla menu blur; renderMenuBackground() still draws the dark tint.
+    }
+
+    @Override
     public void render(GuiGraphics gfx, int mouseX, int mouseY, float partialTick) {
         renderBackground(gfx, mouseX, mouseY, partialTick);
         gfx.drawString(this.font, "Add Block to Palette", 10, 4, 0xFFFFFF);

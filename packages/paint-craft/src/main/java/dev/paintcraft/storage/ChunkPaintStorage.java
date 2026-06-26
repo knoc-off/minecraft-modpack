@@ -182,6 +182,7 @@ public class ChunkPaintStorage extends SavedData {
         ListTag list = tag.getList("decals", Tag.TAG_COMPOUND);
         for (int i = 0; i < list.size(); i++) {
             Decal d = Decal.load(list.getCompound(i));
+            if (d == null) continue; // legacy/unsupported decal — skipped
             storage.decals.put(d.id(), d);
             storage.chunkIndex.computeIfAbsent(chunkKey(d.anchor()), k -> new HashSet<>()).add(d.id());
             storage.maxSeqNo = Math.max(storage.maxSeqNo, d.seqNo());

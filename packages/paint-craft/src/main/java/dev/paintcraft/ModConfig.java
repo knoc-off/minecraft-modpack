@@ -62,7 +62,7 @@ public final class ModConfig {
             atlasSize = builder
                 .comment("Atlas texture resolution for composited decal cells.",
                          "Higher values use more VRAM but support more simultaneous decals.",
-                         "SMALL=4K cells, MEDIUM=16K, LARGE=65K, EXTRA_LARGE=262K.",
+                         "At 32px/cell: SMALL=1K cells, MEDIUM=4K, LARGE=16K, EXTRA_LARGE=65K.",
                          "Requires game restart to take effect.")
                 .gameRestart()
                 .defineEnum("atlasSize", AtlasSize.LARGE);

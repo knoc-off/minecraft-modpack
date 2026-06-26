@@ -11,8 +11,8 @@ public final class PaletteCodec {
 
     private PaletteCodec() {}
 
-    /** Max pixels per decal: 256×256 = 65536 (16 blocks × 16 px/block per axis). */
-    public static final int MAX_PIXELS = 256 * 256;
+    /** Max pixels per decal: 512×512 = 262144 (16 blocks × 32 px/block per axis). */
+    public static final int MAX_PIXELS = 512 * 512;
 
     /** Write a pixel array to a network buffer with palette compression. */
     public static void writePixels(FriendlyByteBuf buf, int[] pixels) {

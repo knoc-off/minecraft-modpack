@@ -24,6 +24,7 @@ public record StampData(
 
     public CompoundTag save() {
         CompoundTag tag = new CompoundTag();
+        tag.putInt("v", Decal.FORMAT_VERSION);
         tag.putInt("w", widthPx);
         tag.putInt("h", heightPx);
         tag.putByte("up", (byte) up.get3DDataValue());
@@ -39,6 +40,9 @@ public record StampData(
     }
 
     public static StampData load(CompoundTag tag) {
+        // Legacy stamps (pre-32px) are not migrated — skip so stale 16px data can't
+        // produce a zero-size stamp.
+        if (tag.getInt("v") < Decal.FORMAT_VERSION) return null;
         int w = tag.getInt("w");
         int h = tag.getInt("h");
         Direction up = Direction.from3DDataValue(tag.getByte("up"));

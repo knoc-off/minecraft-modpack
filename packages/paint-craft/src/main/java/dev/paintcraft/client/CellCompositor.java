@@ -376,12 +376,13 @@ public final class CellCompositor {
 
         FaceFrame canonFrame = FaceFrame.canonical(face);
         int[] composite = new int[CELL_SIZE * CELL_SIZE]; // starts transparent (0)
-        int filledPixels = 0;
+        int opaquePixels = 0;
         int maxPixels = CELL_SIZE * CELL_SIZE;
 
-        // Walk from HIGHEST priority to LOWEST — first writer wins.
-        // Early exit once all 256 pixels are filled.
-        for (int i = refs.size() - 1; i >= 0 && filledPixels < maxPixels; i--) {
+        // Walk from HIGHEST priority to LOWEST, accumulating with alpha-over: each
+        // lower decal is composited *under* what's already been written. A texel that
+        // has reached full opacity is final — once every texel is opaque we can stop.
+        for (int i = refs.size() - 1; i >= 0 && opaquePixels < maxPixels; i--) {
             ClientSpatialIndex.DecalRef ref = refs.get(i);
             DecalRenderer.ResolvedEntry entry = DecalRenderer.getResolved(ref.decalId());
             if (entry == null) continue;
@@ -396,12 +397,16 @@ public final class CellCompositor {
             // Iterate ALL matching fragments (a stair block may have multiple sub-faces)
             for (SurfaceFragment frag : entry.surface().fragments()) {
                 if (!frag.pos().equals(pos) || frag.faceNormal() != face) continue;
-                filledPixels += blitDecalPixels(composite, decal.pixels(), decal.widthPx(), decal.heightPx(), frag, cwSteps);
+                opaquePixels += blitDecalPixels(composite, decal.pixels(), decal.widthPx(), decal.heightPx(), frag, cwSteps);
             }
         }
 
         // Level 2: Skip if composite is entirely empty (all transparent)
-        if (filledPixels == 0) {
+        boolean anyContent = false;
+        for (int c : composite) {
+            if (c != 0) { anyContent = true; break; }
+        }
+        if (!anyContent) {
             removeCell(cellKey, chunk);
             return;
         }
@@ -418,11 +423,19 @@ public final class CellCompositor {
         writeToAtlas(cell.slotIndex, composite);
     }
 
+    /**
+     * Blit one decal's fragment pixels into the composite using alpha-over.
+     * The composite already holds the accumulated higher-priority layers, so each
+     * incoming texel is composited *under* it (existing OVER incoming).
+     *
+     * @return the number of texels that became fully opaque as a result of this blit
+     *         (used to drive the all-opaque early exit in {@link #compositeCell}).
+     */
     private static int blitDecalPixels(int[] composite, int[] pixels, int srcWidth,
                                          int srcHeight, SurfaceFragment frag, int cwSteps) {
         int px0 = frag.u0(), py0 = frag.v0();
         int px1 = frag.u1(), py1 = frag.v1();
-        int filled = 0;
+        int newlyOpaque = 0;
 
         for (int py = py0; py <= py1; py++) {
             // Fragment v0/v1 are depth-buffer coordinates (py=0 at face bottom, local.y=0).
@@ -430,7 +443,7 @@ public final class CellCompositor {
             int arrayPy = (srcHeight - 1) - py;
             for (int px = px0; px <= px1; px++) {
                 int color = pixels[arrayPy * srcWidth + px];
-                if ((color >>> 24) == 0) continue; // skip transparent
+                if ((color >>> 24) == 0) continue; // skip fully transparent source
 
                 int cx = px % CELL_SIZE;
                 int cy = arrayPy % CELL_SIZE;
@@ -445,12 +458,36 @@ public final class CellCompositor {
                 }
 
                 int idx = cy * CELL_SIZE + cx;
-                if (composite[idx] != 0) continue; // already filled by higher-priority decal
-                composite[idx] = color;
-                filled++;
+                int existing = composite[idx];
+                if ((existing >>> 24) == 0xFF) continue; // already opaque — nothing below shows
+
+                int blended = alphaOver(existing, color);
+                composite[idx] = blended;
+                if ((blended >>> 24) == 0xFF) newlyOpaque++;
             }
         }
-        return filled;
+        return newlyOpaque;
+    }
+
+    /**
+     * Straight-alpha "over" compositing of ARGB colors: {@code fg} over {@code bg}.
+     * {@code fg} is the higher-priority (front) layer.
+     */
+    private static int alphaOver(int fg, int bg) {
+        int fa = (fg >>> 24) & 0xFF;
+        if (fa == 0xFF) return fg;   // opaque front fully hides back
+        if (fa == 0)    return bg;   // transparent front: back shows through
+        int ba = (bg >>> 24) & 0xFF;
+        int inv = 255 - fa;
+        int oa = fa + ba * inv / 255;
+        if (oa == 0) return 0;
+        int baInv = ba * inv / 255;
+        int fr = (fg >> 16) & 0xFF, fgC = (fg >> 8) & 0xFF, fb = fg & 0xFF;
+        int br = (bg >> 16) & 0xFF, bgC = (bg >> 8) & 0xFF, bb = bg & 0xFF;
+        int or = (fr * fa + br * baInv) / oa;
+        int og = (fgC * fa + bgC * baInv) / oa;
+        int ob = (fb * fa + bb * baInv) / oa;
+        return (oa << 24) | (or << 16) | (og << 8) | ob;
     }
 
     private static void writeToAtlas(int slotIndex, int[] argbPixels) {

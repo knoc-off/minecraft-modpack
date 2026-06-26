@@ -246,6 +246,11 @@ public class PaintScreen extends Screen {
     }
 
     @Override
+    protected void renderBlurredBackground(float partialTick) {
+        // Skip vanilla menu blur; renderMenuBackground() still draws the dark tint.
+    }
+
+    @Override
     public void render(GuiGraphics gfx, int mouseX, int mouseY, float partialTick) {
         renderBackground(gfx, mouseX, mouseY, partialTick);
 
@@ -266,13 +271,11 @@ public class PaintScreen extends Screen {
         int cursorPx = screenToPixelX((int) mouseX);
         int cursorPy = (mouseY - canvasY) / pixelSize;
         if (cursorPx >= 0 && cursorPx < canvasW && cursorPy >= 0 && cursorPy < canvasH) {
-            int radius = brushSize - 1;
-            int minPx = Math.max(0, cursorPx - radius);
-            int maxPx = Math.min(canvasW - 1, cursorPx + radius);
-            int hx0 = canvasX + Math.min(minPx, maxPx) * pixelSize;
-            int hx1 = canvasX + (Math.max(minPx, maxPx) + 1) * pixelSize;
-            int hy0 = canvasY + Math.max(0, cursorPy - radius) * pixelSize;
-            int hy1 = canvasY + (Math.min(canvasH - 1, cursorPy + radius) + 1) * pixelSize;
+            int[] b = brushTexelBounds(cursorPx, cursorPy);
+            int hx0 = canvasX + b[0] * pixelSize;
+            int hx1 = canvasX + (b[1] + 1) * pixelSize;
+            int hy0 = canvasY + b[2] * pixelSize;
+            int hy1 = canvasY + (b[3] + 1) * pixelSize;
             gfx.renderOutline(hx0, hy0, hx1 - hx0, hy1 - hy0, 0xFFFFFFFF);
         }
 
@@ -282,6 +285,11 @@ public class PaintScreen extends Screen {
         gfx.fill(previewX, previewY, previewX + 16, previewY + 16, selectedColor);
         gfx.renderOutline(previewX - 1, previewY - 1, 18, 18, 0xFFFFFFFF);
         gfx.drawString(this.font, "" + brushSize, previewX + 22, previewY + 4, 0xFFFFFF);
+        if (Decal.SNAP > 1) {
+            String mode = subPixelMode() ? "sub-px" : "16-grid";
+            gfx.drawString(this.font, mode, previewX + 22, previewY - 8,
+                subPixelMode() ? 0xFFD4A858 : 0xAAAAAA);
+        }
 
         super.render(gfx, mouseX, mouseY, partialTick);
     }
@@ -364,13 +372,13 @@ public class PaintScreen extends Screen {
             if (button == 0) {
                 // Left click — paint
                 pushUndo();
-                PaintTool.PENCIL.draw(canvas, canvasW, canvasH, px, py, brushSize, selectedColor);
+                applyBrush(px, py, false);
                 canvasDirty = true;
                 paintingButton = 0;
             } else if (button == 1) {
                 // Right click — erase
                 pushUndo();
-                PaintTool.ERASER.draw(canvas, canvasW, canvasH, px, py, brushSize, selectedColor);
+                applyBrush(px, py, true);
                 canvasDirty = true;
                 paintingButton = 1;
             } else if (button == 2) {
@@ -456,9 +464,9 @@ public class PaintScreen extends Screen {
             int py = ((int) mouseY - canvasY) / pixelSize;
             if (px >= 0 && px < canvasW && py >= 0 && py < canvasH) {
                 if (paintingButton == 0) {
-                    PaintTool.PENCIL.draw(canvas, canvasW, canvasH, px, py, brushSize, selectedColor);
+                    applyBrush(px, py, false);
                 } else {
-                    PaintTool.ERASER.draw(canvas, canvasW, canvasH, px, py, brushSize, selectedColor);
+                    applyBrush(px, py, true);
                 }
                 canvasDirty = true;
             }
@@ -471,6 +479,61 @@ public class PaintScreen extends Screen {
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
         paintingButton = -1;
         return super.mouseReleased(mouseX, mouseY, button);
+    }
+
+    /** True when free sub-pixel (32px) editing is active; otherwise edits snap to the 16px grid. */
+    private boolean subPixelMode() {
+        return Decal.SNAP <= 1 || hasShiftDown();
+    }
+
+    /**
+     * Apply the brush at texel (px, py). In snapped mode (default) the brush operates on
+     * the 16px logical grid — each logical pixel fills a {@link Decal#SNAP}² texel block,
+     * so it behaves exactly like a 16px canvas. Holding Shift switches to free 32px editing.
+     */
+    private void applyBrush(int px, int py, boolean erase) {
+        int color = erase ? 0x00000000 : selectedColor;
+        if (subPixelMode()) {
+            (erase ? PaintTool.ERASER : PaintTool.PENCIL)
+                .draw(canvas, canvasW, canvasH, px, py, brushSize, selectedColor);
+            return;
+        }
+        int snap = Decal.SNAP;
+        int lx = px / snap, ly = py / snap;
+        int radius = brushSize - 1; // brush size measured in logical pixels here
+        for (int dly = -radius; dly <= radius; dly++) {
+            for (int dlx = -radius; dlx <= radius; dlx++) {
+                int bx0 = (lx + dlx) * snap;
+                int by0 = (ly + dly) * snap;
+                for (int ty = 0; ty < snap; ty++) {
+                    for (int tx = 0; tx < snap; tx++) {
+                        int fx = bx0 + tx, fy = by0 + ty;
+                        if (fx >= 0 && fx < canvasW && fy >= 0 && fy < canvasH) {
+                            canvas[fy * canvasW + fx] = color;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /** Inclusive texel bounds {x0,x1,y0,y1} covered by the brush at (px,py), clamped to canvas. */
+    private int[] brushTexelBounds(int px, int py) {
+        int radius = brushSize - 1;
+        int x0, x1, y0, y1;
+        if (subPixelMode()) {
+            x0 = px - radius; x1 = px + radius;
+            y0 = py - radius; y1 = py + radius;
+        } else {
+            int snap = Decal.SNAP;
+            int lx = px / snap, ly = py / snap;
+            x0 = (lx - radius) * snap;       x1 = (lx + radius) * snap + snap - 1;
+            y0 = (ly - radius) * snap;       y1 = (ly + radius) * snap + snap - 1;
+        }
+        return new int[] {
+            Math.max(0, x0), Math.min(canvasW - 1, x1),
+            Math.max(0, y0), Math.min(canvasH - 1, y1)
+        };
     }
 
     @Override

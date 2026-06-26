@@ -17,7 +17,9 @@ out vec4 fragColor;
 
 void main() {
     vec4 color = texture(Sampler0, texCoord0) * vertexColor * ColorModulator;
-    if (color.a < 0.1) {
+    // Discard only fully-empty cell padding (alpha ~0). Semi-transparent texels
+    // are kept and alpha-blended by the translucent render type.
+    if (color.a < 0.004) {
         discard;
     }
     fragColor = linear_fog(color, vertexDistance, FogStart, FogEnd, FogColor);

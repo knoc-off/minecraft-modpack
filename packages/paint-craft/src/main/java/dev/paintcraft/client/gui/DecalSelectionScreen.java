@@ -106,6 +106,11 @@ public class DecalSelectionScreen extends Screen {
     }
 
     @Override
+    protected void renderBlurredBackground(float partialTick) {
+        // Skip vanilla menu blur; renderMenuBackground() still draws the dark tint.
+    }
+
+    @Override
     public void render(GuiGraphics gfx, int mouseX, int mouseY, float partialTick) {
         renderBackground(gfx, mouseX, mouseY, partialTick);
 

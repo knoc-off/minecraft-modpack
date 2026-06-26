@@ -8,7 +8,13 @@ import net.minecraft.nbt.Tag;
 import java.util.UUID;
 
 public class Decal {
-    public static final int PX_PER_BLOCK = 16;
+    public static final int PX_PER_BLOCK = 32;
+    /** Logical editing grid resolution. Edits snap to this unless sub-pixel mode is held. */
+    public static final int LOGICAL_PX_PER_BLOCK = 16;
+    /** Real texels per logical (snapped) pixel. */
+    public static final int SNAP = PX_PER_BLOCK / LOGICAL_PX_PER_BLOCK;
+    /** Current serialization version. Bumped when the pixel format/resolution changes. */
+    public static final int FORMAT_VERSION = 2;
     public static final float MAX_DEPTH = 3.0f;
 
     private final UUID id;
@@ -62,6 +68,7 @@ public class Decal {
 
     public CompoundTag save() {
         CompoundTag tag = new CompoundTag();
+        tag.putInt("v", FORMAT_VERSION);
         tag.putUUID("id", id);
         tag.putLong("seq", seqNo);
         tag.putLong("zOvr", zOverride);
@@ -87,6 +94,9 @@ public class Decal {
     }
 
     public static Decal load(CompoundTag tag) {
+        // Legacy decals (pre-32px) are not migrated — skip them so stale 16px data
+        // can't produce a zero-size decal and crash the projection math.
+        if (tag.getInt("v") < FORMAT_VERSION) return null;
         UUID id = tag.getUUID("id");
         long seq = tag.getLong("seq");
         BlockPos anchor = BlockPos.of(tag.getLong("anchor"));

@@ -58,7 +58,7 @@ public final class DecalRenderType extends RenderStateShard {
                 RenderType.CompositeState.builder()
                     .setShaderState(new ShaderStateShard(() -> decalShader))
                     .setTextureState(new TextureStateShard(tex, false, false))
-                    .setTransparencyState(NO_TRANSPARENCY)
+                    .setTransparencyState(TRANSLUCENT_TRANSPARENCY)
                     .setWriteMaskState(COLOR_DEPTH_WRITE)
                     .setDepthTestState(LEQUAL_DEPTH_TEST)
                     .setCullState(NO_CULL)
