@@ -191,6 +191,9 @@ public class DecalSelectionScreen extends Screen {
             gfx.drawCenteredString(this.font, label, cardX + CARD_SIZE / 2,
                 cardY + CARD_SIZE + 2, 0xCCCCCC);
         }
+
+        // Draw registered widgets (the reorder toggle button) on top.
+        super.render(gfx, mouseX, mouseY, partialTick);
     }
 
     @Override

@@ -1,5 +1,5 @@
 # Auto-generated from packwiz -- do not edit manually.
-# 63 mods
+# 71 mods
 
 { pkgs }:
 
@@ -70,6 +70,17 @@
     };
   };
 
+  # Carry On
+  "carry-on" = {
+    side = "both";
+    jar = pkgs.fetchurl {
+      url = "https://cdn.modrinth.com/data/joEfVgkn/versions/cgZi7nC7/carryon-neoforge-1.21.1-2.2.4.4.jar";
+      outputHashAlgo = "sha512";
+      outputHash = "8b78ddc55ce6e28d4457dadb5aca4cd32e16d2db3c395276993e67c6acc108ced55e3e3d9a01aa5bf1da0d4fccab6183ba62acc1421054c0b2ecae9bd03cabf6";
+      name = "carryon-neoforge-1.21.1-2.2.4.4.jar";
+    };
+  };
+
   # Chipped
   "chipped" = {
     side = "both";
@@ -78,6 +89,17 @@
       outputHashAlgo = "sha512";
       outputHash = "f3083b01267e7c674c4b42f45a317c93ee7723443cba2051fe5bc593638b533b0fe90699e2101661c934dff458eab693cce4e188533bfe977778c249563a2fa5";
       name = "chipped-neoforge-1.21.1-4.0.2.jar";
+    };
+  };
+
+  # Chunky
+  "chunky" = {
+    side = "both";
+    jar = pkgs.fetchurl {
+      url = "https://cdn.modrinth.com/data/fALzjamp/versions/LuFhm4eU/Chunky-NeoForge-1.4.23.jar";
+      outputHashAlgo = "sha512";
+      outputHash = "2db769dd723f243a21e1881e7c9f825e9c193da6f2bed454b70cb6fa9e51c57f63fdcf017c0657bbd26f7bba30815413e27c74d3c7be0783390a96ee9baa4bf7";
+      name = "Chunky-NeoForge-1.4.23.jar";
     };
   };
 
@@ -378,6 +400,17 @@
     };
   };
 
+  # Iris & Oculus Flywheel Compat
+  "iris-flw-compat" = {
+    side = "client";
+    jar = pkgs.fetchurl {
+      url = "https://cdn.modrinth.com/data/ndHYMY2K/versions/6ZQz5Ow2/iris-flywheel-compat-NeoForge-2.4.0.jar";
+      outputHashAlgo = "sha512";
+      outputHash = "192e5f00f2c146d2920867d7cd691ecec7ddd2acfb95880cc59084e8949225db92ecfb9221ba7223fc924ec43f2ca861115f83f9dc3f79e14a2f2a8db5287070";
+      name = "iris-flywheel-compat-NeoForge-2.4.0.jar";
+    };
+  };
+
   # Jade 🔍
   "jade" = {
     side = "both";
@@ -455,6 +488,17 @@
     };
   };
 
+  # Not Enough Crashes
+  "notenoughcrashes" = {
+    side = "both";
+    jar = pkgs.fetchurl {
+      url = "https://cdn.modrinth.com/data/yM94ont6/versions/alR8L7vF/notenoughcrashes-neoforge-4.4.9%2B1.21.1.jar";
+      outputHashAlgo = "sha512";
+      outputHash = "912c31c6e806e457a501742d668b82b70f03d5cdbb722f09da27ba19f3408f236b1704ccf9ed4a2bee82cc272ba78671bfe1fd8b46baefef1ac4ee56d703f04f";
+      name = "notenoughcrashes-neoforge-4.4.9+1.21.1.jar";
+    };
+  };
+
   # Puzzles Lib
   "puzzles-lib" = {
     side = "both";
@@ -499,6 +543,17 @@
     };
   };
 
+  # Sodium Extra
+  "sodium-extra" = {
+    side = "client";
+    jar = pkgs.fetchurl {
+      url = "https://cdn.modrinth.com/data/PtjYWJkn/versions/hXez7Tlk/sodium-extra-neoforge-0.8.7%2Bmc1.21.1.jar";
+      outputHashAlgo = "sha512";
+      outputHash = "e70bfbc8b5595bb39371d3ba318ecc6292fa0acd6f3450f90a2fdd34e0cb80b4516287eedb7d0c08d0ae42938ac40c84b194e6315d085dc4a254221083819fff";
+      name = "sodium-extra-neoforge-0.8.7+mc1.21.1.jar";
+    };
+  };
+
   # Sophisticated Backpacks
   "sophisticated-backpacks" = {
     side = "both";
@@ -529,6 +584,39 @@
       outputHashAlgo = "sha512";
       outputHash = "3bf68dc4a0f66cc101e9a68d9fd0d683dfa2af70bb7b461f0c936ecad7ab4c7fb1ad5be8c33cf716ae74c488d8005a56488b3a22a24efd3c1b5116d749d46970";
       name = "sophisticatedstorage-1.21.1-1.5.57.1790.jar";
+    };
+  };
+
+  # Sound Physics Perfected
+  "sound-physics-perfected" = {
+    side = "client";
+    jar = pkgs.fetchurl {
+      url = "https://cdn.modrinth.com/data/KS6Hbu9Z/versions/rljqrkhf/sound_physics_perfected-1.17.3%2B1.21.1-neoforge.jar";
+      outputHashAlgo = "sha512";
+      outputHash = "e144d069007c58a784c6ca488996d82c77fefc6e7d1749943d1c3f80f9f24fb3ef2ee53ffd48fe5ded1900f6417b87505bc20c5dbfd17e69ab6110fef19baf46";
+      name = "sound_physics_perfected-1.17.3+1.21.1-neoforge.jar";
+    };
+  };
+
+  # spark
+  "spark" = {
+    side = "both";
+    jar = pkgs.fetchurl {
+      url = "https://cdn.modrinth.com/data/l6YH9Als/versions/v5qtqRQi/spark-1.10.124-neoforge.jar";
+      outputHashAlgo = "sha512";
+      outputHash = "f86ce34f2759c69df82578c397ff55b666c84626229a98f598458b960c21b38c95d6bfef4772af7f963c4f4868e5e2d9aef6b99c1d51bab55bf45e0e6e6b5ed4";
+      name = "spark-1.10.124-neoforge.jar";
+    };
+  };
+
+  # Separate Sable Render Distance
+  "ssrd" = {
+    side = "both";
+    jar = pkgs.fetchurl {
+      url = "https://cdn.modrinth.com/data/fJ183v3D/versions/ia8u5lk9/SSRD-1.8.1-1.21.1.jar";
+      outputHashAlgo = "sha512";
+      outputHash = "2ae36a7a8bf73a64e58a245b795a04fdeff9d87f4bfb94156400c2ef15a9ec2b0b2e7f1031efa197cea0270b7815335c99c50ab8b9d219188521fc14233850fd";
+      name = "SSRD-1.8.1-1.21.1.jar";
     };
   };
 

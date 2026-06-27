@@ -26,9 +26,11 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.neoforged.neoforge.network.PacketDistributor;
 
+import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 public class PaintScreen extends Screen {
 
@@ -56,6 +58,8 @@ public class PaintScreen extends Screen {
     // Color state
     private int selectedColor = 0xFF000000;
     private int brushAlpha = 255; // paint opacity (1-255), independent of selectedColor's RGB
+    // Screen-space bounds of the "A: NN%" readout (set in render), so a click can reset alpha to full.
+    private int alphaHitX0, alphaHitY0, alphaHitX1, alphaHitY1;
     private final List<Integer> recentColors = new ArrayList<>();
     private final LinkedHashSet<Integer> pinnedColors = new LinkedHashSet<>();
 
@@ -281,9 +285,9 @@ public class PaintScreen extends Screen {
             gfx.renderOutline(hx0, hy0, hx1 - hx0, hy1 - hy0, 0xFFFFFFFF);
         }
 
-        // === Selected color preview ===
-        int previewX = canvasX + canvasW * pixelSize + 12;
-        int previewY = this.height - 28;
+        // === Selected color preview + readouts (bottom-left) ===
+        int previewX = canvasX;
+        int previewY = this.height - 22;
         // Checkerboard behind the swatch so partial opacity reads correctly.
         for (int cy = 0; cy < 16; cy++) {
             for (int cx = 0; cx < 16; cx++) {
@@ -295,8 +299,12 @@ public class PaintScreen extends Screen {
         gfx.fill(previewX, previewY, previewX + 16, previewY + 16, paintColor());
         gfx.renderOutline(previewX - 1, previewY - 1, 18, 18, 0xFFFFFFFF);
         gfx.drawString(this.font, "" + brushSize, previewX + 22, previewY + 4, 0xFFFFFF);
-        gfx.drawString(this.font, "A: " + Math.round(brushAlpha / 255f * 100f) + "%",
-            previewX + 22, previewY - 18, 0xFFD4A858);
+        String alphaLabel = "A: " + Math.round(brushAlpha / 255f * 100f) + "%";
+        gfx.drawString(this.font, alphaLabel, previewX + 22, previewY - 18, 0xFFD4A858);
+        alphaHitX0 = previewX + 22;
+        alphaHitY0 = previewY - 18;
+        alphaHitX1 = alphaHitX0 + this.font.width(alphaLabel);
+        alphaHitY1 = alphaHitY0 + this.font.lineHeight;
         if (Decal.SNAP > 1) {
             String mode = subPixelMode() ? "sub-px" : "16-grid";
             gfx.drawString(this.font, mode, previewX + 22, previewY - 8,
@@ -378,6 +386,13 @@ public class PaintScreen extends Screen {
 
         // Color bar: left-click selects, right-click toggles pin
         if (clickColorBar((int) mouseX, (int) mouseY, canvasX, RECENTS_BAR_Y, button)) return true;
+
+        // Click the alpha readout to reset opacity to full.
+        if (button == 0 && mouseX >= alphaHitX0 && mouseX < alphaHitX1
+                && mouseY >= alphaHitY0 && mouseY < alphaHitY1) {
+            brushAlpha = 255;
+            return true;
+        }
 
         int px = screenToPixelX((int) mouseX);
         int py = ((int) mouseY - canvasY) / pixelSize;
@@ -698,14 +713,97 @@ public class PaintScreen extends Screen {
     }
 
     private void pasteFromClipboard() {
+        // 1. Try wl-paste (Wayland) / xclip (X11) — Linux subprocess approach
+        for (String mime : new String[]{ "image/png", "image/jpeg" }) {
+            byte[] bytes = readSubprocessClipboardBytes(mime);
+            if (bytes != null) { loadFromImageBytes(bytes, mime); return; }
+        }
+
+        // 2. Try AWT system clipboard — works on Windows, macOS, and X11
+        byte[] awtBytes = readAwtClipboardBytes();
+        if (awtBytes != null) { loadFromImageBytes(awtBytes, "awt"); return; }
+
+        // 3. Fall back: clipboard text that looks like an image file path
         long window = Minecraft.getInstance().getWindow().getWindow();
         String text = org.lwjgl.glfw.GLFW.glfwGetClipboardString(window);
-        if (text == null || text.isEmpty()) return;
+        if (text == null || text.isEmpty()) {
+            PaintCraft.LOGGER.info("[paste] Clipboard empty / no image / no path");
+            return;
+        }
         text = text.trim();
         String lower = text.toLowerCase();
         if (lower.endsWith(".png") || lower.endsWith(".jpg") ||
             lower.endsWith(".jpeg") || lower.endsWith(".bmp")) {
             loadImageFromPath(text);
+        } else {
+            PaintCraft.LOGGER.info("[paste] Clipboard text doesn't look like image path: {}",
+                text.length() > 80 ? text.substring(0, 80) + "…" : text);
+        }
+    }
+
+    private void loadFromImageBytes(byte[] bytes, String source) {
+        try (NativeImage img = NativeImage.read(new ByteArrayInputStream(bytes))) {
+            pushUndo();
+            importImage(img);
+            canvasDirty = true;
+            PaintCraft.LOGGER.info("[paste] OK — {}×{} from clipboard ({})", img.getWidth(), img.getHeight(), source);
+        } catch (Exception e) {
+            PaintCraft.LOGGER.error("[paste] Got {} bytes from {} but NativeImage failed: {}", bytes.length, source, e.getMessage());
+        }
+    }
+
+    /** Tries wl-paste (Wayland) then xclip (X11) for the given MIME type. */
+    private static byte[] readSubprocessClipboardBytes(String mime) {
+        String[][] cmds = {
+            { "wl-paste", "--no-newline", "--type", mime },
+            { "xclip", "-selection", "clipboard", "-t", mime, "-o" },
+        };
+        for (String[] cmd : cmds) {
+            try {
+                Process proc = new ProcessBuilder(cmd)
+                    .redirectError(ProcessBuilder.Redirect.DISCARD)
+                    .start();
+                byte[] bytes = proc.getInputStream().readAllBytes(); // read before waitFor to avoid deadlock
+                if (!proc.waitFor(2, TimeUnit.SECONDS)) {
+                    proc.destroyForcibly();
+                    PaintCraft.LOGGER.info("[paste] {} timed out for {}", cmd[0], mime);
+                    continue;
+                }
+                PaintCraft.LOGGER.info("[paste] {} exit={} bytes={} mime={}", cmd[0], proc.exitValue(), bytes.length, mime);
+                if (proc.exitValue() == 0 && bytes.length > 8) return bytes;
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            } catch (Exception e) {
+                PaintCraft.LOGGER.debug("[paste] {} unavailable for {}: {}", cmd[0], mime, e.getMessage());
+            }
+        }
+        return null;
+    }
+
+    /** Reads image data from the AWT system clipboard and encodes it as PNG bytes. Works on Windows, macOS, X11. */
+    private static byte[] readAwtClipboardBytes() {
+        try {
+            java.awt.datatransfer.Clipboard cb = java.awt.Toolkit.getDefaultToolkit().getSystemClipboard();
+            if (!cb.isDataFlavorAvailable(java.awt.datatransfer.DataFlavor.imageFlavor)) return null;
+            java.awt.Image awtImg = (java.awt.Image) cb.getData(java.awt.datatransfer.DataFlavor.imageFlavor);
+            java.awt.image.BufferedImage bi;
+            if (awtImg instanceof java.awt.image.BufferedImage bimg) {
+                bi = bimg;
+            } else {
+                int w = awtImg.getWidth(null), h = awtImg.getHeight(null);
+                bi = new java.awt.image.BufferedImage(w, h, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+                java.awt.Graphics g = bi.createGraphics();
+                g.drawImage(awtImg, 0, 0, null);
+                g.dispose();
+            }
+            java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+            javax.imageio.ImageIO.write(bi, "PNG", baos);
+            byte[] bytes = baos.toByteArray();
+            PaintCraft.LOGGER.info("[paste] AWT clipboard: {} bytes", bytes.length);
+            return bytes.length > 8 ? bytes : null;
+        } catch (Exception e) {
+            PaintCraft.LOGGER.debug("[paste] AWT clipboard unavailable: {}", e.getMessage());
+            return null;
         }
     }
 
