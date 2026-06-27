@@ -1,9 +1,6 @@
 # Auto-generated from packwiz -- do not edit manually.
 # 71 mods
-
-{ pkgs }:
-
-{
+{pkgs}: {
   # Amendments
   "amendments" = {
     side = "both";
@@ -67,17 +64,6 @@
       outputHashAlgo = "sha512";
       outputHash = "7dbb5cabc4669b900c570547fc636ce77b24e08451f4c699db76ec9ed3c805a256323862d7823e7d8c5acd10baa15e83c27dae3384ed5ea765f7e883a41f6045";
       name = "c2me-neoforge-mc1.21.1-0.3.0+alpha.0.93.jar";
-    };
-  };
-
-  # Carry On
-  "carry-on" = {
-    side = "both";
-    jar = pkgs.fetchurl {
-      url = "https://cdn.modrinth.com/data/joEfVgkn/versions/cgZi7nC7/carryon-neoforge-1.21.1-2.2.4.4.jar";
-      outputHashAlgo = "sha512";
-      outputHash = "8b78ddc55ce6e28d4457dadb5aca4cd32e16d2db3c395276993e67c6acc108ced55e3e3d9a01aa5bf1da0d4fccab6183ba62acc1421054c0b2ecae9bd03cabf6";
-      name = "carryon-neoforge-1.21.1-2.2.4.4.jar";
     };
   };
 
@@ -784,5 +770,4 @@
       name = "YungsExtras-1.21.1-NeoForge-5.1.1.jar";
     };
   };
-
 }
