@@ -67,7 +67,7 @@ metafile = true
 
 [[files]]
 file = "mods/create-aeronautics.pw.toml"
-hash = "6ea6284b569b13f45bfe44f9790389de4a2f7cda92c8b3bb94511b600d64c486"
+hash = "5fab8d2e412683dfd72f08cf6750e51b03cb43192e8eb783e962ba28d20978bc"
 metafile = true
 
 [[files]]
@@ -122,7 +122,7 @@ metafile = true
 
 [[files]]
 file = "mods/distanthorizons.pw.toml"
-hash = "a98dd7f86518a0de7bb3451bee7c8e1d7cec1b7fe00d97504ce7afd7e715ae2d"
+hash = "937a5af04455f2afb7bac9184749d36b0e340ab5c4e70fc21ae8ec74de043c08"
 metafile = true
 
 [[files]]
@@ -156,13 +156,28 @@ hash = "7f81ca0ff304d78545a5961599574b0260b498b90a69e13b7770550e693eb905"
 metafile = true
 
 [[files]]
+file = "mods/freecam.pw.toml"
+hash = "184c6768f11e0c33c22c104397ad559c5b9337c709d1d05c8e9c93891dcddaee"
+metafile = true
+
+[[files]]
 file = "mods/full-brightness-toggle.pw.toml"
 hash = "26569c9601e7490fff75ed2f556badced7f25177bebd4fad0c8789f386a4672a"
 metafile = true
 
 [[files]]
+file = "mods/fusion-connected-textures.pw.toml"
+hash = "0e79bdc0e20758b00f330867f389e57cd9046496da89fcd37701789443f96d24"
+metafile = true
+
+[[files]]
 file = "mods/handcrafted.pw.toml"
 hash = "0004feab868f7b873c12db05aae0d0dac6c87b497490b48bb66480e7c8d0f340"
+metafile = true
+
+[[files]]
+file = "mods/iceberg.pw.toml"
+hash = "a2fbecad69fcbff54919864ea8b95e54d140a1a2c637d73307fb366e76066fe6"
 metafile = true
 
 [[files]]
@@ -177,7 +192,12 @@ metafile = true
 
 [[files]]
 file = "mods/iris.pw.toml"
-hash = "f67aa60c765593a8c70f78296a460349c6aef5f4a16d173eae02e8803b545ad4"
+hash = "db1c1e6382878b78e994dba1b9026935f8d1c5ca685c89d2437858e0a0dcab58"
+metafile = true
+
+[[files]]
+file = "mods/item-highlighter.pw.toml"
+hash = "9163b758163681f75e2048c798be880c50392684b127d7d87f42ea588deceb62"
 metafile = true
 
 [[files]]
@@ -212,12 +232,17 @@ metafile = true
 
 [[files]]
 file = "mods/moonlight.pw.toml"
-hash = "4e93b2710a407b1a518aba64e77d97fd5a2f853b54e2133eac0768ba90bdc5d6"
+hash = "9d84be24f2e6adbf75dec35a2bc9b147c840eefe2a7f4138c40cb7ca315f2678"
 metafile = true
 
 [[files]]
 file = "mods/notenoughcrashes.pw.toml"
 hash = "09ba6db54e6f13fafa1e12a9adcd83db9137617d631288579f520ab11b4bfe9a"
+metafile = true
+
+[[files]]
+file = "mods/particle-rain.pw.toml"
+hash = "6f24e7f5ecef862b1bdb61031637e27b093f185c3219023bea94d2d954ec4180"
 metafile = true
 
 [[files]]
@@ -232,7 +257,17 @@ metafile = true
 
 [[files]]
 file = "mods/sable.pw.toml"
-hash = "e4c43e944439f4941ba1c417ab3ac1ec3dbd9c95a8456a2069641d031317e142"
+hash = "674aaf0dc67f808f0054cfc7bbe041d6725fcbbe97644a85ffbd946a22d35666"
+metafile = true
+
+[[files]]
+file = "mods/shulkerboxtooltip.pw.toml"
+hash = "0bef7b3dd4758a661d3e6827bd390c12ff8a3ede4a66bb2e01e3c760f02bd509"
+metafile = true
+
+[[files]]
+file = "mods/simple-voice-chat.pw.toml"
+hash = "369617869e9c8224e9c5e875d70677c491bc4282919b32705d096d253e2ffecd"
 metafile = true
 
 [[files]]
@@ -242,7 +277,7 @@ metafile = true
 
 [[files]]
 file = "mods/sodium.pw.toml"
-hash = "0281ed9713f3141bdac363056a791845510e14761ea65b4b2813cf96d664b20a"
+hash = "b09f7819bbd22c2cc6a70601295721cb3bee6d830ca2f51fdacb50de519596e8"
 metafile = true
 
 [[files]]
@@ -277,7 +312,7 @@ metafile = true
 
 [[files]]
 file = "mods/supplementaries.pw.toml"
-hash = "148c5d14dfeca914d20ceea4defa9660fe588e6fc22cea23cab745504d4b2453"
+hash = "039a71011f455c24c9ccc7b38ef6f01561992a77a5d0c21f75dc01f70b42b1e2"
 metafile = true
 
 [[files]]

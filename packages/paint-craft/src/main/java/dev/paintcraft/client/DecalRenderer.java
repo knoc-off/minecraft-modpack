@@ -50,6 +50,11 @@ public final class DecalRenderer {
     // renderAll() to re-mesh all decal chunks so toggling reliefEnabled takes effect immediately.
     private static volatile boolean configReloaded = false;
 
+    // Tracks whether VBOs were last built for Iris mode (white vertex color) or vanilla mode
+    // (pre-baked AO+shade).  When the shader state changes, all chunks are re-meshed so the
+    // correct vertex colors land in the VBO.
+    private static boolean irisMode = false;
+
     private DecalRenderer() {}
 
     /** Called when the client config reloads — forces a full re-mesh of all decal chunks. */
@@ -210,7 +215,8 @@ public final class DecalRenderer {
     // --- Render Entry Point ---
 
     public static void renderAll(Vec3 cameraPos, Frustum frustum,
-                                  Matrix4f modelViewMatrix, Matrix4f projectionMatrix) {
+                                  Matrix4f modelViewMatrix, Matrix4f projectionMatrix,
+                                  boolean shadersActive) {
         if (resolvedCache.isEmpty() && chunkVBOs.isEmpty()) return;
 
         long t0 = System.nanoTime();
@@ -223,6 +229,13 @@ public final class DecalRenderer {
         // Config (re)loaded: re-mesh every decal chunk so reliefEnabled / relief params apply now.
         if (configReloaded) {
             configReloaded = false;
+            dirtyChunks.addAll(chunkVBOs.keySet());
+        }
+
+        // Shader mode toggled: re-mesh so vertex colors switch between pre-baked (vanilla) and
+        // white (Iris — shader pack computes lighting from lightmap + normals itself).
+        if (shadersActive != irisMode) {
+            irisMode = shadersActive;
             dirtyChunks.addAll(chunkVBOs.keySet());
         }
 
@@ -277,14 +290,23 @@ public final class DecalRenderer {
         viewMat.set(modelViewMatrix)
             .translate((float) (-cameraPos.x), (float) (-cameraPos.y), (float) (-cameraPos.z));
 
-        float savedFogStart = RenderSystem.getShaderFogStart();
-        float savedFogEnd = RenderSystem.getShaderFogEnd();
-        RenderSystem.setShaderFogStart(Float.MAX_VALUE);
-        RenderSystem.setShaderFogEnd(Float.MAX_VALUE);
+        // Disable vanilla fog for our custom pass; Iris manages fog itself via shader pack.
+        float savedFogStart = 0, savedFogEnd = 0;
+        if (!shadersActive) {
+            savedFogStart = RenderSystem.getShaderFogStart();
+            savedFogEnd = RenderSystem.getShaderFogEnd();
+            RenderSystem.setShaderFogStart(Float.MAX_VALUE);
+            RenderSystem.setShaderFogEnd(Float.MAX_VALUE);
+        }
         RenderSystem.setShaderColor(1.0f, 1.0f, 1.0f, 1.0f);
 
         var window = Minecraft.getInstance().getWindow();
-        RenderType rt = DecalRenderType.decal(CellCompositor.atlasLocation());
+        // With Iris: use the vanilla translucent shader (Iris recognises it and routes it through
+        // gbuffers_water) + GL polygon offset for depth bias.  Our custom depth-bias shader is
+        // unknown to Iris and silently discards to the wrong framebuffer.
+        RenderType rt = shadersActive
+            ? DecalRenderType.irisDecal(CellCompositor.atlasLocation())
+            : DecalRenderType.decal(CellCompositor.atlasLocation());
         rt.setupRenderState();
         ShaderInstance shader = RenderSystem.getShader();
         shader.setDefaultUniforms(VertexFormat.Mode.QUADS, viewMat, projectionMatrix, window);
@@ -316,8 +338,10 @@ public final class DecalRenderer {
         VertexBuffer.unbind();
         rt.clearRenderState();
 
-        RenderSystem.setShaderFogStart(savedFogStart);
-        RenderSystem.setShaderFogEnd(savedFogEnd);
+        if (!shadersActive) {
+            RenderSystem.setShaderFogStart(savedFogStart);
+            RenderSystem.setShaderFogEnd(savedFogEnd);
+        }
 
         if (profiling) {
             dbg.renderTimeNanos = System.nanoTime() - t0;
@@ -407,7 +431,9 @@ public final class DecalRenderer {
 
                         float ao = DecalLighting.interpolateAO(cornerAO, fracRight, fracUp);
                         int light = DecalLighting.interpolateLight(cornerLight, fracRight, fracUp);
-                        int shade = (int) (ao * faceShade * 255);
+                        // Iris mode: emit white so the shader pack can compute lighting from
+                        // lightmap + normals without double-applying our pre-baked shade.
+                        int shade = irisMode ? 255 : (int) (ao * faceShade * 255);
 
                         float u = CellCompositor.atlasU(slotIndex, fracRight);
                         float vv = CellCompositor.atlasV(slotIndex, 1.0f - fracUp);
@@ -599,7 +625,7 @@ public final class DecalRenderer {
 
             float ao = DecalLighting.interpolateAO(cornerAO, uR, vUp);
             int light = DecalLighting.interpolateLight(cornerLight, uR, vUp);
-            int shade = (int) (ao * faceShade * shadeMul * 255f);
+            int shade = irisMode ? 255 : (int) (ao * faceShade * shadeMul * 255f);
             if (shade > 255) shade = 255;
 
             // Walls (flatUV) sample the owning cell's centre texel so they never hit the transparent

@@ -1,5 +1,6 @@
 package dev.paintcraft.client;
 
+import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import net.minecraft.client.renderer.RenderStateShard;
@@ -34,8 +35,26 @@ public final class DecalRenderType extends RenderStateShard {
         () -> {}
     );
 
+    /**
+     * Polygon-offset layering shard used by the Iris-compat render type.
+     * Replaces the NDC-z depth-bias trick (which requires our custom shader) with
+     * the GL fixed-function polygon offset, which works with any shader program.
+     */
+    private static final LayeringStateShard POLYGON_OFFSET_SHARD = new LayeringStateShard(
+        "paintcraft_polygon_offset",
+        () -> {
+            RenderSystem.polygonOffset(-1f, -1f);
+            RenderSystem.enablePolygonOffset();
+        },
+        () -> {
+            RenderSystem.disablePolygonOffset();
+            RenderSystem.polygonOffset(0f, 0f);
+        }
+    );
+
     private static final Map<ResourceLocation, RenderType> CACHE = new ConcurrentHashMap<>();
     private static final Map<ResourceLocation, RenderType> GHOST_CACHE = new ConcurrentHashMap<>();
+    private static final Map<ResourceLocation, RenderType> IRIS_CACHE = new ConcurrentHashMap<>();
 
     private DecalRenderType() {
         super("paintcraft_decal", () -> {}, () -> {});
@@ -64,6 +83,37 @@ public final class DecalRenderType extends RenderStateShard {
                     .setCullState(NO_CULL)
                     .setLightmapState(LIGHTMAP)
                     .setLayeringState(DEPTH_BIAS_SHARD)
+                    .createCompositeState(false)
+            )
+        );
+    }
+
+    /**
+     * Iris/shader-pack compatible render type.
+     * Uses the vanilla translucent shader (Iris recognises it and routes it through
+     * gbuffers_water) instead of our custom depth-bias shader.  Depth bias is
+     * provided by GL polygon offset via POLYGON_OFFSET_SHARD.
+     * Same vertex format (BLOCK) and VBOs as the normal decal type — no geometry
+     * rebuild needed, just swap the render type at draw time.
+     */
+    public static RenderType irisDecal(ResourceLocation texture) {
+        return IRIS_CACHE.computeIfAbsent(texture, tex ->
+            RenderType.create(
+                "paintcraft_iris_decal",
+                DefaultVertexFormat.BLOCK,
+                VertexFormat.Mode.QUADS,
+                1536,
+                false,
+                true,
+                RenderType.CompositeState.builder()
+                    .setShaderState(RENDERTYPE_TRANSLUCENT_SHADER)
+                    .setTextureState(new TextureStateShard(tex, false, false))
+                    .setTransparencyState(TRANSLUCENT_TRANSPARENCY)
+                    .setWriteMaskState(COLOR_DEPTH_WRITE)
+                    .setDepthTestState(LEQUAL_DEPTH_TEST)
+                    .setCullState(NO_CULL)
+                    .setLightmapState(LIGHTMAP)
+                    .setLayeringState(POLYGON_OFFSET_SHARD)
                     .createCompositeState(false)
             )
         );

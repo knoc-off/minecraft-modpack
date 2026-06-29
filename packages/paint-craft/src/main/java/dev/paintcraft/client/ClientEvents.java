@@ -10,6 +10,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
+import dev.paintcraft.client.compat.iris.IrisCompat;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -48,7 +49,14 @@ public final class ClientEvents {
 
     @SubscribeEvent
     public static void onRenderLevelStage(RenderLevelStageEvent event) {
-        if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_BLOCK_ENTITIES) return;
+        // With Iris shaders active, render during the translucent-blocks stage so our
+        // geometry lands in Iris's gbuffers_water pass (translucent terrain).  Without
+        // Iris we keep AFTER_BLOCK_ENTITIES which works best with vanilla pipeline.
+        boolean irisActive = IrisCompat.isShadersActive();
+        RenderLevelStageEvent.Stage target = irisActive
+            ? RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS
+            : RenderLevelStageEvent.Stage.AFTER_BLOCK_ENTITIES;
+        if (event.getStage() != target) return;
 
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null) return;
@@ -58,7 +66,8 @@ public final class ClientEvents {
             cameraPos,
             event.getFrustum(),
             event.getModelViewMatrix(),
-            event.getProjectionMatrix()
+            event.getProjectionMatrix(),
+            irisActive
         );
 
         StampPreviewRenderer.render(
