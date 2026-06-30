@@ -16,15 +16,16 @@ public final class ShapeWatcher {
     private ShapeWatcher() {}
 
     public static void onBlockVisualUpdate(BlockPos pos) {
-        // Decals with a fragment at this position...
+        // Pre-filter: skip immediately if no decal has a fragment or volume in this chunk.
+        // One allocation-free lookup vs. up to 7 map lookups + a new ChunkPos allocation.
+        if (!ClientSpatialIndex.hasDecalsInChunk(pos)) return;
+
         Set<UUID> byFragment = ClientSpatialIndex.getDecalIdsAt(pos);
-        // ...plus decals whose projection volume contains it but that have no fragment here yet
-        // (e.g. resolved empty/too-deep before their blocks were applied — contraption disassembly).
         Set<UUID> byVolume = ClientSpatialIndex.getDecalIdsInVolumeAt(pos);
         if (byFragment.isEmpty() && byVolume.isEmpty()) return;
 
         Set<UUID> affected = new HashSet<>(byFragment);
         affected.addAll(byVolume);
-        DeferredInvalidator.invalidateFullResolve(affected, Set.of(pos.immutable()));
+        DeferredInvalidator.invalidate(affected, Set.of(pos.immutable()));
     }
 }

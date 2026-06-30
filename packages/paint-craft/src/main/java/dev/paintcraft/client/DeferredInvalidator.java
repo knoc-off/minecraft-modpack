@@ -14,24 +14,29 @@ import java.util.*;
  *
  * Uses incremental re-resolve when previous resolved data is available:
  * only queries changed blocks, not the entire projection volume.
- * Compositing is handled separately — this only updates projection geometry.
+ *
+ * Two short-circuit exits before any downstream work:
+ *
+ *  (null)   resolveIncremental returns null when the changed blocks don't
+ *           intersect this decal's pixel region at all — skip entirely.
+ *
+ *  (no-op)  if the depth buffer is byte-identical to the previous resolve
+ *           the geometry hasn't changed (e.g. block state changed but not
+ *           shape) — skip register + cacheResolved, so no recomposite or
+ *           VBO rebuild fires.  This makes ambient block updates (redstone,
+ *           lighting, waterlogging, …) near a deep stack essentially free.
  */
 public final class DeferredInvalidator {
 
     private DeferredInvalidator() {}
 
-    // Per-decal accumulated changed positions (multiple invalidation packets
-    // can arrive in one tick, each with different changed blocks)
+    // Per-decal accumulated changed positions (multiple events can arrive per tick)
     private static final Map<UUID, Set<BlockPos>> pendingInvalidations = new LinkedHashMap<>();
 
-    // Decals that must use full resolve (not incremental from potentially-stale state)
-    private static final Set<UUID> forceFullResolve = new HashSet<>();
-
+    // Max decals that do actual downstream work (spatial register + cacheResolved) per flush.
+    // Cheap no-op exits (null or unchanged depth buffer) don't count against this budget.
     private static final int MAX_RESOLVES_PER_FLUSH = 16;
 
-    /**
-     * Mark decals for deferred re-resolution with the positions that changed.
-     */
     public static void invalidate(Collection<UUID> decalIds, Collection<BlockPos> changedPositions) {
         for (UUID id : decalIds) {
             pendingInvalidations.computeIfAbsent(id, k -> new HashSet<>()).addAll(changedPositions);
@@ -39,18 +44,7 @@ public final class DeferredInvalidator {
     }
 
     /**
-     * Mark decals for deferred re-resolution with FULL resolve forced.
-     * Used when the client-side block shape genuinely changed (e.g., after
-     * async BlockEntity deserialization completes) and incremental state may be stale.
-     */
-    public static void invalidateFullResolve(Collection<UUID> decalIds, Collection<BlockPos> changedPositions) {
-        invalidate(decalIds, changedPositions);
-        forceFullResolve.addAll(decalIds);
-    }
-
-    /**
-     * Process pending invalidations. Called every render frame from DecalRenderer.renderAll()
-     * to minimize latency between server packet arrival and visual update.
+     * Process pending invalidations. Called every render frame from DecalRenderer.update().
      */
     public static void flush() {
         if (pendingInvalidations.isEmpty()) return;
@@ -70,45 +64,50 @@ public final class DeferredInvalidator {
             UUID id = entry.getKey();
             Set<BlockPos> changedBlocks = entry.getValue();
 
-            // Rate-limit: defer remaining to next frame
-            if (resolveCount >= MAX_RESOLVES_PER_FLUSH) {
-                pendingInvalidations.computeIfAbsent(id, k -> new HashSet<>()).addAll(changedBlocks);
-                continue;
-            }
-
             Decal decal = ClientDecalCache.get(id);
             if (decal == null) continue;
 
-            // Try incremental resolve using previous data
             DecalRenderer.ResolvedEntry existing = DecalRenderer.getResolved(id);
+
             ProjectionResult result;
             if (existing != null && existing.projState() != null
-                    && existing.projState().canResolveIncrementally()
-                    && !forceFullResolve.remove(id)) {
+                    && existing.projState().canResolveIncrementally()) {
+                // (C) Incremental: only reprocesses pixels overlapping changedBlocks.
+                // Returns null when no pixel region is dirty — changed block doesn't
+                // touch this decal at all.  Skip without counting against budget.
                 result = ProjectionResolver.resolveIncremental(
-                    decal, level, existing.projState(),
-                    existing.surface().fragments(), changedBlocks);
+                        decal, level, existing.projState(),
+                        existing.surface().fragments(), changedBlocks);
+
+                if (result == null) continue; // (C) short-circuit: nothing to do
             } else {
+                // No prior state — must do a full resolve.
+                // Rate-limit only the expensive full resolves.
+                if (resolveCount >= MAX_RESOLVES_PER_FLUSH) {
+                    pendingInvalidations.computeIfAbsent(id, k -> new HashSet<>()).addAll(changedBlocks);
+                    continue;
+                }
                 result = ProjectionResolver.resolve(decal, level);
+                resolveCount++;
             }
 
-            // If incremental couldn't detect the change, fall back to full resolve
-            if (result == null) {
-                result = ProjectionResolver.resolve(decal, level);
+            if (result == null) continue;
+
+            // (A) No-op guard: if the depth buffer is identical the geometry hasn't changed
+            // (block state changed but not shape — redstone, powered rails, etc.).
+            // Skip downstream work entirely: no spatial re-register, no cell dirty, no VBO rebuild.
+            if (existing != null && existing.projState() != null
+                    && Arrays.equals(result.state().depthMap(), existing.projState().depthMap())) {
+                continue;
             }
 
-            if (result != null) {
-                ClientSpatialIndex.register(decal.id(), decal.zOrder(), result.surface().fragments());
-                DecalRenderer.cacheResolved(decal.id(), decal,
+            ClientSpatialIndex.register(decal.id(), decal.zOrder(), result.surface().fragments());
+            DecalRenderer.cacheResolved(decal.id(), decal,
                     result.surface(), result.state(), changedBlocks);
-            }
-
-            resolveCount++;
         }
     }
 
     public static void clear() {
         pendingInvalidations.clear();
-        forceFullResolve.clear();
     }
 }

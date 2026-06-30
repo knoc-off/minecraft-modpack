@@ -7,3 +7,7 @@ result-*
 
 # Server working dirs
 *-data/
+
+
+# trash
+.Trash-1000/

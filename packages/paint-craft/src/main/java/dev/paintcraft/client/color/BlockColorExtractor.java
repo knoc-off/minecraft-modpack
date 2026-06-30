@@ -1,9 +1,11 @@
 package dev.paintcraft.client.color;
 
+import dev.paintcraft.client.AtlasImageCache;
 import dev.paintcraft.core.ColorFormat;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.block.BlockModelShaper;
 import net.minecraft.client.renderer.block.model.BakedQuad;
+import net.minecraft.client.renderer.texture.TextureAtlas;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.core.Direction;
@@ -32,6 +34,7 @@ public final class BlockColorExtractor {
         BlockModelShaper shaper = mc.getBlockRenderer().getBlockModelShaper();
         BlockState state = block.defaultBlockState();
         BakedModel model = shaper.getBlockModel(state);
+        TextureAtlas blocksAtlas = mc.getModelManager().getAtlas(TextureAtlas.LOCATION_BLOCKS);
 
         Set<Integer> colors = new LinkedHashSet<>();
         Set<String> seenSprites = new HashSet<>();
@@ -39,15 +42,16 @@ public final class BlockColorExtractor {
 
         // Iterate all 6 face directions + null (unculled/general quads)
         for (Direction dir : Direction.values()) {
-            extractFromQuads(model, state, dir, random, colors, seenSprites);
+            extractFromQuads(model, state, dir, random, colors, seenSprites, blocksAtlas);
         }
-        extractFromQuads(model, state, null, random, colors, seenSprites);
+        extractFromQuads(model, state, null, random, colors, seenSprites, blocksAtlas);
 
         // Fallback: if no quads produced colors, try particle icon
         if (colors.isEmpty()) {
             TextureAtlasSprite sprite = model.getParticleIcon(ModelData.EMPTY);
             if (sprite != null) {
-                readSpriteColors(sprite, colors);
+                TextureAtlasSprite live = blocksAtlas.getSprite(sprite.contents().name());
+                readSpriteColors(live, colors);
             }
         }
 
@@ -56,13 +60,15 @@ public final class BlockColorExtractor {
 
     private static void extractFromQuads(BakedModel model, BlockState state, Direction dir,
                                          RandomSource random, Set<Integer> colors,
-                                         Set<String> seenSprites) {
+                                         Set<String> seenSprites, TextureAtlas blocksAtlas) {
         List<BakedQuad> quads = model.getQuads(state, dir, random);
         for (BakedQuad quad : quads) {
             TextureAtlasSprite sprite = quad.getSprite();
-            String name = sprite.contents().name().toString();
+            // Re-resolve from the current live atlas — same stale-reference issue as BackgroundCapture.
+            TextureAtlasSprite liveSprite = blocksAtlas.getSprite(sprite.contents().name());
+            String name = liveSprite.contents().name().toString();
             if (seenSprites.add(name)) {
-                readSpriteColors(sprite, colors);
+                readSpriteColors(liveSprite, colors);
             }
         }
     }
@@ -70,9 +76,15 @@ public final class BlockColorExtractor {
     private static void readSpriteColors(TextureAtlasSprite sprite, Set<Integer> colors) {
         int w = sprite.contents().width();
         int h = sprite.contents().height();
+        float u0 = sprite.getU0(), v0 = sprite.getV0();
+        float uRange = sprite.getU1() - u0, vRange = sprite.getV1() - v0;
+        // Sample the live GPU atlas snapshot (what the world renders) rather than
+        // SpriteContents.getOriginalImage(), which can be a stale/HD pre-stitch source.
         for (int y = 0; y < h; y++) {
             for (int x = 0; x < w; x++) {
-                int abgr = sprite.getPixelRGBA(0, x, y);
+                float u = u0 + (x + 0.5f) / w * uRange;
+                float v = v0 + (y + 0.5f) / h * vRange;
+                int abgr = AtlasImageCache.sampleABGR(u, v);
                 int argb = ColorFormat.abgrToArgb(abgr);
                 int alpha = (argb >> 24) & 0xFF;
                 if (alpha <= 2) continue;

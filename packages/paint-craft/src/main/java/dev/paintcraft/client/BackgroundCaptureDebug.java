@@ -297,6 +297,7 @@ public final class BackgroundCaptureDebug {
         // Analyze each quad's s,t for this sample point
         sb.append("  Quad s/t analysis (sample point vs each quad):\n");
         int matchIdx = -1;
+        float matchS = 0, matchT = 0;
         for (int q = 0; q < quads.size(); q++) {
             BakedQuad quad = quads.get(q);
             int[] verts = quad.getVertices();
@@ -325,7 +326,7 @@ public final class BackgroundCaptureDebug {
                 sb.append(marker).append('\n');
             }
 
-            if (inBounds && matchIdx < 0) matchIdx = q;
+            if (inBounds && matchIdx < 0) { matchIdx = q; matchS = Math.clamp(s, 0f, 1f); matchT = Math.clamp(t, 0f, 1f); }
         }
 
         if (quads.size() > 15 && matchIdx < 0) {
@@ -334,6 +335,79 @@ public final class BackgroundCaptureDebug {
 
         if (matchIdx >= 0) {
             sb.append("  RESULT: Matched quad #").append(matchIdx).append('\n');
+            // --- Stale / HD-image diagnosis ---
+            var quadSprite = quads.get(matchIdx).getSprite();
+            var qc = quadSprite.contents();
+            sb.append("  [SPRITE] quad: ").append(qc.name())
+              .append(" logical=").append(qc.width()).append('x').append(qc.height())
+              .append(" contentsClass=").append(qc.getClass().getName())
+              .append(" spriteClass=").append(quadSprite.getClass().getName()).append('\n');
+            try {
+                var atlas = net.minecraft.client.Minecraft.getInstance().getModelManager()
+                    .getAtlas(net.minecraft.client.renderer.texture.TextureAtlas.LOCATION_BLOCKS);
+                var live = atlas.getSprite(qc.name());
+                var lc = live.contents();
+                sb.append("  [SPRITE] live atlas: ").append(lc.name())
+                  .append(" logical=").append(lc.width()).append('x').append(lc.height())
+                  .append(" contentsClass=").append(lc.getClass().getName())
+                  .append(" atlasUV u0=").append(fmt(live.getU0())).append(" u1=").append(fmt(live.getU1()))
+                  .append(" v0=").append(fmt(live.getV0())).append(" v1=").append(fmt(live.getV1()))
+                  .append('\n');
+
+                // --- Actual pixel check ---
+                com.mojang.blaze3d.platform.NativeImage origImg = lc.getOriginalImage();
+                if (origImg != null) {
+                    int imgW = origImg.getWidth(), imgH = origImg.getHeight();
+                    sb.append("  [PIXEL] getOriginalImage() actual dims: ").append(imgW).append('x').append(imgH)
+                      .append(" (logical ").append(lc.width()).append('x').append(lc.height()).append(')')
+                      .append(imgW != lc.width() || imgH != lc.height() ? " *** MISMATCH ***" : " (match)")
+                      .append('\n');
+
+                    // Replicate sampleBlockTexture's exact UV interpolation for the matched quad
+                    int[] matchVerts = quads.get(matchIdx).getVertices();
+                    float sprU0 = live.getU0(), sprV0 = live.getV0();
+                    float sprURng = live.getU1() - sprU0, sprVRng = live.getV1() - sprV0;
+                    float[] cU = new float[4], cV = new float[4];
+                    for (int i = 0; i < 4; i++) {
+                        float au = Float.intBitsToFloat(matchVerts[i * 8 + 4]);
+                        float av = Float.intBitsToFloat(matchVerts[i * 8 + 5]);
+                        cU[i] = sprURng > 0.0001f ? (au - sprU0) / sprURng : 0f;
+                        cV[i] = sprVRng > 0.0001f ? (av - sprV0) / sprVRng : 0f;
+                        sb.append("    vert[").append(i).append("] atlasUV=(")
+                          .append(fmt(au)).append(',').append(fmt(av)).append(")")
+                          .append(" spriteLocal=(").append(fmt(cU[i])).append(',').append(fmt(cV[i])).append(")\n");
+                    }
+                    float iU0 = cU[0]+(cU[1]-cU[0])*matchS, iV0 = cV[0]+(cV[1]-cV[0])*matchS;
+                    float iU1 = cU[3]+(cU[2]-cU[3])*matchS, iV1 = cV[3]+(cV[2]-cV[3])*matchS;
+                    float finalU = iU0+(iU1-iU0)*matchT;
+                    float finalV = iV0+(iV1-iV0)*matchT;
+
+                    // Sample using actual image dims (exactly as sampleBlockTexture does)
+                    int sx = Math.clamp((int)(finalU * imgW), 0, imgW - 1);
+                    int sy = Math.clamp((int)(finalV * imgH), 0, imgH - 1);
+                    int abgr = origImg.getPixelRGBA(sx, sy);
+                    int pR = abgr & 0xFF, pG = (abgr>>8) & 0xFF, pB = (abgr>>16) & 0xFF, pA = (abgr>>24) & 0xFF;
+                    sb.append("  [PIXEL] s=").append(fmt(matchS)).append(" t=").append(fmt(matchT))
+                      .append(" finalUV=(").append(fmt(finalU)).append(',').append(fmt(finalV)).append(')')
+                      .append(" img[").append(sx).append(',').append(sy).append(']')
+                      .append(" abgr=0x").append(String.format("%08X", abgr & 0xFFFFFFFFL))
+                      .append(" => ARGB=0x").append(String.format("%08X",
+                          ((long)pA<<24)|((long)pR<<16)|((long)pG<<8)|pB))
+                      .append('\n');
+
+                    // Corner pixels: reveals if image is a multi-tile sheet
+                    sb.append("  [PIXEL] corners TL/TR/BL/BR: ");
+                    for (int[] c : new int[][]{{0,0},{imgW-1,0},{0,imgH-1},{imgW-1,imgH-1}}) {
+                        int p = origImg.getPixelRGBA(c[0], c[1]);
+                        sb.append(String.format("0x%08X ", p & 0xFFFFFFFFL));
+                    }
+                    sb.append('\n');
+                } else {
+                    sb.append("  [PIXEL] getOriginalImage() returned null\n");
+                }
+            } catch (Throwable t) {
+                sb.append("  [SPRITE] lookup/sample failed: ").append(t).append('\n');
+            }
         } else {
             sb.append("  RESULT: NO QUAD MATCHED — pixel will be transparent (using clamped quad #0)\n");
         }

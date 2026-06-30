@@ -1,6 +1,5 @@
 package dev.paintcraft.client;
 
-import com.mojang.blaze3d.platform.NativeImage;
 import dev.paintcraft.client.compat.ChiseledBlockHelper;
 import dev.paintcraft.core.Decal;
 import dev.paintcraft.core.FaceFrame;
@@ -36,6 +35,8 @@ public final class BackgroundCapture {
     private static final RandomSource RANDOM = RandomSource.createNewThreadLocalInstance();
 
     private static final float SHADE_FACTOR = 0.5f; // 50% darker at max depth
+
+    private static final boolean DIAG = true; // TEMP: per-pixel sampling-rate diagnostic
 
     private static final boolean HAS_CNB = net.neoforged.fml.ModList.get().isLoaded("chiselsandbits");
 
@@ -104,7 +105,8 @@ public final class BackgroundCapture {
         }
         if (maxDepth < 0.001f) maxDepth = 1.0f;
 
-        // Sample textures for each pixel
+        // Sample textures for each pixel from the live GPU block-atlas snapshot (see
+        // AtlasImageCache) — the same pixels the world renderer samples.
         for (int py = 0; py < hPx; py++) {
             for (int px = 0; px < wPx; px++) {
                 int idx = py * wPx + px;
@@ -145,11 +147,17 @@ public final class BackgroundCapture {
         // and modded blocks with custom model data (C&B, etc.)
         BlockEntity be = level.getBlockEntity(pos);
         ModelData modelData = be != null ? be.getModelData() : ModelData.EMPTY;
+        // Seed the RNG per block position exactly like the world renderer
+        // (ModelBlockRenderer). Vanilla blocks such as stone/grass/sand use random texture
+        // rotation; without a stable per-block seed, every pixel here would get a different
+        // rotation of the 16px texture, remixing it into fake sub-pixel "HD" detail.
+        RANDOM.setSeed(state.getSeed(pos));
         List<BakedQuad> quads = model.getQuads(state, face, RANDOM, modelData, null);
 
         // Always include null-face (generic) quads matching our direction.
         // Non-full blocks (stairs, glass panes, fences) store interior/recessed
         // faces in the null bucket since they shouldn't be face-culled.
+        RANDOM.setSeed(state.getSeed(pos));
         List<BakedQuad> nullQuads = model.getQuads(state, null, RANDOM, modelData, null);
         if (!nullQuads.isEmpty()) {
             List<BakedQuad> combined = new ArrayList<>(quads);
@@ -165,7 +173,17 @@ public final class BackgroundCapture {
             quads = ChiseledBlockHelper.getDataAwareQuads(level, pos, state, model, face, RANDOM);
         }
 
-        if (quads.isEmpty()) return 0;
+        if (quads.isEmpty()) {
+            // No baked geometry: this block is drawn by a BlockEntityRenderer
+            // (decorated pot, chest, sign, banner, shulker box, bed, conduit...).
+            // Its block model is empty, so getQuads returns nothing and the face would
+            // render transparent. Fall back to the block's particle sprite so the painted
+            // face shows a solid block-shaped fill instead of a hole. We can't reproduce
+            // the BER's animated geometry here, but a terracotta-coloured surface beats
+            // an invisible one.
+            return sampleParticleFallback(model, modelData, state, level, pos, face,
+                                          vol, depth, px, py, wPx, hPx);
+        }
 
         // Compute the world position of this pixel from the projection volume
         float localU = (px + 0.5f) / wPx * vol.width();
@@ -183,22 +201,14 @@ public final class BackgroundCapture {
         for (BakedQuad quad : quads) {
             int[] vertices = quad.getVertices();
             float[] vx = new float[4], vy = new float[4], vz = new float[4];
-            float[] cornerU = new float[4], cornerV = new float[4];
-
-            TextureAtlasSprite sprite = quad.getSprite();
-            float spriteU0 = sprite.getU0();
-            float spriteV0 = sprite.getV0();
-            float spriteURange = sprite.getU1() - spriteU0;
-            float spriteVRange = sprite.getV1() - spriteV0;
+            float[] au = new float[4], av = new float[4];
 
             for (int i = 0; i < 4; i++) {
                 vx[i] = Float.intBitsToFloat(vertices[i * 8]);
                 vy[i] = Float.intBitsToFloat(vertices[i * 8 + 1]);
                 vz[i] = Float.intBitsToFloat(vertices[i * 8 + 2]);
-                float atlasU = Float.intBitsToFloat(vertices[i * 8 + 4]);
-                float atlasV = Float.intBitsToFloat(vertices[i * 8 + 5]);
-                cornerU[i] = spriteURange > 0.0001f ? (atlasU - spriteU0) / spriteURange : 0f;
-                cornerV[i] = spriteVRange > 0.0001f ? (atlasV - spriteV0) / spriteVRange : 0f;
+                au[i] = Float.intBitsToFloat(vertices[i * 8 + 4]);
+                av[i] = Float.intBitsToFloat(vertices[i * 8 + 5]);
             }
 
             // Edge vectors from vertex 0
@@ -222,22 +232,31 @@ public final class BackgroundCapture {
             s = Math.clamp(s, 0f, 1f);
             t = Math.clamp(t, 0f, 1f);
 
-            // Bilinearly interpolate sprite UV
-            float interpU0 = cornerU[0] + (cornerU[1] - cornerU[0]) * s;
-            float interpV0 = cornerV[0] + (cornerV[1] - cornerV[0]) * s;
-            float interpU1 = cornerU[3] + (cornerU[2] - cornerU[3]) * s;
-            float interpV1 = cornerV[3] + (cornerV[2] - cornerV[3]) * s;
+            // Bilinearly interpolate the quad's raw atlas UV, then sample the live GPU atlas
+            // snapshot at that coordinate. This is exactly what the world renderer samples, so
+            // the editor matches in-world regardless of any stale/HD CPU sprite source.
+            float iU0 = au[0] + (au[1] - au[0]) * s;
+            float iV0 = av[0] + (av[1] - av[0]) * s;
+            float iU1 = au[3] + (au[2] - au[3]) * s;
+            float iV1 = av[3] + (av[2] - av[3]) * s;
 
-            float finalU = interpU0 + (interpU1 - interpU0) * t;
-            float finalV = interpV0 + (interpV1 - interpV0) * t;
+            float finalU = iU0 + (iU1 - iU0) * t;
+            float finalV = iV0 + (iV1 - iV0) * t;
 
-            // Sample the sprite
-            NativeImage image = sprite.contents().getOriginalImage();
-            int spriteW = sprite.contents().width();
-            int spriteH = sprite.contents().height();
-            int sx = Math.clamp((int)(finalU * spriteW), 0, spriteW - 1);
-            int sy = Math.clamp((int)(finalV * spriteH), 0, spriteH - 1);
-            int abgr = image.getPixelRGBA(sx, sy);
+            int abgr = AtlasImageCache.sampleABGR(finalU, finalV);
+
+            // DIAGNOSTIC: log the per-pixel sampling rate for the center row. If consecutive
+            // px land on the same atlas texel in pairs -> clean 2x doubling; if every px lands
+            // on a new texel -> 2x over-sampling (the source of the fake "HD" detail).
+            if (DIAG && py == hPx / 2 && px < 12) {
+                int aw = AtlasImageCache.width(), ah = AtlasImageCache.height();
+                int tx = (int) (finalU * aw), ty = (int) (finalV * ah);
+                dev.paintcraft.PaintCraft.LOGGER.info(
+                    "[diag] px={} py={} s={} t={} finalU={} finalV={} atlas={}x{} texel=({},{}) abgr=0x{}",
+                    px, py, String.format("%.4f", s), String.format("%.4f", t),
+                    String.format("%.5f", finalU), String.format("%.5f", finalV),
+                    aw, ah, tx, ty, Integer.toHexString(abgr));
+            }
 
             int a = (abgr >> 24) & 0xFF;
             int b = (abgr >> 16) & 0xFF;
@@ -255,6 +274,48 @@ public final class BackgroundCapture {
         }
 
         return 0; // no quad contained the sample point
+    }
+
+    /**
+     * Fallback sampling for BlockEntityRenderer blocks (decorated pots, chests, signs...)
+     * whose block model has no baked quads. Maps the block-local face position onto the
+     * block's particle sprite and samples the live GPU atlas, giving a solid fill instead
+     * of a transparent face.
+     */
+    private static int sampleParticleFallback(BakedModel model, ModelData modelData,
+                                              BlockState state, BlockAndTintGetter level, BlockPos pos,
+                                              Direction face, Projection vol, float depth,
+                                              int px, int py, int wPx, int hPx) {
+        TextureAtlasSprite sprite = model.getParticleIcon(modelData);
+        if (sprite == null) return 0;
+
+        float localU = (px + 0.5f) / wPx * vol.width();
+        float localV = (py + 0.5f) / hPx * vol.height();
+        Vec3 worldPos = vol.localToWorld(localU, localV, depth);
+
+        float bx = (float)(worldPos.x - pos.getX());
+        float by = (float)(worldPos.y - pos.getY());
+        float bz = (float)(worldPos.z - pos.getZ());
+
+        // Tangent axes of the sampled face → sprite u,v
+        float fu, fv;
+        switch (face.getAxis()) {
+            case X -> { fu = bz; fv = by; }
+            case Z -> { fu = bx; fv = by; }
+            default -> { fu = bx; fv = bz; }
+        }
+        fu = Math.clamp(fu, 0f, 1f);
+        fv = Math.clamp(fv, 0f, 1f);
+
+        float su = sprite.getU0() + (sprite.getU1() - sprite.getU0()) * fu;
+        float sv = sprite.getV0() + (sprite.getV1() - sprite.getV0()) * fv;
+
+        int abgr = AtlasImageCache.sampleABGR(su, sv);
+        int a = (abgr >> 24) & 0xFF;
+        int b = (abgr >> 16) & 0xFF;
+        int g = (abgr >> 8) & 0xFF;
+        int r = abgr & 0xFF;
+        return (a << 24) | (r << 16) | (g << 8) | b;
     }
 
     private static int toPixel(float val, float range, int pixels) {

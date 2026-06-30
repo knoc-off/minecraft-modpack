@@ -25,16 +25,26 @@ public final class ClientSpatialIndex {
         }
     }
 
+    /** Pos+face pair, used by the compositor to recover cell identity from a key. */
+    public record CellLocation(BlockPos pos, Direction face) {}
+
     private static final Map<Long, List<DecalRef>> index = new HashMap<>();
     private static final Map<UUID, Set<Long>> decalCells = new HashMap<>();
     private static final Map<ChunkPos, Set<Long>> chunkIndex = new HashMap<>();
 
+    // Reverse index: cell key → pos+face, so findCellId() is O(1) instead of O(all-decals).
+    private static final Map<Long, CellLocation> keyToLocation = new HashMap<>();
+
     // Projection-volume index: maps each decal's full projection AABB to the chunks it spans,
-    // so block updates anywhere inside the volume can re-resolve the decal even when it currently
-    // has no fragment at the changed position (e.g. a decal that resolved empty/too-deep because
-    // its blocks weren't applied on the client yet). Makes resolution order-independent.
+    // so block updates anywhere inside the volume can re-resolve the decal even when it has no
+    // fragment at the changed position (e.g., disassembly / late-block cases).
     private static final Map<UUID, AABB> volumes = new HashMap<>();
     private static final Map<ChunkPos, Set<UUID>> volumeByChunk = new HashMap<>();
+
+    // Union of all chunks that contain any fragment key or projection volume.
+    // ShapeWatcher uses this for a single allocation-free pre-filter before doing
+    // any full lookups — most world block-updates are nowhere near a decal.
+    private static final Set<Long> activeChunkKeys = new HashSet<>();
 
     public static void register(UUID decalId, long zOverride, List<SurfaceFragment> fragments) {
         unregister(decalId);
@@ -46,7 +56,10 @@ public final class ClientSpatialIndex {
             long key = packKey(frag.pos(), frag.faceNormal());
             cells.add(key);
             index.computeIfAbsent(key, k -> new ArrayList<>()).add(ref);
-            chunkIndex.computeIfAbsent(new ChunkPos(frag.pos()), k -> new HashSet<>()).add(key);
+            ChunkPos cp = new ChunkPos(frag.pos());
+            chunkIndex.computeIfAbsent(cp, k -> new HashSet<>()).add(key);
+            keyToLocation.putIfAbsent(key, new CellLocation(frag.pos(), frag.faceNormal()));
+            activeChunkKeys.add(cp.toLong());
         }
 
         for (long key : cells) {
@@ -67,14 +80,17 @@ public final class ClientSpatialIndex {
                 refs.removeIf(r -> r.decalId().equals(decalId));
                 if (refs.isEmpty()) {
                     index.remove(key);
-                    for (Set<Long> chunkKeys : chunkIndex.values()) {
-                        chunkKeys.remove(key);
+                    keyToLocation.remove(key);
+                    for (Map.Entry<ChunkPos, Set<Long>> e : chunkIndex.entrySet()) {
+                        e.getValue().remove(key);
                     }
                 }
             }
         }
-        // Clean up empty chunk entries
         chunkIndex.entrySet().removeIf(e -> e.getValue().isEmpty());
+
+        // Rebuild activeChunkKeys from remaining index + volumes
+        rebuildActiveChunkKeys();
     }
 
     public static List<DecalRef> getRefsAt(BlockPos pos, Direction face) {
@@ -99,9 +115,23 @@ public final class ClientSpatialIndex {
         return chunkIndex.getOrDefault(chunk, Set.of());
     }
 
+    /** O(1) pos+face lookup for a cell key — avoids scanning all resolved entries. */
+    public static CellLocation getCellLocation(long key) {
+        return keyToLocation.get(key);
+    }
+
+    /**
+     * Fast pre-filter: returns true if the chunk containing {@code pos} holds any
+     * decal fragment or projection volume.  One allocation-free check; lets
+     * {@link ShapeWatcher} skip the full per-face + volume lookups for the vast
+     * majority of world block-updates that are nowhere near a decal.
+     */
+    public static boolean hasDecalsInChunk(BlockPos pos) {
+        return activeChunkKeys.contains(ChunkPos.asLong(pos.getX() >> 4, pos.getZ() >> 4));
+    }
+
     // --- Projection-volume index ---
 
-    /** Register (or replace) a decal's projection volume so block updates inside it re-resolve it. */
     public static void registerVolume(UUID decalId, AABB aabb) {
         removeVolume(decalId);
         volumes.put(decalId, aabb);
@@ -111,7 +141,9 @@ public final class ClientSpatialIndex {
         int maxCZ = SectionPos.blockToSectionCoord((int) Math.floor(aabb.maxZ));
         for (int cx = minCX; cx <= maxCX; cx++) {
             for (int cz = minCZ; cz <= maxCZ; cz++) {
-                volumeByChunk.computeIfAbsent(new ChunkPos(cx, cz), k -> new HashSet<>()).add(decalId);
+                ChunkPos cp = new ChunkPos(cx, cz);
+                volumeByChunk.computeIfAbsent(cp, k -> new HashSet<>()).add(decalId);
+                activeChunkKeys.add(cp.toLong());
             }
         }
     }
@@ -133,6 +165,7 @@ public final class ClientSpatialIndex {
                 }
             }
         }
+        rebuildActiveChunkKeys();
     }
 
     /** Get all decal IDs whose projection volume contains this position. */
@@ -155,8 +188,10 @@ public final class ClientSpatialIndex {
         index.clear();
         decalCells.clear();
         chunkIndex.clear();
+        keyToLocation.clear();
         volumes.clear();
         volumeByChunk.clear();
+        activeChunkKeys.clear();
     }
 
     public static void fillStats(DebugOverlay.Stats stats) {
@@ -170,5 +205,11 @@ public final class ClientSpatialIndex {
 
     static long packKey(BlockPos pos, Direction face) {
         return pos.asLong() ^ ((long) face.ordinal() << 60);
+    }
+
+    private static void rebuildActiveChunkKeys() {
+        activeChunkKeys.clear();
+        for (ChunkPos cp : chunkIndex.keySet()) activeChunkKeys.add(cp.toLong());
+        for (ChunkPos cp : volumeByChunk.keySet()) activeChunkKeys.add(cp.toLong());
     }
 }

@@ -5,7 +5,6 @@ import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import net.minecraft.client.renderer.RenderStateShard;
 import net.minecraft.client.renderer.RenderType;
-import net.minecraft.client.renderer.ShaderInstance;
 import net.minecraft.resources.ResourceLocation;
 
 import java.util.Map;
@@ -14,33 +13,12 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class DecalRenderType extends RenderStateShard {
 
     /**
-     * Populated by ClientModEvents.onRegisterShaders — valid from first resource load onward.
-     * Referenced lazily by the ShaderStateShard supplier so early RenderType creation is safe.
+     * GL polygon-offset layering shard.  Shifts decal geometry toward the camera in
+     * depth-buffer-relative units, eliminating z-fighting at all distances.
+     * Replaces the previous custom NDC-z bias trick which had quadratic blow-up and
+     * caused decals to peek through whole blocks at range.
      */
-    static ShaderInstance decalShader;
-
-    /**
-     * During each RenderType.setupRenderState() call, push the current depthBias config value
-     * into the shader uniform. apply() (called after setupRenderState) then uploads it to the GPU.
-     * Works for both the VBO path (DecalRenderer) and the MultiBufferSource path (contraptions).
-     */
-    private static final LayeringStateShard DEPTH_BIAS_SHARD = new LayeringStateShard(
-        "paintcraft_depth_bias",
-        () -> {
-            if (decalShader != null) {
-                var u = decalShader.getUniform("DepthBias");
-                if (u != null) u.set((float) dev.paintcraft.ModConfig.CONFIG.depthBias.get().doubleValue());
-            }
-        },
-        () -> {}
-    );
-
-    /**
-     * Polygon-offset layering shard used by the Iris-compat render type.
-     * Replaces the NDC-z depth-bias trick (which requires our custom shader) with
-     * the GL fixed-function polygon offset, which works with any shader program.
-     */
-    private static final LayeringStateShard POLYGON_OFFSET_SHARD = new LayeringStateShard(
+    static final LayeringStateShard POLYGON_OFFSET_SHARD = new LayeringStateShard(
         "paintcraft_polygon_offset",
         () -> {
             RenderSystem.polygonOffset(-1f, -1f);
@@ -53,53 +31,27 @@ public final class DecalRenderType extends RenderStateShard {
     );
 
     private static final Map<ResourceLocation, RenderType> CACHE = new ConcurrentHashMap<>();
+    private static final Map<ResourceLocation, RenderType> NO_DEPTH_CACHE = new ConcurrentHashMap<>();
     private static final Map<ResourceLocation, RenderType> GHOST_CACHE = new ConcurrentHashMap<>();
-    private static final Map<ResourceLocation, RenderType> IRIS_CACHE = new ConcurrentHashMap<>();
 
     private DecalRenderType() {
         super("paintcraft_decal", () -> {}, () -> {});
     }
 
     /**
-     * Decal render type backed by our custom depth-bias shader.
-     * Z-fighting is eliminated in the vertex shader (constant NDC-z offset),
-     * so no glPolygonOffset or world-space normal offset is needed.
+     * Decal render type used for both vanilla and Iris paths.
+     *
+     * <p>Uses the vanilla translucent shader so Iris automatically routes our geometry
+     * through its {@code gbuffers_water} pass.  Depth bias is provided by GL polygon
+     * offset which is correct at all view distances (no quadratic NDC-z blowup).
+     *
+     * <p>Alpha discard threshold is 0.1 (vanilla translucent shader default).
+     * Texels painted below ~10% alpha will be discarded — accepted regression.
      */
     public static RenderType decal(ResourceLocation texture) {
         return CACHE.computeIfAbsent(texture, tex ->
             RenderType.create(
                 "paintcraft_decal",
-                DefaultVertexFormat.BLOCK,
-                VertexFormat.Mode.QUADS,
-                1536,
-                false,
-                true,
-                RenderType.CompositeState.builder()
-                    .setShaderState(new ShaderStateShard(() -> decalShader))
-                    .setTextureState(new TextureStateShard(tex, false, false))
-                    .setTransparencyState(TRANSLUCENT_TRANSPARENCY)
-                    .setWriteMaskState(COLOR_DEPTH_WRITE)
-                    .setDepthTestState(LEQUAL_DEPTH_TEST)
-                    .setCullState(NO_CULL)
-                    .setLightmapState(LIGHTMAP)
-                    .setLayeringState(DEPTH_BIAS_SHARD)
-                    .createCompositeState(false)
-            )
-        );
-    }
-
-    /**
-     * Iris/shader-pack compatible render type.
-     * Uses the vanilla translucent shader (Iris recognises it and routes it through
-     * gbuffers_water) instead of our custom depth-bias shader.  Depth bias is
-     * provided by GL polygon offset via POLYGON_OFFSET_SHARD.
-     * Same vertex format (BLOCK) and VBOs as the normal decal type — no geometry
-     * rebuild needed, just swap the render type at draw time.
-     */
-    public static RenderType irisDecal(ResourceLocation texture) {
-        return IRIS_CACHE.computeIfAbsent(texture, tex ->
-            RenderType.create(
-                "paintcraft_iris_decal",
                 DefaultVertexFormat.BLOCK,
                 VertexFormat.Mode.QUADS,
                 1536,
@@ -120,8 +72,38 @@ public final class DecalRenderType extends RenderStateShard {
     }
 
     /**
-     * Ghost/preview render type for stamp overlay. Uses translucent blending
-     * and default depth test so the ghost blends over existing geometry.
+     * Decal render type for BlockEntityRenderer blocks (decorated pot, chest, sign...).
+     *
+     * <p>Identical to {@link #decal} but with a colour-only write mask: it depth-<em>tests</em>
+     * (so it's still occluded by nearer geometry) but never writes depth. BER blocks contribute
+     * no baked face to the chunk mesh and are drawn separately/hollow; a depth-writing decal would
+     * cull that geometry and leave a see-through hole. Always drawn in the late pass, on top.
+     */
+    public static RenderType decalNoDepth(ResourceLocation texture) {
+        return NO_DEPTH_CACHE.computeIfAbsent(texture, tex ->
+            RenderType.create(
+                "paintcraft_decal_no_depth",
+                DefaultVertexFormat.BLOCK,
+                VertexFormat.Mode.QUADS,
+                1536,
+                false,
+                true,
+                RenderType.CompositeState.builder()
+                    .setShaderState(RENDERTYPE_TRANSLUCENT_SHADER)
+                    .setTextureState(new TextureStateShard(tex, false, false))
+                    .setTransparencyState(TRANSLUCENT_TRANSPARENCY)
+                    .setWriteMaskState(COLOR_WRITE)
+                    .setDepthTestState(LEQUAL_DEPTH_TEST)
+                    .setCullState(NO_CULL)
+                    .setLightmapState(LIGHTMAP)
+                    .setLayeringState(POLYGON_OFFSET_SHARD)
+                    .createCompositeState(false)
+            )
+        );
+    }
+
+    /**
+     * Ghost/preview render type for stamp overlay.
      */
     public static RenderType ghostDecal(ResourceLocation texture) {
         return GHOST_CACHE.computeIfAbsent(texture, tex ->

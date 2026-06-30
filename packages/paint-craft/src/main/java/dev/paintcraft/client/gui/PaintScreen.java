@@ -70,9 +70,6 @@ public class PaintScreen extends Screen {
     // Persistent block list
     private final List<Block> customBlocks = new ArrayList<>();
 
-    // Image import path input (Ctrl+I)
-    private net.minecraft.client.gui.components.EditBox pathInput;
-
     // Layout
     private int canvasX, canvasY, pixelSize;
     private BlockListWidget blockList;
@@ -593,31 +590,88 @@ public class PaintScreen extends Screen {
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        // Path input field active — handle its keys first
-        if (pathInput != null) {
-            if (keyCode == 256) { // Escape
-                removeWidget(pathInput);
-                pathInput = null;
-                return true;
-            }
-            if (keyCode == 257 || keyCode == 335) { // Enter / KP_Enter
-                loadImageFromPath(pathInput.getValue().trim());
-                removeWidget(pathInput);
-                pathInput = null;
-                return true;
-            }
-            return pathInput.keyPressed(keyCode, scanCode, modifiers) || super.keyPressed(keyCode, scanCode, modifiers);
-        }
-
         if (hasControlDown()) {
             if (keyCode == 90 && !hasShiftDown()) { undo(); return true; }
             if (keyCode == 90 && hasShiftDown()) { redo(); return true; }
             if (keyCode == 89) { redo(); return true; }
-            if (keyCode == 73) { showPathInput(); return true; } // Ctrl+I
-            if (keyCode == 86) { pasteFromClipboard(); return true; } // Ctrl+V
+            if (keyCode == 86) { pasteFromClipboard(Decal.SNAP > 1 && !hasShiftDown()); return true; } // Ctrl+V snapped, Ctrl+Shift+V full
             if (keyCode == 68) { copyDebug(); return true; } // Ctrl+D
+            if (keyCode == 80) { dumpCanvasPng(); return true; } // Ctrl+Shift+P — dump PNGs
         }
         return super.keyPressed(keyCode, scanCode, modifiers);
+    }
+
+    /**
+     * Diagnostic: write the exact on-screen canvas (post-composite) and the raw captured
+     * background to PNGs in the game directory, so we can inspect the true pixels rather
+     * than reason about them. Triggered by Ctrl+Shift+P.
+     */
+    private void dumpCanvasPng() {
+        Path dir = Minecraft.getInstance().gameDirectory.toPath();
+        try {
+            // 1) Exactly what's blitted to screen (background + paint composited)
+            canvasTexture.getPixels().writeToFile(dir.resolve("paintcraft-canvas-dump.png"));
+
+            // 2) Raw captured background, pre-composite (stored orientation)
+            if (backgroundPixels != null) {
+                try (NativeImage bg = new NativeImage(canvasW, canvasH, false)) {
+                    for (int y = 0; y < canvasH; y++) {
+                        for (int x = 0; x < canvasW; x++) {
+                            bg.setPixelRGBA(x, y,
+                                ColorFormat.argbToAbgr(backgroundPixels[y * canvasW + x]));
+                        }
+                    }
+                    bg.writeToFile(dir.resolve("paintcraft-background-dump.png"));
+                }
+            }
+            String msg = "Dumped canvas PNGs (" + canvasW + "x" + canvasH + ") to " + dir;
+            PaintCraft.LOGGER.info("[dump] {}", msg);
+            Minecraft.getInstance().player.displayClientMessage(Component.literal(msg), false);
+
+            // 3) The winning face sprite's getOriginalImage() — the suspected stale HD source.
+            dumpAnchorSprite(dir);
+        } catch (Exception e) {
+            PaintCraft.LOGGER.error("[dump] failed", e);
+        }
+    }
+
+    /**
+     * Dumps the raw sprite image that BackgroundCapture samples for the anchor block's face,
+     * plus its dimensions, so we can see whether getOriginalImage() is a stale HD texture
+     * while the world renders vanilla from the GPU atlas.
+     */
+    private void dumpAnchorSprite(Path dir) {
+        try {
+            var mc = Minecraft.getInstance();
+            var state = mc.level.getBlockState(anchor);
+            var model = mc.getBlockRenderer().getBlockModel(state);
+            var random = net.minecraft.util.RandomSource.createNewThreadLocalInstance();
+            var quads = model.getQuads(state, storedFrame.normal(), random,
+                net.neoforged.neoforge.client.model.data.ModelData.EMPTY, null);
+            if (quads.isEmpty()) {
+                PaintCraft.LOGGER.info("[dump] anchor {} face {} has no quads", anchor, storedFrame.normal());
+                return;
+            }
+            var quadSprite = quads.get(0).getSprite();
+            var name = quadSprite.contents().name();
+            var atlas = mc.getModelManager().getAtlas(
+                net.minecraft.client.renderer.texture.TextureAtlas.LOCATION_BLOCKS);
+            var live = atlas.getSprite(name);
+            var lc = live.contents();
+            NativeImage orig = lc.getOriginalImage();
+            String info = String.format(
+                "sprite=%s logical=%dx%d origImage=%s atlasUV=[%.4f,%.4f]x[%.4f,%.4f]",
+                name, lc.width(), lc.height(),
+                orig == null ? "null" : (orig.getWidth() + "x" + orig.getHeight()),
+                live.getU0(), live.getU1(), live.getV0(), live.getV1());
+            PaintCraft.LOGGER.info("[dump] anchor sprite: {}", info);
+            Minecraft.getInstance().player.displayClientMessage(Component.literal(info), false);
+            if (orig != null) {
+                orig.writeToFile(dir.resolve("paintcraft-sprite-dump.png"));
+            }
+        } catch (Exception e) {
+            PaintCraft.LOGGER.error("[dump] anchor sprite failed", e);
+        }
     }
 
     private void pushUndo() {
@@ -640,7 +694,7 @@ public class PaintScreen extends Screen {
         canvasDirty = true;
     }
 
-    private void loadAndImport(Path file) {
+    private void loadAndImport(Path file, boolean snap) {
         String name = file.getFileName().toString().toLowerCase();
         if (!(name.endsWith(".png") || name.endsWith(".jpg") ||
               name.endsWith(".jpeg") || name.endsWith(".bmp"))) {
@@ -654,7 +708,7 @@ public class PaintScreen extends Screen {
         PaintCraft.LOGGER.info("Importing image: {}", file);
         try (NativeImage img = NativeImage.read(new FileInputStream(file.toFile()))) {
             pushUndo();
-            importImage(img);
+            importImage(img, snap);
             canvasDirty = true;
             PaintCraft.LOGGER.info("Image imported ({}x{})", img.getWidth(), img.getHeight());
         } catch (Exception e) {
@@ -662,66 +716,106 @@ public class PaintScreen extends Screen {
         }
     }
 
-    private void importImage(NativeImage img) {
+    private void importImage(NativeImage img, boolean snap) {
         int srcW = img.getWidth();
         int srcH = img.getHeight();
 
-        float scale = Math.min((float) canvasW / srcW, (float) canvasH / srcH);
-        int dstW = Math.max(1, (int) (srcW * scale));
-        int dstH = Math.max(1, (int) (srcH * scale));
+        if (!snap || Decal.SNAP <= 1) {
+            // Full-resolution center-fit (Ctrl+Shift+V)
+            float scale = Math.min((float) canvasW / srcW, (float) canvasH / srcH);
+            int dstW = Math.max(1, (int) (srcW * scale));
+            int dstH = Math.max(1, (int) (srcH * scale));
+            int offsetX = (canvasW - dstW) / 2;
+            int offsetY = (canvasH - dstH) / 2;
+            Arrays.fill(canvas, 0);
+            for (int y = 0; y < dstH; y++) {
+                for (int x = 0; x < dstW; x++) {
+                    int srcX = Math.min((int) (x / scale), srcW - 1);
+                    int srcY = Math.min((int) (y / scale), srcH - 1);
+                    int abgr = img.getPixelRGBA(srcX, srcY);
+                    int idx = (offsetY + y) * canvasW + (offsetX + x);
+                    if (idx >= 0 && idx < canvas.length)
+                        canvas[idx] = ColorFormat.abgrToArgb(abgr);
+                }
+            }
+            return;
+        }
 
-        int offsetX = (canvasW - dstW) / 2;
-        int offsetY = (canvasH - dstH) / 2;
+        // Snapped: center-fit into the logical 16px-per-block canvas, then expand each
+        // logical pixel to a SNAP×SNAP texel block — matching exactly the grid the brush uses.
+        // Colors are reduced via area-average with premultiplied alpha to avoid dark halos.
+        int s = Decal.SNAP;
+        int lcw = canvasW / s;   // logical canvas width  (widthBlocks  * 16)
+        int lch = canvasH / s;   // logical canvas height (heightBlocks * 16)
+        float scale = Math.min((float) lcw / srcW, (float) lch / srcH);
+        int ldstW = Math.max(1, (int) (srcW * scale));
+        int ldstH = Math.max(1, (int) (srcH * scale));
+        int loffX = (lcw - ldstW) / 2;
+        int loffY = (lch - ldstH) / 2;
 
         Arrays.fill(canvas, 0);
 
-        for (int y = 0; y < dstH; y++) {
-            for (int x = 0; x < dstW; x++) {
-                int srcX = Math.min((int) (x / scale), srcW - 1);
-                int srcY = Math.min((int) (y / scale), srcH - 1);
-                int abgr = img.getPixelRGBA(srcX, srcY);
-                int idx = (offsetY + y) * canvasW + (offsetX + x);
-                if (idx >= 0 && idx < canvas.length) {
-                    canvas[idx] = ColorFormat.abgrToArgb(abgr);
+        for (int ly = 0; ly < ldstH; ly++) {
+            for (int lx = 0; lx < ldstW; lx++) {
+                // Source pixel region covering this logical cell
+                int ix0 = Math.max(0, (int) (lx / scale));
+                int iy0 = Math.max(0, (int) (ly / scale));
+                int ix1 = Math.min(srcW - 1, (int) ((lx + 1) / scale));
+                int iy1 = Math.min(srcH - 1, (int) ((ly + 1) / scale));
+
+                // Premultiplied-alpha area average (NativeImage is ABGR)
+                long sumA = 0, sumR = 0, sumG = 0, sumB = 0;
+                int count = 0;
+                for (int sy = iy0; sy <= iy1; sy++) {
+                    for (int sx = ix0; sx <= ix1; sx++) {
+                        int abgr = img.getPixelRGBA(sx, sy);
+                        int a = (abgr >>> 24) & 0xFF;
+                        int b = (abgr >>> 16) & 0xFF;
+                        int g = (abgr >>>  8) & 0xFF;
+                        int r =  abgr         & 0xFF;
+                        sumA += a;
+                        sumR += r * a;
+                        sumG += g * a;
+                        sumB += b * a;
+                        count++;
+                    }
+                }
+
+                int argb;
+                if (count == 0 || sumA == 0) {
+                    argb = 0;
+                } else {
+                    int a = (int) (sumA / count);
+                    int r = (int) (sumR / sumA);
+                    int g = (int) (sumG / sumA);
+                    int b = (int) (sumB / sumA);
+                    argb = (a << 24) | (r << 16) | (g << 8) | b;
+                }
+
+                // Fill the SNAP×SNAP texel block for this logical pixel
+                int tx0 = (loffX + lx) * s;
+                int ty0 = (loffY + ly) * s;
+                for (int ty = 0; ty < s; ty++) {
+                    for (int tx = 0; tx < s; tx++) {
+                        int idx = (ty0 + ty) * canvasW + (tx0 + tx);
+                        if (idx >= 0 && idx < canvas.length)
+                            canvas[idx] = argb;
+                    }
                 }
             }
         }
     }
 
-    private void showPathInput() {
-        if (pathInput != null) return; // already showing
-        int inputW = Math.min(this.width - 20, 400);
-        int inputX = (this.width - inputW) / 2;
-        int inputY = this.height - 30;
-        pathInput = new net.minecraft.client.gui.components.EditBox(
-            this.font, inputX, inputY, inputW, 16, Component.literal("File path"));
-        pathInput.setMaxLength(512);
-        pathInput.setHint(Component.literal("Paste image path here, press Enter"));
-        addRenderableWidget(pathInput);
-        setFocused(pathInput);
-    }
-
-    private void loadImageFromPath(String pathStr) {
-        if (pathStr.isEmpty()) return;
-        if (pathStr.startsWith("\"") && pathStr.endsWith("\"")) {
-            pathStr = pathStr.substring(1, pathStr.length() - 1);
-        }
-        if (pathStr.startsWith("file://")) {
-            pathStr = pathStr.substring(7);
-        }
-        loadAndImport(Path.of(pathStr));
-    }
-
-    private void pasteFromClipboard() {
+    private void pasteFromClipboard(boolean snap) {
         // 1. Try wl-paste (Wayland) / xclip (X11) — Linux subprocess approach
         for (String mime : new String[]{ "image/png", "image/jpeg" }) {
             byte[] bytes = readSubprocessClipboardBytes(mime);
-            if (bytes != null) { loadFromImageBytes(bytes, mime); return; }
+            if (bytes != null) { loadFromImageBytes(bytes, mime, snap); return; }
         }
 
         // 2. Try AWT system clipboard — works on Windows, macOS, and X11
         byte[] awtBytes = readAwtClipboardBytes();
-        if (awtBytes != null) { loadFromImageBytes(awtBytes, "awt"); return; }
+        if (awtBytes != null) { loadFromImageBytes(awtBytes, "awt", snap); return; }
 
         // 3. Fall back: clipboard text that looks like an image file path
         long window = Minecraft.getInstance().getWindow().getWindow();
@@ -734,17 +828,28 @@ public class PaintScreen extends Screen {
         String lower = text.toLowerCase();
         if (lower.endsWith(".png") || lower.endsWith(".jpg") ||
             lower.endsWith(".jpeg") || lower.endsWith(".bmp")) {
-            loadImageFromPath(text);
+            loadImageFromPath(text, snap);
         } else {
             PaintCraft.LOGGER.info("[paste] Clipboard text doesn't look like image path: {}",
                 text.length() > 80 ? text.substring(0, 80) + "…" : text);
         }
     }
 
-    private void loadFromImageBytes(byte[] bytes, String source) {
+    private void loadImageFromPath(String pathStr, boolean snap) {
+        if (pathStr.isEmpty()) return;
+        if (pathStr.startsWith("\"") && pathStr.endsWith("\"")) {
+            pathStr = pathStr.substring(1, pathStr.length() - 1);
+        }
+        if (pathStr.startsWith("file://")) {
+            pathStr = pathStr.substring(7);
+        }
+        loadAndImport(Path.of(pathStr), snap);
+    }
+
+    private void loadFromImageBytes(byte[] bytes, String source, boolean snap) {
         try (NativeImage img = NativeImage.read(new ByteArrayInputStream(bytes))) {
             pushUndo();
-            importImage(img);
+            importImage(img, snap);
             canvasDirty = true;
             PaintCraft.LOGGER.info("[paste] OK — {}×{} from clipboard ({})", img.getWidth(), img.getHeight(), source);
         } catch (Exception e) {

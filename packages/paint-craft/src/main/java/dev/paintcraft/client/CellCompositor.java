@@ -293,13 +293,13 @@ public final class CellCompositor {
         }
     }
 
-    /** Recover CellId from a cell key by looking up existing CellData or spatial index. */
+    /** Recover CellId from a cell key — O(1) via spatial index reverse lookup. */
     private static CellId findCellId(long key) {
         CellData existing = cells.get(key);
         if (existing != null) return new CellId(existing.pos(), existing.face());
-        // Search through spatial index refs to find the pos/face
-        // The key encodes pos + face, but we can't invert it.
-        // Instead, scan resolved entries for a fragment with this key.
+        ClientSpatialIndex.CellLocation loc = ClientSpatialIndex.getCellLocation(key);
+        if (loc != null) return new CellId(loc.pos(), loc.face());
+        // Fallback: scan resolved entries (covers keys registered before the reverse index existed)
         for (var entry : DecalRenderer.allResolved()) {
             List<SurfaceFragment> frags = entry.fragmentIndex().get(key);
             if (frags != null && !frags.isEmpty()) {
@@ -358,14 +358,22 @@ public final class CellCompositor {
         Direction face = cellId.face;
         ChunkPos chunk = new ChunkPos(pos);
 
-        // Level 1: Skip if face is hidden by an adjacent opaque block
+        // Level 1: Skip if face is hidden by an adjacent opaque block; also detect adjacent water.
         net.minecraft.world.level.Level level = net.minecraft.client.Minecraft.getInstance().level;
+        boolean adjacentWater = false;
+        boolean entityBlock = false;
         if (level != null) {
+            // Blocks with no baked model (RenderShape != MODEL) are drawn by a BlockEntityRenderer
+            // — decorated pot, chest, sign, banner. Their decals must not write depth (see CellData).
+            entityBlock = level.getBlockState(pos).getRenderShape()
+                != net.minecraft.world.level.block.RenderShape.MODEL;
             BlockPos neighbor = pos.relative(face);
-            if (level.getBlockState(neighbor).isSolidRender(level, neighbor)) {
+            net.minecraft.world.level.block.state.BlockState neighborState = level.getBlockState(neighbor);
+            if (neighborState.isSolidRender(level, neighbor)) {
                 removeCell(cellKey, chunk);
                 return;
             }
+            adjacentWater = !level.getFluidState(neighbor).isEmpty();
         }
 
         List<ClientSpatialIndex.DecalRef> refs = ClientSpatialIndex.getRefsAt(pos, face);
@@ -379,59 +387,59 @@ public final class CellCompositor {
         int opaquePixels = 0;
         int maxPixels = CELL_SIZE * CELL_SIZE;
 
-        // Derived stack-height: count EVERY non-transparent layer at each texel (even those
-        // hidden under an opaque layer above), independent of color compositing. null when off.
         boolean relief = ModConfig.CONFIG.reliefEnabled.get();
         int[] layerCount = relief ? new int[CELL_SIZE * CELL_SIZE] : null;
 
-        // Walk from HIGHEST priority to LOWEST, accumulating with alpha-over: each
-        // lower decal is composited *under* what's already been written. A texel that
-        // has reached full opacity is final — once every texel is opaque we can stop.
-        // When relief is on we must visit ALL layers (no early-out) to count true height.
-        for (int i = refs.size() - 1; i >= 0 && (relief || opaquePixels < maxPixels); i--) {
+        // Layer cap: only composite the top-N decals by z-order (highest priority first).
+        // Deeper decals stay in data but are not rendered — keeps compositing cost bounded.
+        int n = ModConfig.CONFIG.reliefMaxLayers.get();
+        int floor = Math.max(0, refs.size() - n);
+
+        // Walk from HIGHEST priority to LOWEST. With relief we must visit all capped layers
+        // to count height; without we exit early once every texel is opaque.
+        for (int i = refs.size() - 1; i >= floor && (relief || opaquePixels < maxPixels); i--) {
             ClientSpatialIndex.DecalRef ref = refs.get(i);
             DecalRenderer.ResolvedEntry entry = DecalRenderer.getResolved(ref.decalId());
             if (entry == null) continue;
 
             Decal decal = entry.decal();
 
-            // Compute rotation from decal frame to canonical frame
             FaceFrame decalFrame = decal.frame();
             int stepsToCanon = decalFrame.clockwiseStepsTo(canonFrame);
             int cwSteps = (4 - stepsToCanon) % 4;
 
-            // Iterate ALL matching fragments (a stair block may have multiple sub-faces)
             for (SurfaceFragment frag : entry.surface().fragments()) {
                 if (!frag.pos().equals(pos) || frag.faceNormal() != face) continue;
                 opaquePixels += blitDecalPixels(composite, layerCount, decal.pixels(), decal.widthPx(), decal.heightPx(), frag, cwSteps);
             }
         }
 
-        // Level 2: Skip if composite is entirely empty (all transparent)
+        // Level 2: Skip if composite is entirely empty (all transparent).
         boolean anyContent = false;
+        boolean translucent = false;
         for (int c : composite) {
-            if (c != 0) { anyContent = true; break; }
+            int alpha = c >>> 24;
+            if (alpha > 0) anyContent = true;
+            if (alpha > 0 && alpha < 0xFF) translucent = true;
+            if (anyContent && translucent) break;
         }
         if (!anyContent) {
             removeCell(cellKey, chunk);
             return;
         }
 
-        // Derived height grid (downsampled from the per-texel layer count by max-pool).
         byte[] heights = relief ? downsampleHeights(layerCount) : null;
 
-        // Allocate or reuse atlas slot. CellData is immutable, so replace it each composite
-        // (reusing the slot) to refresh the height grid.
         CellData existing = cells.get(cellKey);
         int slotIndex;
         if (existing == null) {
             slotIndex = allocateSlot();
-            if (slotIndex < 0) return; // atlas full — skip gracefully
+            if (slotIndex < 0) return;
             chunkCells.computeIfAbsent(chunk, k -> new HashSet<>()).add(cellKey);
         } else {
             slotIndex = existing.slotIndex();
         }
-        cells.put(cellKey, new CellData(pos, face, slotIndex, heights));
+        cells.put(cellKey, new CellData(pos, face, slotIndex, heights, translucent, adjacentWater, entityBlock));
         writeToAtlas(slotIndex, composite);
     }
 
@@ -528,8 +536,19 @@ public final class CellCompositor {
     /**
      * A composited face cell.
      *
-     * @param heights derived stack-height grid (reliefHeightRes², row-major, gv=0 at face top,
-     *                values clamped to reliefMaxLayers). {@code null} when relief is disabled.
+     * @param heights      derived stack-height grid (reliefHeightRes², row-major). {@code null} when relief disabled.
+     * @param translucent  true if any composited texel has alpha between 1 and 254 (i.e., the result is not fully opaque).
+     * @param adjacentWater true if the block immediately in front of this face ({@code pos.relative(face)}) is a fluid.
+     * @param entityBlock  true if the block has no baked model and is drawn by a BlockEntityRenderer
+     *                     (decorated pot, chest, sign...). These need a no-depth-write decal so the
+     *                     separately-rendered, hollow BER geometry isn't depth-culled into a see-through hole.
      */
-    public record CellData(BlockPos pos, Direction face, int slotIndex, byte[] heights) {}
+    public record CellData(BlockPos pos, Direction face, int slotIndex, byte[] heights,
+                            boolean translucent, boolean adjacentWater, boolean entityBlock) {
+        /**
+         * True when this cell should be drawn in the late translucent pass (after water).
+         * Translucent cells beside water draw in the early pass so water blends over them.
+         */
+        public boolean latePass() { return translucent && !adjacentWater; }
+    }
 }

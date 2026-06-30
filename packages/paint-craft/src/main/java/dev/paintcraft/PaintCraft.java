@@ -35,6 +35,7 @@ public class PaintCraft {
 
         if (FMLEnvironment.dist == Dist.CLIENT) {
             dev.paintcraft.client.PaintCraftClientConfig.register(modContainer);
+            modEventBus.addListener(dev.paintcraft.client.AtlasImageCache::onRegisterReloadListeners);
         }
 
         NeoForge.EVENT_BUS.addListener(PaintCraft::onRightClickBlock);

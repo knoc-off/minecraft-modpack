@@ -74,7 +74,7 @@ public final class ModConfig {
         public final ModConfigSpec.IntValue ghostPreviewOpacity;
 
         // -- Advanced Rendering --
-        public final ModConfigSpec.DoubleValue depthBias;
+        public final ModConfigSpec.IntValue frustumCullRadius;
 
         Config(ModConfigSpec.Builder builder) {
             builder.push("rendering");
@@ -130,12 +130,14 @@ public final class ModConfig {
 
             builder.push("advanced");
 
-            depthBias = builder
-                .comment("Clip-space depth bias applied to decals to prevent Z-fighting with block surfaces.",
-                         "This is a constant NDC-z offset applied in the vertex shader, independent of distance.",
-                         "No world-space geometry is moved — zero parallax, zero peeking around edges.",
-                         "Increase if decals flicker; decrease if they wrongly occlude geometry in front of them.")
-                .defineInRange("depthBias", 0.0002, 0.0, 0.01);
+            frustumCullRadius = builder
+                .comment("Decal chunks whose closest point is within this many blocks of the camera",
+                         "are never frustum-culled, even when outside the field of view.",
+                         "Useful for stained-glass tinting: nearby windows keep rendering even when",
+                         "you look slightly past them.  Chunks beyond this radius are frustum-culled",
+                         "normally.  Set to 0 to frustum-cull everything; set to renderDistance to",
+                         "disable frustum culling entirely.")
+                .defineInRange("frustumCullRadius", 32, 0, 512);
 
             builder.pop();
         }

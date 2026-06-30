@@ -1,12 +1,9 @@
 package dev.paintcraft.client;
 
 import com.mojang.brigadier.Command;
-import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import dev.paintcraft.PaintCraft;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.ShaderInstance;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
@@ -16,15 +13,12 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.neoforge.client.event.RegisterClientCommandsEvent;
-import net.neoforged.neoforge.client.event.RegisterShadersEvent;
 import net.neoforged.neoforge.client.event.RenderGuiEvent;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 import net.neoforged.neoforge.event.level.ChunkEvent;
 import net.neoforged.fml.event.config.ModConfigEvent;
 import net.neoforged.fml.config.ModConfig;
 import org.lwjgl.glfw.GLFW;
-
-import java.io.IOException;
 
 import static net.minecraft.commands.Commands.literal;
 
@@ -33,48 +27,37 @@ public final class ClientEvents {
 
     private ClientEvents() {}
 
-    // RegisterShadersEvent implements IModBusEvent, so NeoForge auto-routes this
-    // handler to the mod event bus (the `bus` element is ignored as of 1.21.1).
-    @SubscribeEvent
-    public static void onRegisterShaders(RegisterShadersEvent event) throws IOException {
-        event.registerShader(
-            new ShaderInstance(
-                event.getResourceProvider(),
-                ResourceLocation.fromNamespaceAndPath(PaintCraft.MODID, "rendertype_decal"),
-                DefaultVertexFormat.BLOCK
-            ),
-            shader -> DecalRenderType.decalShader = shader
-        );
-    }
-
     @SubscribeEvent
     public static void onRenderLevelStage(RenderLevelStageEvent event) {
-        // With Iris shaders active, render during the translucent-blocks stage so our
-        // geometry lands in Iris's gbuffers_water pass (translucent terrain).  Without
-        // Iris we keep AFTER_BLOCK_ENTITIES which works best with vanilla pipeline.
         boolean irisActive = IrisCompat.isShadersActive();
-        RenderLevelStageEvent.Stage target = irisActive
-            ? RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS
-            : RenderLevelStageEvent.Stage.AFTER_BLOCK_ENTITIES;
-        if (event.getStage() != target) return;
-
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null) return;
 
         Vec3 cameraPos = event.getCamera().getPosition();
-        DecalRenderer.renderAll(
-            cameraPos,
-            event.getFrustum(),
-            event.getModelViewMatrix(),
-            event.getProjectionMatrix(),
-            irisActive
-        );
+        var frustum = event.getFrustum();
+        var mv = event.getModelViewMatrix();
+        var proj = event.getProjectionMatrix();
 
-        StampPreviewRenderer.render(
-            event.getPoseStack(),
-            mc.renderBuffers().bufferSource(),
-            cameraPos
-        );
+        if (irisActive) {
+            // Iris deferred pipeline handles water compositing itself — render all sets
+            // in the translucent stage so geometry lands in gbuffers_water.
+            if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS) return;
+            DecalRenderer.update(cameraPos, true);
+            DecalRenderer.drawEarly(cameraPos, frustum, mv, proj, true);
+            DecalRenderer.drawLate(cameraPos, frustum, mv, proj, true);
+            StampPreviewRenderer.render(event.getPoseStack(), mc.renderBuffers().bufferSource(), cameraPos);
+        } else {
+            // Vanilla two-stage split:
+            //   Early (AFTER_BLOCK_ENTITIES):  opaque + translucent-beside-water — water blends over.
+            //   Late  (AFTER_TRANSLUCENT_BLOCKS): translucent-in-air — drawn after water, blends over it.
+            if (event.getStage() == RenderLevelStageEvent.Stage.AFTER_BLOCK_ENTITIES) {
+                DecalRenderer.update(cameraPos, false);
+                DecalRenderer.drawEarly(cameraPos, frustum, mv, proj, false);
+                StampPreviewRenderer.render(event.getPoseStack(), mc.renderBuffers().bufferSource(), cameraPos);
+            } else if (event.getStage() == RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS) {
+                DecalRenderer.drawLate(cameraPos, frustum, mv, proj, false);
+            }
+        }
     }
 
     @SubscribeEvent
@@ -82,8 +65,6 @@ public final class ClientEvents {
         DebugOverlay.render(event.getGuiGraphics());
     }
 
-    // ModConfigEvent implements IModBusEvent, so NeoForge auto-routes these to the mod bus.
-    // Re-mesh decals when the client config is loaded or edited so reliefEnabled toggles live.
     @SubscribeEvent
     public static void onConfigLoad(ModConfigEvent.Loading event) {
         if (event.getConfig().getType() == ModConfig.Type.CLIENT) DecalRenderer.onConfigReloaded();
@@ -92,6 +73,13 @@ public final class ClientEvents {
     @SubscribeEvent
     public static void onConfigReload(ModConfigEvent.Reloading event) {
         if (event.getConfig().getType() == ModConfig.Type.CLIENT) DecalRenderer.onConfigReloaded();
+    }
+
+    @SubscribeEvent
+    public static void onRegisterTooltipFactories(
+            net.neoforged.neoforge.client.event.RegisterClientTooltipComponentFactoriesEvent event) {
+        event.register(dev.paintcraft.item.StampTooltipComponent.class,
+                ClientStampTooltipComponent::new);
     }
 
     @SubscribeEvent
@@ -127,7 +115,6 @@ public final class ClientEvents {
 
         ChunkPos pos = event.getChunk().getPos();
         ClientDecalResolver.onChunkLoaded(pos, level);
-        // Dirty this chunk + neighbors — VBO rebuild is gated on lightOnInSection in renderAll()
         for (int dx = -1; dx <= 1; dx++) {
             for (int dz = -1; dz <= 1; dz++) {
                 DecalRenderer.markChunkDirty(new ChunkPos(pos.x + dx, pos.z + dz));
@@ -138,9 +125,7 @@ public final class ClientEvents {
     @SubscribeEvent
     public static void onChunkUnload(ChunkEvent.Unload event) {
         if (!event.getLevel().isClientSide()) return;
-
-        ChunkPos pos = event.getChunk().getPos();
-        DecalRenderer.onChunkUnload(pos);
+        DecalRenderer.onChunkUnload(event.getChunk().getPos());
     }
 
     @SubscribeEvent
