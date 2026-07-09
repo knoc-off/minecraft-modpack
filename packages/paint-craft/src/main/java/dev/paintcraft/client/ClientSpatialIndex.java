@@ -54,7 +54,11 @@ public final class ClientSpatialIndex {
 
         for (SurfaceFragment frag : fragments) {
             long key = packKey(frag.pos(), frag.faceNormal());
-            cells.add(key);
+            // A decal often has several fragments on the SAME (pos, face) cell — e.g. a pot or
+            // framed block whose collision shape has many boxes, or a face split by occlusion.
+            // Add the ref only ONCE per unique cell; otherwise the compositor counts the decal
+            // once per fragment, inflating the derived relief height (runaway extrusion).
+            if (!cells.add(key)) continue;
             index.computeIfAbsent(key, k -> new ArrayList<>()).add(ref);
             ChunkPos cp = new ChunkPos(frag.pos());
             chunkIndex.computeIfAbsent(cp, k -> new HashSet<>()).add(key);

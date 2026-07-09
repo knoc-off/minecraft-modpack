@@ -32,6 +32,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public final class DecalRenderer {
 
+    private static final boolean DIAG_RELIEF = true; // TEMP: per-cell relief/flat path diagnostic
+
     private static final Map<UUID, ResolvedEntry> resolvedCache = new ConcurrentHashMap<>();
 
     // Per-chunk VBOs — each chunk has an early set (opaque + beside-water) and a late set
@@ -377,7 +379,28 @@ public final class DecalRenderer {
                     VertexFormat.Mode.QUADS, DefaultVertexFormat.BLOCK);
 
             for (CellCompositor.CellData cell : cells) {
-                if (relief && cell.heights() != null) {
+                if (DIAG_RELIEF) {
+                    int maxH = 0;
+                    if (cell.heights() != null) for (byte h : cell.heights()) maxH = Math.max(maxH, h & 0xFF);
+                    boolean stack = cell.heights() != null && hasStacking(cell.heights());
+                    String path = (relief && cell.heights() != null && stack) ? "RELIEF" : "FLAT";
+                    var frags = findCellFragments(cell.pos(), cell.face());
+                    // Depth-along-normal of each fragment's first vertex, relative to the block face
+                    // origin — tells us how far each conforming quad sits from the nominal face plane.
+                    float nnx = cell.face().getStepX(), nny = cell.face().getStepY(), nnz = cell.face().getStepZ();
+                    Vec3 org = FaceFrame.canonical(cell.face()).projectionOrigin(cell.pos());
+                    StringBuilder depths = new StringBuilder();
+                    for (SurfaceFragment f : frags) {
+                        float[] v = f.vertices();
+                        float w = (v[0]-(float)org.x)*nnx + (v[1]-(float)org.y)*nny + (v[2]-(float)org.z)*nnz;
+                        depths.append(String.format("%.3f ", w));
+                    }
+                    dev.paintcraft.PaintCraft.LOGGER.info(
+                        "[relief-diag] block={} face={} pos={} entityBlock={} maxHeight={} stacking={} path={} frags={} fragDepths=[{}]",
+                        level.getBlockState(cell.pos()).getBlock(), cell.face(), cell.pos(),
+                        cell.entityBlock(), maxH, stack, path, frags.size(), depths.toString().trim());
+                }
+                if (relief && cell.heights() != null && hasStacking(cell.heights())) {
                     emitCellRelief(builder, level, cell, bnds);
                     continue;
                 }
@@ -448,6 +471,20 @@ public final class DecalRenderer {
                 return null;
             }
         }
+    }
+
+    /**
+     * Whether a cell has any genuinely stacked decals (height >= 2 somewhere), which is the only
+     * case that needs the relief-reconstruction path. Single-layer cells (height <= 1 everywhere)
+     * render via the flat fragment-vertex path instead, so they sit on the block's true visual
+     * surface rather than a full-face panel reconstructed from the collision shape (which floats
+     * off and fabricates 3D walls on partial-face / recessed blocks like pots).
+     */
+    private static boolean hasStacking(byte[] heights) {
+        for (byte h : heights) {
+            if ((h & 0xFF) >= 2) return true;
+        }
+        return false;
     }
 
     private static List<SurfaceFragment> findCellFragments(BlockPos pos, Direction face) {

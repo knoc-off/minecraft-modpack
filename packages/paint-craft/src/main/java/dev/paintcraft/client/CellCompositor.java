@@ -389,6 +389,11 @@ public final class CellCompositor {
 
         boolean relief = ModConfig.CONFIG.reliefEnabled.get();
         int[] layerCount = relief ? new int[CELL_SIZE * CELL_SIZE] : null;
+        // Per-decal coverage mask: a single decal may resolve to several overlapping surface
+        // fragments on a geometrically complex block (e.g. a pot's rim + interior + wall tops).
+        // We must count stack height per DECAL, not per fragment, otherwise one decal inflates
+        // the derived height and the relief extrudes as if many layers were stacked.
+        boolean[] decalCovered = relief ? new boolean[CELL_SIZE * CELL_SIZE] : null;
 
         // Layer cap: only composite the top-N decals by z-order (highest priority first).
         // Deeper decals stay in data but are not rendered — keeps compositing cost bounded.
@@ -408,9 +413,17 @@ public final class CellCompositor {
             int stepsToCanon = decalFrame.clockwiseStepsTo(canonFrame);
             int cwSteps = (4 - stepsToCanon) % 4;
 
+            if (decalCovered != null) Arrays.fill(decalCovered, false);
             for (SurfaceFragment frag : entry.surface().fragments()) {
                 if (!frag.pos().equals(pos) || frag.faceNormal() != face) continue;
-                opaquePixels += blitDecalPixels(composite, layerCount, decal.pixels(), decal.widthPx(), decal.heightPx(), frag, cwSteps);
+                opaquePixels += blitDecalPixels(composite, decalCovered, decal.pixels(), decal.widthPx(), decal.heightPx(), frag, cwSteps);
+            }
+            // Merge this decal's coverage into the height grid: exactly one layer per decal per
+            // texel, regardless of how many overlapping fragments the decal produced here.
+            if (layerCount != null) {
+                for (int k = 0; k < layerCount.length; k++) {
+                    if (decalCovered[k]) layerCount[k]++;
+                }
             }
         }
 
@@ -474,7 +487,7 @@ public final class CellCompositor {
      * @return the number of texels that became fully opaque as a result of this blit
      *         (used to drive the all-opaque early exit in {@link #compositeCell}).
      */
-    private static int blitDecalPixels(int[] composite, int[] layerCount, int[] pixels, int srcWidth,
+    private static int blitDecalPixels(int[] composite, boolean[] decalCovered, int[] pixels, int srcWidth,
                                          int srcHeight, SurfaceFragment frag, int cwSteps) {
         int px0 = frag.u0(), py0 = frag.v0();
         int px1 = frag.u1(), py1 = frag.v1();
@@ -503,7 +516,10 @@ public final class CellCompositor {
                 int idx = cy * CELL_SIZE + cx;
 
                 // Stack height: every non-transparent source layer counts, even occluded ones.
-                if (layerCount != null) layerCount[idx]++;
+                // Mark coverage here (before the opaque-skip) so a decal fully hidden by a
+                // higher one still contributes its single layer. Merged into layerCount once
+                // per decal by the caller.
+                if (decalCovered != null) decalCovered[idx] = true;
 
                 int existing = composite[idx];
                 if ((existing >>> 24) == 0xFF) continue; // already opaque — nothing below shows
