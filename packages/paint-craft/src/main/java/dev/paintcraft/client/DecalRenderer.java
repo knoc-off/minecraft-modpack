@@ -557,6 +557,11 @@ public final class DecalRenderer {
                 int hc = h[gv * res + gu] & 0xFF;
                 if (hc == 0) continue;
                 float capW = front[gv * res + gu];
+                // Surface depth of this cell (cap minus the stack extrusion). Wall back edges are
+                // clamped to this so a wall never sinks behind the block's own surface — otherwise
+                // a neighbour that's more recessed pushes the wall coplanar with the surface (e.g.
+                // a pot's curved face), causing z-fighting.
+                float ownBaseW = capW - Math.max(0, hc - 1) * t;
 
                 float uR0 = gu * inv, uR1 = (gu + 1) * inv;
                 float vUp1 = 1f - gv * inv;
@@ -573,6 +578,7 @@ public final class DecalRenderer {
                         slot, cornerAO, cornerLight, faceShade, 1.0f, cu, cv, cw, nx, ny, nz, false, 0f, 0f);
 
                 float w0 = frontAt(level, cell, front, gu + 1, gv, res, right, up, face, t, inv);
+                w0 = Math.max(w0, ownBaseW);
                 if (w0 < capW) {
                     cu[0] = uR1; cv[0] = vUp0; cw[0] = w0;
                     cu[1] = uR1; cv[1] = vUp1; cw[1] = w0;
@@ -582,6 +588,7 @@ public final class DecalRenderer {
                             slot, cornerAO, cornerLight, faceShade, 0.75f, cu, cv, cw, rx, ry, rz, true, wu, wv);
                 }
                 w0 = frontAt(level, cell, front, gu - 1, gv, res, right, up, face, t, inv);
+                w0 = Math.max(w0, ownBaseW);
                 if (w0 < capW) {
                     cu[0] = uR0; cv[0] = vUp0; cw[0] = w0;
                     cu[1] = uR0; cv[1] = vUp1; cw[1] = w0;
@@ -591,6 +598,7 @@ public final class DecalRenderer {
                             slot, cornerAO, cornerLight, faceShade, 0.75f, cu, cv, cw, -rx, -ry, -rz, true, wu, wv);
                 }
                 w0 = frontAt(level, cell, front, gu, gv - 1, res, right, up, face, t, inv);
+                w0 = Math.max(w0, ownBaseW);
                 if (w0 < capW) {
                     cu[0] = uR0; cv[0] = vUp1; cw[0] = w0;
                     cu[1] = uR1; cv[1] = vUp1; cw[1] = w0;
@@ -600,6 +608,7 @@ public final class DecalRenderer {
                             slot, cornerAO, cornerLight, faceShade, 0.85f, cu, cv, cw, ux, uy, uz, true, wu, wv);
                 }
                 w0 = frontAt(level, cell, front, gu, gv + 1, res, right, up, face, t, inv);
+                w0 = Math.max(w0, ownBaseW);
                 if (w0 < capW) {
                     cu[0] = uR0; cv[0] = vUp0; cw[0] = w0;
                     cu[1] = uR1; cv[1] = vUp0; cw[1] = w0;
@@ -622,6 +631,12 @@ public final class DecalRenderer {
                                  float[] selfFront, int gu, int gv, int res,
                                  Direction right, Direction up, Direction face, float t, float inv) {
         if (gu >= 0 && gu < res && gv >= 0 && gv < res) {
+            // An in-range neighbour cell with no relief is the edge of the decal within this block
+            // (e.g. off the sub-shape of a non-full block). Treat it like the out-of-range empty
+            // case: return -inf so wallBack() closes the side wall down to this cell's surface,
+            // rather than the bogus front=0 that recession() falls back to over empty space.
+            byte[] nh = cell.heights();
+            if (nh != null && (nh[gv * res + gu] & 0xFF) == 0) return Float.NEGATIVE_INFINITY;
             return selfFront[gv * res + gu];
         }
         BlockPos p = cell.pos();
@@ -641,6 +656,11 @@ public final class DecalRenderer {
             if (ngu < 0) ngu = 0; else if (ngu >= res) ngu = res - 1;
             if (ngv < 0) ngv = 0; else if (ngv >= res) ngv = res - 1;
         }
+
+        // No relief in the neighbouring block cell: the relief ends at this block boundary.
+        // Return a front far behind the surface so the caller's clamp closes the wall down to
+        // this cell's own surface (ownBaseW) instead of leaving the extruded side open.
+        if (hc == 0) return Float.NEGATIVE_INFINITY;
 
         List<AABB> boxes = collisionBoxes(level, p, face);
         double fr = (ngu + 0.5) * inv;

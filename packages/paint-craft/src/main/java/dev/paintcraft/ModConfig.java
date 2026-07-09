@@ -69,6 +69,7 @@ public final class ModConfig {
         // -- Editor --
         public final ModConfigSpec.IntValue maxBrushSize;
         public final ModConfigSpec.IntValue undoStackDepth;
+        public final ModConfigSpec.BooleanValue softErase;
 
         // -- Stamp Preview --
         public final ModConfigSpec.IntValue ghostPreviewOpacity;
@@ -125,6 +126,13 @@ public final class ModConfig {
             undoStackDepth = builder
                 .comment("Maximum number of undo steps in the paint editor.")
                 .defineInRange("undoStackDepth", 50, 10, 200);
+
+            softErase = builder
+                .comment("Soft eraser: right-click erasing lowers a pixel's opacity toward the",
+                         "inverted brush alpha (a weaker brush leaves more paint behind) instead of",
+                         "wiping it fully. It only ever reduces opacity, never re-adds paint.",
+                         "Disable for the classic hard eraser that always clears pixels completely.")
+                .define("softErase", true);
 
             builder.pop();
 

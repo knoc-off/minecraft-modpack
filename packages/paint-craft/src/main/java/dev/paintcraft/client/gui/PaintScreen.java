@@ -524,15 +524,21 @@ public class PaintScreen extends Screen {
      * so it behaves exactly like a 16px canvas. Holding Shift switches to free 32px editing.
      */
     private void applyBrush(int px, int py, boolean erase) {
-        int color = erase ? 0x00000000 : paintColor();
+        int color = paintColor();
+        // Soft erase honours the brush alpha; hard erase (config off) always clears fully.
+        int eraseAlpha = ModConfig.CONFIG.softErase.get() ? brushAlpha : 255;
         if (subPixelMode()) {
-            (erase ? PaintTool.ERASER : PaintTool.PENCIL)
-                .draw(canvas, canvasW, canvasH, px, py, brushSize, color);
+            if (erase) {
+                PaintTool.ERASER.draw(canvas, canvasW, canvasH, px, py, brushSize, eraseAlpha << 24);
+            } else {
+                PaintTool.PENCIL.draw(canvas, canvasW, canvasH, px, py, brushSize, color);
+            }
             return;
         }
         int snap = Decal.SNAP;
         int lx = px / snap, ly = py / snap;
         int radius = brushSize - 1; // brush size measured in logical pixels here
+        int target = 255 - eraseAlpha; // soft-erase remaining alpha (unused when painting)
         for (int dly = -radius; dly <= radius; dly++) {
             for (int dlx = -radius; dlx <= radius; dlx++) {
                 int bx0 = (lx + dlx) * snap;
@@ -541,7 +547,14 @@ public class PaintScreen extends Screen {
                     for (int tx = 0; tx < snap; tx++) {
                         int fx = bx0 + tx, fy = by0 + ty;
                         if (fx >= 0 && fx < canvasW && fy >= 0 && fy < canvasH) {
-                            canvas[fy * canvasW + fx] = color;
+                            int idx = fy * canvasW + fx;
+                            if (erase) {
+                                int old = canvas[idx];
+                                if ((old >>> 24) <= target) continue;
+                                canvas[idx] = target == 0 ? 0x00000000 : (target << 24) | (old & 0x00FFFFFF);
+                            } else {
+                                canvas[idx] = color;
+                            }
                         }
                     }
                 }

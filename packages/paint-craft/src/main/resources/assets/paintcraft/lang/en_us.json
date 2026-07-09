@@ -1,42 +1,25 @@
 {
   "item.paintcraft.brush": "Paint Brush",
   "item.paintcraft.stamp": "Stamp",
-  "item.paintcraft.eraser": "Decal Eraser",
-  "itemGroup.paintcraft": "PaintCraft",
+  "item.paintcraft.eraser": "Eraser",
 
-  "paintcraft.configuration.title": "PaintCraft Settings",
+  "paintcraft.configuration.title": "%s Settings",
 
   "paintcraft.configuration.rendering": "Rendering",
-  "paintcraft.configuration.rendering.button": "Configure",
-  "paintcraft.configuration.renderDistance": "Render Distance",
-  "paintcraft.configuration.renderDistance.tooltip": "Maximum distance (in blocks) at which decals are rendered.",
-  "paintcraft.configuration.atlasSize": "Atlas Size",
-  "paintcraft.configuration.atlasSize.tooltip": "Texture atlas resolution for decal rendering. Higher values support more decals but use more VRAM. Requires game restart.",
-  "paintcraft.configuration.ghostPreviewOpacity": "Ghost Preview Opacity",
-  "paintcraft.configuration.ghostPreviewOpacity.tooltip": "Opacity of the stamp placement preview (0 = invisible, 255 = fully opaque).",
-
-  "paintcraft.configuration.editor": "Editor",
-  "paintcraft.configuration.editor.button": "Configure",
-  "paintcraft.configuration.maxBrushSize": "Max Brush Size",
-  "paintcraft.configuration.maxBrushSize.tooltip": "Maximum brush size in pixels (controlled by scroll wheel in the editor).",
-  "paintcraft.configuration.undoStackDepth": "Undo Steps",
-  "paintcraft.configuration.undoStackDepth.tooltip": "Maximum number of undo steps in the paint editor.",
-
+  "paintcraft.configuration.editor": "Editor Settings",
   "paintcraft.configuration.advanced": "Advanced Rendering",
-  "paintcraft.configuration.advanced.button": "Configure",
-  "paintcraft.configuration.depthBias": "Depth Bias",
-  "paintcraft.configuration.depthBias.tooltip": "Clip-space depth bias that keeps decals in front of block surfaces (prevents Z-fighting) at all distances, without moving geometry. Increase if decals flicker; decrease if they wrongly cover geometry in front of them.",
 
-  "paintcraft.configuration.limits": "Server Limits",
-  "paintcraft.configuration.limits.button": "Configure",
-  "paintcraft.configuration.maxDecalsPerChunk": "Max Decals Per Chunk",
-  "paintcraft.configuration.maxDecalsPerChunk.tooltip": "Maximum number of decals allowed per chunk. Lower values reduce storage and network overhead.",
-  "paintcraft.configuration.maxPlacementDistance": "Max Placement Distance",
-  "paintcraft.configuration.maxPlacementDistance.tooltip": "Maximum distance (in blocks) a player can be from a decal to place, edit, or erase it.",
-  "paintcraft.configuration.maxCanvasSize": "Max Canvas Size",
-  "paintcraft.configuration.maxCanvasSize.tooltip": "Maximum canvas dimension in blocks (width and height).",
-  "paintcraft.configuration.maxDepth": "Max Projection Depth",
-  "paintcraft.configuration.maxDepth.tooltip": "Maximum projection depth in blocks. Controls how far decals can wrap into recessed geometry.",
-  "paintcraft.configuration.opPermissionLevel": "OP Permission Level",
-  "paintcraft.configuration.opPermissionLevel.tooltip": "Server operator permission level required to bypass decal ownership checks."
+  "paintcraft.configuration.renderDistance": "Render Distance",
+  "paintcraft.configuration.atlasSize": "Atlas Texture Size",
+  "paintcraft.configuration.ghostPreviewOpacity": "Stamp Preview Opacity",
+  "paintcraft.configuration.reliefEnabled": "3D Relief",
+  "paintcraft.configuration.reliefHeightRes": "Relief Height Resolution",
+  "paintcraft.configuration.reliefLayerThickness": "Relief Layer Thickness",
+  "paintcraft.configuration.reliefMaxLayers": "Relief Max Layers",
+
+  "paintcraft.configuration.maxBrushSize": "Max Brush Size",
+  "paintcraft.configuration.undoStackDepth": "Undo History Depth",
+  "paintcraft.configuration.softErase": "Soft Eraser",
+
+  "paintcraft.configuration.frustumCullRadius": "Frustum Cull Radius"
 }
