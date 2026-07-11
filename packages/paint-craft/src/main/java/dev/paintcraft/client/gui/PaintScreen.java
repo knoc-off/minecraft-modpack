@@ -51,6 +51,7 @@ public class PaintScreen extends Screen {
 
     private int[] canvas; // mutable working buffer in DISPLAY orientation
     private int[] backgroundPixels;
+    private int[] backgroundRawPixels; // unshaded copy for the color picker
     private final float depth;
     private final List<int[]> undoStack = new ArrayList<>();
     private final List<int[]> redoStack = new ArrayList<>();
@@ -91,7 +92,8 @@ public class PaintScreen extends Screen {
      */
     public PaintScreen(BlockPos anchor, FaceFrame storedFrame, FaceFrame displayFrame,
                        DisplayTransform transform, int widthBlocks, int heightBlocks,
-                       float depth, int[] existingPixels, UUID decalId, int[] backgroundPixels) {
+                       float depth, int[] existingPixels, UUID decalId, int[] backgroundPixels,
+                       int[] backgroundRawPixels) {
         super(Component.literal("Paint"));
         this.anchor = anchor;
         this.storedFrame = storedFrame;
@@ -101,6 +103,7 @@ public class PaintScreen extends Screen {
         this.decalId = decalId != null ? decalId : UUID.randomUUID();
         this.depth = depth;
         this.backgroundPixels = backgroundPixels;
+        this.backgroundRawPixels = backgroundRawPixels;
 
         if (existingPixels != null && existingPixels.length == canvasW * canvasH) {
             this.canvas = Arrays.copyOf(existingPixels, existingPixels.length);
@@ -116,9 +119,10 @@ public class PaintScreen extends Screen {
      * Convenience constructor for new decals (no rotation, identity transform).
      */
     public PaintScreen(BlockPos anchor, FaceFrame frame, int widthBlocks, int heightBlocks,
-                       int[] backgroundPixels) {
+                       int[] backgroundPixels, int[] backgroundRawPixels) {
         this(anchor, frame, frame, DisplayTransform.forEditor(frame, frame),
-             widthBlocks, heightBlocks, Decal.MAX_DEPTH, null, null, backgroundPixels);
+             widthBlocks, heightBlocks, Decal.MAX_DEPTH, null, null, backgroundPixels,
+             backgroundRawPixels);
     }
 
     private void loadPrefs() {
@@ -471,10 +475,13 @@ public class PaintScreen extends Screen {
             addToRecents(selectedColor);
             return;
         }
-        if (backgroundPixels != null) {
+        // Sample the unshaded background so the picked color is independent of the editor's
+        // depth shading (falls back to the shaded buffer if no raw copy is available).
+        int[] bgSource = backgroundRawPixels != null ? backgroundRawPixels : backgroundPixels;
+        if (bgSource != null) {
             int bgIdx = py * canvasW + transform.toDataX(px, canvasW);
-            if (bgIdx >= 0 && bgIdx < backgroundPixels.length) {
-                int bgColor = backgroundPixels[bgIdx];
+            if (bgIdx >= 0 && bgIdx < bgSource.length) {
+                int bgColor = bgSource[bgIdx];
                 if (ColorFormat.isOpaque(bgColor)) {
                     brushAlpha = bgColor >>> 24;
                     selectedColor = 0xFF000000 | (bgColor & 0x00FFFFFF);

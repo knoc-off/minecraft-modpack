@@ -70,6 +70,7 @@ public final class ModConfig {
         public final ModConfigSpec.IntValue maxBrushSize;
         public final ModConfigSpec.IntValue undoStackDepth;
         public final ModConfigSpec.BooleanValue softErase;
+        public final ModConfigSpec.BooleanValue editorDepthShading;
 
         // -- Stamp Preview --
         public final ModConfigSpec.IntValue ghostPreviewOpacity;
@@ -100,7 +101,7 @@ public final class ModConfig {
             reliefEnabled = builder
                 .comment("Render decals as 3D relief: each painted spot is extruded outward by",
                          "the number of stacked layers covering it (derived, nothing stored).")
-                .define("reliefEnabled", true);
+                .define("reliefEnabled", false);
 
             reliefHeightRes = builder
                 .comment("Grid resolution (cells per block face) for relief height.",
@@ -133,6 +134,13 @@ public final class ModConfig {
                          "wiping it fully. It only ever reduces opacity, never re-adds paint.",
                          "Disable for the classic hard eraser that always clears pixels completely.")
                 .define("softErase", true);
+
+            editorDepthShading = builder
+                .comment("Shade the editor background by depth: recessed / further-back surfaces are",
+                         "drawn darker so the underlay reads as 3D. Disable to render every surface at",
+                         "full brightness. Does not affect the color picker, which always samples the",
+                         "unshaded block color.")
+                .define("editorDepthShading", true);
 
             builder.pop();
 

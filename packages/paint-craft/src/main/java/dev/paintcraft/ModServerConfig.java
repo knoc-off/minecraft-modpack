@@ -32,8 +32,9 @@ public final class ModServerConfig {
 
             maxDecalsPerChunk = builder
                 .comment("Maximum number of decals allowed per chunk.",
-                         "Lower values reduce storage and network overhead.")
-                .defineInRange("maxDecalsPerChunk", 64, 8, 512);
+                         "Kept high so decals can be stacked freely; lower it only if server",
+                         "storage or network overhead becomes a concern.")
+                .defineInRange("maxDecalsPerChunk", 1024, 8, 16384);
 
             maxPlacementDistance = builder
                 .comment("Maximum distance (in blocks) a player can be from a decal to place, edit, or erase it.")

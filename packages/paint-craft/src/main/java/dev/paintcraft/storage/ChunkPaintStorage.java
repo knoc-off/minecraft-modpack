@@ -16,7 +16,6 @@ import java.util.*;
 public class ChunkPaintStorage extends SavedData {
 
     private static final String DATA_NAME = "paintcraft_decals";
-    public static final int MAX_DECALS_PER_CHUNK = 64;
 
     private final Map<UUID, Decal> decals = new HashMap<>();
     private final Map<Long, Set<UUID>> chunkIndex = new HashMap<>();

@@ -20,6 +20,7 @@
   "paintcraft.configuration.maxBrushSize": "Max Brush Size",
   "paintcraft.configuration.undoStackDepth": "Undo History Depth",
   "paintcraft.configuration.softErase": "Soft Eraser",
+  "paintcraft.configuration.editorDepthShading": "Editor Depth Shading",
 
   "paintcraft.configuration.frustumCullRadius": "Frustum Cull Radius"
 }

@@ -31,14 +31,16 @@ public final class EditorUnderlay {
     private record Layer(Projection proj, int[] pixels, int wPx, int hPx, int wb, int hb) {}
 
     /**
-     * Blend under-layers into {@code background} (mutated in place and returned).
+     * Blend under-layers into {@code display} and {@code raw} (both mutated in place). The two
+     * arrays hold the same geometry; {@code display} is depth-shaded for rendering while {@code raw}
+     * is unshaded for the color picker. Sibling decal colors are identical in both.
      *
      * @param anchor       same anchor passed to {@link BackgroundCapture#capture} for this canvas
      * @param displayFrame the capture/display frame (face + display up)
      * @param currentId    the decal being edited, excluded from the underlay; null for a new decal
      *                     (then all siblings on this face are treated as under-layers)
      */
-    public static int[] build(int[] background, BlockPos anchor, FaceFrame displayFrame,
+    public static void build(int[] display, int[] raw, BlockPos anchor, FaceFrame displayFrame,
                               int widthBlocks, int heightBlocks, float depth, UUID currentId) {
         int wPx = widthBlocks * Decal.PX_PER_BLOCK;
         int hPx = heightBlocks * Decal.PX_PER_BLOCK;
@@ -61,7 +63,7 @@ public final class EditorUnderlay {
             if (!Projection.fromDecal(d).toBoundingBox().intersects(canvasBounds)) continue;
             siblings.add(d);
         }
-        if (siblings.isEmpty()) return background;
+        if (siblings.isEmpty()) return;
         siblings.sort(Comparator.comparingLong(Decal::zOrder));
 
         List<Layer> layers = new ArrayList<>(siblings.size());
@@ -77,7 +79,9 @@ public final class EditorUnderlay {
                 float localU = (col + 0.5f) / wPx * widthBlocks;
                 Vec3 world = canvas.localToWorld(localU, localV, 0.0);
 
-                int acc = background[oy * wPx + col];
+                int outIdx = oy * wPx + col;
+                int accDisplay = display[outIdx];
+                int accRaw = raw[outIdx];
                 for (Layer L : layers) {
                     Vec3 l = L.proj.worldToLocal(world);
                     if (l.x < 0 || l.x >= L.wb || l.y < 0 || l.y >= L.hb) continue;
@@ -89,13 +93,13 @@ public final class EditorUnderlay {
                     if (sy < 0) sy = 0; else if (sy >= L.hPx) sy = L.hPx - 1;
                     int c = L.pixels[sy * L.wPx + sx];
                     if ((c >>> 24) != 0) {
-                        acc = ColorFormat.alphaOver(c, acc);
+                        accDisplay = ColorFormat.alphaOver(c, accDisplay);
+                        accRaw = ColorFormat.alphaOver(c, accRaw);
                     }
                 }
-                background[oy * wPx + col] = acc;
+                display[outIdx] = accDisplay;
+                raw[outIdx] = accRaw;
             }
         }
-
-        return background;
     }
 }

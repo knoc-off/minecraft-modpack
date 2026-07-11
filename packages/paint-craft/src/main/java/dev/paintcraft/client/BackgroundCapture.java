@@ -42,11 +42,20 @@ public final class BackgroundCapture {
 
     private BackgroundCapture() {}
 
-    public static int[] capture(BlockAndTintGetter level, BlockPos anchor, Direction face,
+    /**
+     * Result of a background capture.
+     *
+     * @param display depth-shaded pixels used to render the editor underlay
+     * @param raw     unshaded pixels (same geometry, no depth darkening) used by the color picker
+     */
+    public record Captured(int[] display, int[] raw) {}
+
+    public static Captured capture(BlockAndTintGetter level, BlockPos anchor, Direction face,
                                  Direction captureUp, int widthBlocks, int heightBlocks, float depth) {
         int wPx = widthBlocks * Decal.PX_PER_BLOCK;
         int hPx = heightBlocks * Decal.PX_PER_BLOCK;
         int[] background = new int[wPx * hPx];
+        int[] raw = new int[wPx * hPx];
 
         // Build projection using FaceFrame (centralized origin computation)
         Direction up = face.getAxis().isVertical() ? captureUp : Direction.UP;
@@ -105,6 +114,8 @@ public final class BackgroundCapture {
         }
         if (maxDepth < 0.001f) maxDepth = 1.0f;
 
+        boolean depthShading = dev.paintcraft.ModConfig.CONFIG.editorDepthShading.get();
+
         // Sample textures for each pixel from the live GPU block-atlas snapshot (see
         // AtlasImageCache) — the same pixels the world renderer samples.
         for (int py = 0; py < hPx; py++) {
@@ -119,8 +130,8 @@ public final class BackgroundCapture {
                     vol, hit.depth(), px, py, wPx, hPx);
                 if (color == 0) continue;
 
-                // Apply depth shading
-                float brightness = 1.0f - (hit.depth() / maxDepth) * SHADE_FACTOR;
+                // Apply depth shading (recessed surfaces darker) unless disabled in config.
+                float brightness = depthShading ? 1.0f - (hit.depth() / maxDepth) * SHADE_FACTOR : 1.0f;
                 int a = (color >> 24) & 0xFF;
                 int r = (int)(((color >> 16) & 0xFF) * brightness);
                 int g = (int)(((color >> 8) & 0xFF) * brightness);
@@ -129,10 +140,12 @@ public final class BackgroundCapture {
                 // V-flip: editor row 0 = top of face in world (matches renderer)
                 int outY = hPx - 1 - py;
                 background[outY * wPx + px] = (a << 24) | (r << 16) | (g << 8) | b;
+                // Raw (unshaded) copy for the color picker.
+                raw[outY * wPx + px] = color;
             }
         }
 
-        return background;
+        return new Captured(background, raw);
     }
 
     private static int sampleBlockTexture(BlockAndTintGetter level, BlockPos pos,

@@ -90,12 +90,12 @@ public final class ClientBrushHandler {
                 + face.getStepZ() * normalShift
         );
 
-        int[] background = BackgroundCapture.capture(
+        BackgroundCapture.Captured bg = BackgroundCapture.capture(
             Minecraft.getInstance().level, anchor, face, up, widthBlocks, heightBlocks, maxDepth());
-        EditorUnderlay.build(background, anchor, frame, widthBlocks, heightBlocks, maxDepth(), null);
+        EditorUnderlay.build(bg.display(), bg.raw(), anchor, frame, widthBlocks, heightBlocks, maxDepth(), null);
 
         Minecraft.getInstance().setScreen(new PaintScreen(
-            anchor, frame, widthBlocks, heightBlocks, background));
+            anchor, frame, widthBlocks, heightBlocks, bg.display(), bg.raw()));
     }
 
     public static void clearPending() {
@@ -107,11 +107,11 @@ public final class ClientBrushHandler {
         Direction playerDir = Minecraft.getInstance().player.getDirection();
         FaceFrame frame = FaceFrame.forFace(face, playerDir);
 
-        int[] background = BackgroundCapture.capture(
+        BackgroundCapture.Captured bg = BackgroundCapture.capture(
             Minecraft.getInstance().level, pos, face, frame.up(), 1, 1, maxDepth());
-        EditorUnderlay.build(background, pos, frame, 1, 1, maxDepth(), null);
+        EditorUnderlay.build(bg.display(), bg.raw(), pos, frame, 1, 1, maxDepth(), null);
 
-        Minecraft.getInstance().setScreen(new PaintScreen(pos, frame, 1, 1, background));
+        Minecraft.getInstance().setScreen(new PaintScreen(pos, frame, 1, 1, bg.display(), bg.raw()));
     }
 
     public static void openExistingEditor(BlockPos anchor, Direction normal, Direction storedUp,
@@ -156,15 +156,15 @@ public final class ClientBrushHandler {
             }
         }
 
-        int[] background = BackgroundCapture.capture(
+        BackgroundCapture.Captured bg = BackgroundCapture.capture(
             Minecraft.getInstance().level, bgAnchor, normal, displayFrame.up(),
             display.widthBlocks(), display.heightBlocks(), depth);
-        EditorUnderlay.build(background, bgAnchor, displayFrame,
+        EditorUnderlay.build(bg.display(), bg.raw(), bgAnchor, displayFrame,
             display.widthBlocks(), display.heightBlocks(), depth, decalId);
 
         Minecraft.getInstance().setScreen(new PaintScreen(
             anchor, storedFrame, displayFrame, transform,
             display.widthBlocks(), display.heightBlocks(),
-            depth, display.data(), decalId, background));
+            depth, display.data(), decalId, bg.display(), bg.raw()));
     }
 }
