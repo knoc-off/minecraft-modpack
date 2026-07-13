@@ -26,6 +26,7 @@ public final class ModServerConfig {
         public final ModConfigSpec.IntValue maxCanvasSize;
         public final ModConfigSpec.DoubleValue maxDepth;
         public final ModConfigSpec.IntValue opPermissionLevel;
+        public final ModConfigSpec.IntValue pixelsPerDye;
 
         Config(ModConfigSpec.Builder builder) {
             builder.push("limits");
@@ -54,6 +55,13 @@ public final class ModServerConfig {
                 .comment("Server operator permission level required to bypass decal ownership checks.",
                          "Players at or above this level can edit/delete any decal regardless of author.")
                 .defineInRange("opPermissionLevel", 2, 1, 4);
+
+            pixelsPerDye = builder
+                .comment("Painted pixels charged as one dye of that color when producing a painting.",
+                         "Cost per color = round(pixelsOfColor / pixelsPerDye); a color amounting to",
+                         "less than half a dye rounds to 0 (free). One solid block = 1024 px, so 1024",
+                         "is roughly one dye per fully-painted block. Lower = more expensive.")
+                .defineInRange("pixelsPerDye", 1024, 1, 1_000_000);
 
             builder.pop();
         }

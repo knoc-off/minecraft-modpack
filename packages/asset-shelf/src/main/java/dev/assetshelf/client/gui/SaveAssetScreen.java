@@ -702,6 +702,11 @@ public class SaveAssetScreen extends Screen {
         return false;
     }
 
+    @Override
+    protected void renderBlurredBackground(float partialTick) {
+        // Skip vanilla menu blur; renderTransparentBackground() still draws the dim overlay.
+    }
+
     // ═══════════════════════════════════════════════════════════════
     //  Utilities
     // ═══════════════════════════════════════════════════════════════

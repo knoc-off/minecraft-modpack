@@ -8,15 +8,13 @@ import dev.assetshelf.client.gui.ModalExtension;
 import dev.paintcraft.ModItems;
 import dev.paintcraft.PaintCraft;
 import dev.paintcraft.core.ColorFormat;
-import dev.paintcraft.core.Decal;
+import dev.paintcraft.core.cost.PaintCost;
 import dev.paintcraft.item.StampData;
 import dev.paintcraft.item.StampItem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.item.DyeColor;
-import net.minecraft.world.item.DyeItem;
 import net.minecraft.world.item.ItemStack;
 
 import javax.annotation.Nullable;
@@ -71,9 +69,6 @@ public final class AssetShelfCompat {
     }
 
     private static class PaintingAssetType implements AssetType {
-
-        /** Tunable cost multiplier. 1.0 = ceil(√blocks), 0.5 = half that, 2.0 = double. */
-        private static final double COST_FACTOR = 1.0;
 
         @Override
         public ResourceLocation id() {
@@ -156,106 +151,11 @@ public final class AssetShelfCompat {
             StampData stamp = deserialize(data);
             if (stamp == null) return List.of();
 
-            int[] pixels = stamp.pixels();
-            int opaqueBlocks = countOpaqueBlocks(stamp);
-
-            // Every pixel votes for its nearest DyeColor
-            int[] votes = new int[16];
-            int opaquePixels = 0;
-
-            for (int pixel : pixels) {
-                if (((pixel >> 24) & 0xFF) < 128) continue;
-                opaquePixels++;
-                DyeColor dc = nearestDyeColor((pixel >> 16) & 0xFF, (pixel >> 8) & 0xFF, pixel & 0xFF);
-                votes[dc.ordinal()]++;
-            }
-
-            if (opaquePixels == 0) return List.of();
-
-            // Budget = ceil(√opaqueBlocks × COST_FACTOR)
-            int totalBudget = Math.max(1, (int) Math.ceil(Math.sqrt(opaqueBlocks) * COST_FACTOR));
-
-            // Distribute proportionally based on pixel vote share
             List<ItemCost> costs = new java.util.ArrayList<>();
-            int dominantIdx = 0;
-
-            for (int i = 0; i < 16; i++) {
-                if (votes[i] > votes[dominantIdx]) dominantIdx = i;
+            for (ItemStack dye : PaintCost.dyeCost(stamp.pixels())) {
+                costs.add(new ItemCost(dye));
             }
-
-            for (int i = 0; i < 16; i++) {
-                if (votes[i] == 0) continue;
-                int dyes = Math.round((float) votes[i] / opaquePixels * totalBudget);
-                if (dyes >= 1) {
-                    costs.add(ItemCost.of(DyeItem.byColor(DyeColor.values()[i]), dyes));
-                }
-            }
-
-            // Ensure at least 1 dye total
-            if (costs.isEmpty()) {
-                costs.add(ItemCost.of(DyeItem.byColor(DyeColor.values()[dominantIdx]), 1));
-            }
-
             return costs;
-        }
-
-        private int countOpaqueBlocks(StampData stamp) {
-            int[] pixels = stamp.pixels();
-            int width = stamp.widthPx();
-            int ppb = Decal.PX_PER_BLOCK;
-            int blockW = stamp.widthBlocks();
-            int blockH = stamp.heightBlocks();
-            int count = 0;
-            for (int by = 0; by < blockH; by++) {
-                for (int bx = 0; bx < blockW; bx++) {
-                    outer:
-                    for (int y = by * ppb; y < (by + 1) * ppb; y++) {
-                        for (int x = bx * ppb; x < (bx + 1) * ppb; x++) {
-                            int idx = y * width + x;
-                            if (idx < pixels.length && ((pixels[idx] >> 24) & 0xFF) >= 128) {
-                                count++;
-                                break outer;
-                            }
-                        }
-                    }
-                }
-            }
-            return count;
-        }
-
-        private static DyeColor nearestDyeColor(int r, int g, int b) {
-            int[][] refs = {
-                {249, 255, 254}, // WHITE
-                {249, 128, 29},  // ORANGE
-                {199, 78, 189},  // MAGENTA
-                {58, 179, 218},  // LIGHT_BLUE
-                {254, 216, 61},  // YELLOW
-                {128, 199, 31},  // LIME
-                {243, 139, 170}, // PINK
-                {71, 79, 82},    // GRAY
-                {157, 157, 151}, // LIGHT_GRAY
-                {22, 156, 156},  // CYAN
-                {137, 50, 184},  // PURPLE
-                {60, 68, 170},   // BLUE
-                {131, 84, 50},   // BROWN
-                {94, 124, 22},   // GREEN
-                {176, 46, 38},   // RED
-                {29, 29, 33},    // BLACK
-            };
-
-            int bestDist = Integer.MAX_VALUE;
-            int bestIdx = 0;
-            for (int i = 0; i < refs.length; i++) {
-                int dr = r - refs[i][0];
-                int dg = g - refs[i][1];
-                int db = b - refs[i][2];
-                int dist = dr * dr + dg * dg + db * db;
-                if (dist < bestDist) {
-                    bestDist = dist;
-                    bestIdx = i;
-                }
-            }
-            return DyeColor.values()[bestIdx];
         }
 
         private static StampData deserialize(byte[] raw) {

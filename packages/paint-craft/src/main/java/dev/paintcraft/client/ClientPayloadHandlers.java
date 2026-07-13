@@ -2,6 +2,7 @@ package dev.paintcraft.client;
 
 import dev.paintcraft.PaintCraft;
 import dev.paintcraft.client.gui.DecalSelectionScreen;
+import dev.paintcraft.client.gui.PaintScreen;
 import dev.paintcraft.core.Decal;
 import dev.paintcraft.network.ChunkDecalBatchPayload;
 import dev.paintcraft.network.DecalCreatePayload;
@@ -9,6 +10,7 @@ import dev.paintcraft.network.DecalDeletePayload;
 import dev.paintcraft.network.DecalInvalidatePayload;
 import dev.paintcraft.network.DecalSelectionPayload;
 import dev.paintcraft.network.OpenEditorPayload;
+import dev.paintcraft.network.PasteChargeResultPayload;
 import dev.paintcraft.projection.ProjectionResolver;
 import dev.paintcraft.projection.ProjectionResult;
 import net.minecraft.client.Minecraft;
@@ -82,6 +84,12 @@ public final class ClientPayloadHandlers {
     public static void handleChunkDecalBatch(ChunkDecalBatchPayload payload) {
         for (DecalCreatePayload decal : payload.decals()) {
             handleDecalCreate(decal);
+        }
+    }
+
+    public static void handlePasteChargeResult(PasteChargeResultPayload payload) {
+        if (Minecraft.getInstance().screen instanceof PaintScreen ps) {
+            ps.onPasteChargeResult(payload.requestId(), payload.success());
         }
     }
 }

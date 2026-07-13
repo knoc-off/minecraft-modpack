@@ -72,6 +72,18 @@ public final class ModNetwork {
             DecalErasePayload.STREAM_CODEC,
             ModNetwork::handleDecalErase
         );
+
+        registrar.playToServer(
+            PasteChargeRequestPayload.TYPE,
+            PasteChargeRequestPayload.STREAM_CODEC,
+            ModNetwork::handlePasteChargeRequest
+        );
+
+        registrar.playToClient(
+            PasteChargeResultPayload.TYPE,
+            PasteChargeResultPayload.STREAM_CODEC,
+            ModNetwork::handlePasteChargeResult
+        );
     }
 
     private static void handleDecalCreate(DecalCreatePayload payload, IPayloadContext ctx) {
@@ -322,6 +334,33 @@ public final class ModNetwork {
                 });
             }
         });
+    }
+
+    private static void handlePasteChargeRequest(PasteChargeRequestPayload payload, IPayloadContext ctx) {
+        ctx.enqueueWork(() -> {
+            if (!(ctx.player() instanceof ServerPlayer player)) return;
+
+            int[] pixels = payload.pixels();
+            boolean success;
+            if (pixels.length > dev.paintcraft.core.PaletteCodec.MAX_PIXELS) {
+                success = false;
+            } else if (player.getAbilities().instabuild) {
+                success = true; // creative: paste is free
+            } else {
+                success = dev.paintcraft.core.cost.PaintCost.consume(player, pixels);
+            }
+
+            if (!success) {
+                player.displayClientMessage(
+                    Component.literal("Not enough dye to paste this image"), true);
+            }
+            PacketDistributor.sendToPlayer(player,
+                new PasteChargeResultPayload(payload.requestId(), success));
+        });
+    }
+
+    private static void handlePasteChargeResult(PasteChargeResultPayload payload, IPayloadContext ctx) {
+        ctx.enqueueWork(() -> ClientPayloadHandlers.handlePasteChargeResult(payload));
     }
 
     /** Returns true if every pixel in the array is fully transparent (alpha == 0). */
