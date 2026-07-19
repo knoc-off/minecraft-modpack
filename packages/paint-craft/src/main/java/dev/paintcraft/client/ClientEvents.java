@@ -45,6 +45,7 @@ public final class ClientEvents {
             DecalRenderer.update(cameraPos, true);
             DecalRenderer.drawEarly(cameraPos, frustum, mv, proj, true);
             DecalRenderer.drawLate(cameraPos, frustum, mv, proj, true);
+            renderContraptionDecals(mc, event, cameraPos);
             StampPreviewRenderer.render(event.getPoseStack(), mc.renderBuffers().bufferSource(), cameraPos);
         } else {
             // Vanilla two-stage split:
@@ -53,11 +54,23 @@ public final class ClientEvents {
             if (event.getStage() == RenderLevelStageEvent.Stage.AFTER_BLOCK_ENTITIES) {
                 DecalRenderer.update(cameraPos, false);
                 DecalRenderer.drawEarly(cameraPos, frustum, mv, proj, false);
+                // Contraption blocks are drawn by Flywheel during the block-entity stage; render their
+                // decals here, just after, so they composite on top instead of being overpainted.
+                renderContraptionDecals(mc, event, cameraPos);
                 StampPreviewRenderer.render(event.getPoseStack(), mc.renderBuffers().bufferSource(), cameraPos);
             } else if (event.getStage() == RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS) {
                 DecalRenderer.drawLate(cameraPos, frustum, mv, proj, false);
             }
         }
+    }
+
+    private static void renderContraptionDecals(Minecraft mc, RenderLevelStageEvent event, Vec3 cameraPos) {
+        if (!dev.paintcraft.compat.create.CreateCompat.isLoaded()) return;
+        float partialTicks = event.getPartialTick().getGameTimeDeltaPartialTick(false);
+        var bufferSource = mc.renderBuffers().bufferSource();
+        dev.paintcraft.client.compat.create.ContraptionDecalRenderer.renderAll(
+            event.getPoseStack(), bufferSource, cameraPos, partialTicks);
+        bufferSource.endBatch();
     }
 
     @SubscribeEvent
@@ -139,6 +152,7 @@ public final class ClientEvents {
         DeferredInvalidator.clear();
         if (dev.paintcraft.compat.create.CreateCompat.isLoaded()) {
             dev.paintcraft.client.compat.create.ContraptionDecalRenderer.clear();
+            dev.paintcraft.client.compat.create.ContraptionDecalRenderer.resetDiag();
         }
     }
 }

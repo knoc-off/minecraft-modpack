@@ -119,22 +119,21 @@ public final class ClientBrushHandler {
                                            float depth, int[] pixels, UUID decalId) {
         FaceFrame storedFrame = new FaceFrame(normal, storedUp);
 
-        // Display frame: for vertical faces, use player's current facing direction
+        // Single display policy: floors reorient to the player, walls reorient to world-UP.
         Direction playerDir = Minecraft.getInstance().player.getDirection();
-        FaceFrame displayFrame = normal.getAxis().isVertical()
-            ? FaceFrame.horizontal(normal, playerDir)
-            : storedFrame;
+        FaceFrame displayFrame = FaceFrame.displayFrameFor(normal, playerDir);
 
-        DisplayTransform transform = DisplayTransform.forEditor(storedFrame, displayFrame);
+        DisplayTransform transform = DisplayTransform.between(storedFrame, displayFrame);
 
         // Transform pixels for display
         PixelGrid stored = new PixelGrid(widthBlocks * Decal.PX_PER_BLOCK,
                                           heightBlocks * Decal.PX_PER_BLOCK, pixels);
         PixelGrid display = transform.toDisplay(stored);
 
-        // Compute background anchor for the display orientation
+        // Compute background anchor for the display orientation. Runs for any rotated display
+        // (rolled walls included); rotations==0 falls through to the unchanged anchor.
         BlockPos bgAnchor = anchor;
-        if (!transform.isIdentity() && normal.getAxis().isVertical()) {
+        if (!transform.isIdentity()) {
             int rotations = storedFrame.clockwiseStepsTo(displayFrame);
             if (rotations != 0) {
                 Direction storedRight = storedFrame.right();

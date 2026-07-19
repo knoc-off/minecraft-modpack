@@ -36,8 +36,6 @@ public final class BackgroundCapture {
 
     private static final float SHADE_FACTOR = 0.5f; // 50% darker at max depth
 
-    private static final boolean DIAG = true; // TEMP: per-pixel sampling-rate diagnostic
-
     private static final boolean HAS_CNB = net.neoforged.fml.ModList.get().isLoaded("chiselsandbits");
 
     private BackgroundCapture() {}
@@ -257,19 +255,6 @@ public final class BackgroundCapture {
             float finalV = iV0 + (iV1 - iV0) * t;
 
             int abgr = AtlasImageCache.sampleABGR(finalU, finalV);
-
-            // DIAGNOSTIC: log the per-pixel sampling rate for the center row. If consecutive
-            // px land on the same atlas texel in pairs -> clean 2x doubling; if every px lands
-            // on a new texel -> 2x over-sampling (the source of the fake "HD" detail).
-            if (DIAG && py == hPx / 2 && px < 12) {
-                int aw = AtlasImageCache.width(), ah = AtlasImageCache.height();
-                int tx = (int) (finalU * aw), ty = (int) (finalV * ah);
-                dev.paintcraft.PaintCraft.LOGGER.info(
-                    "[diag] px={} py={} s={} t={} finalU={} finalV={} atlas={}x{} texel=({},{}) abgr=0x{}",
-                    px, py, String.format("%.4f", s), String.format("%.4f", t),
-                    String.format("%.5f", finalU), String.format("%.5f", finalV),
-                    aw, ah, tx, ty, Integer.toHexString(abgr));
-            }
 
             int a = (abgr >> 24) & 0xFF;
             int b = (abgr >> 16) & 0xFF;

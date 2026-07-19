@@ -17,14 +17,16 @@ public record DisplayTransform(boolean hFlip, int rotationCW) {
     }
 
     /**
-     * Compute the transform needed to display a stored decal in the editor,
-     * given the stored frame and the desired display frame.
+     * Compute the transform that maps a decal stored in {@code stored} orientation into the
+     * {@code display} orientation. Purely geometric — works for any two frames that share a
+     * normal (walls and floors alike); the caller picks the display frame via
+     * {@link FaceFrame#displayFrameFor}.
      */
-    public static DisplayTransform forEditor(FaceFrame stored, FaceFrame display) {
+    public static DisplayTransform between(FaceFrame stored, FaceFrame display) {
         boolean flip = stored.needsHFlip();
         int rot = 0;
-        if (stored.normal().getAxis().isVertical() && stored.up() != display.up()) {
-            // World CW steps from stored to display → negate for pixel rotation
+        if (stored.up() != display.up()) {
+            // World CW steps from stored to display → negate for pixel rotation.
             rot = (4 - stored.clockwiseStepsTo(display)) % 4;
         }
         return new DisplayTransform(flip, rot);

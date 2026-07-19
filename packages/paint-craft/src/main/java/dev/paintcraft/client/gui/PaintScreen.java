@@ -165,7 +165,7 @@ public class PaintScreen extends Screen {
      */
     public PaintScreen(BlockPos anchor, FaceFrame frame, int widthBlocks, int heightBlocks,
                        int[] backgroundPixels, int[] backgroundRawPixels) {
-        this(anchor, frame, frame, DisplayTransform.forEditor(frame, frame),
+        this(anchor, frame, frame, DisplayTransform.between(frame, frame),
              widthBlocks, heightBlocks, Decal.MAX_DEPTH, null, null, backgroundPixels,
              backgroundRawPixels);
     }

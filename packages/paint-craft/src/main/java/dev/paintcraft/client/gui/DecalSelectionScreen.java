@@ -83,16 +83,14 @@ public class DecalSelectionScreen extends Screen {
         thumbnails = new ArrayList<>(entries.size());
         var tm = Minecraft.getInstance().getTextureManager();
 
-        // Display orientation matches the editor: hFlip for negative-axis walls, and rotation to the
-        // player's current facing for floor/ceiling faces (same as ClientBrushHandler.openExistingEditor).
+        // Display orientation matches the editor (FaceFrame.displayFrameFor): hFlip for
+        // negative-axis walls, world-UP for walls, and player-facing for floor/ceiling faces.
         Direction playerDir = Minecraft.getInstance().player.getDirection();
 
         for (DecalSelectionPayload.Entry entry : entries) {
             FaceFrame storedFrame = new FaceFrame(entry.normal(), entry.up());
-            FaceFrame displayFrame = entry.normal().getAxis().isVertical()
-                ? FaceFrame.horizontal(entry.normal(), playerDir)
-                : storedFrame;
-            PixelGrid display = DisplayTransform.forEditor(storedFrame, displayFrame)
+            FaceFrame displayFrame = FaceFrame.displayFrameFor(entry.normal(), playerDir);
+            PixelGrid display = DisplayTransform.between(storedFrame, displayFrame)
                 .toDisplay(PixelGrid.wrap(entry.widthPx(), entry.heightPx(), entry.pixels()));
 
             int wPx = display.width();

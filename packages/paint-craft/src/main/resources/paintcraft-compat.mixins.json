@@ -3,8 +3,7 @@
   "package": "dev.paintcraft.mixin.compat",
   "compatibilityLevel": "JAVA_21",
   "client": [
-    "ChiseledBlockEntityMixin",
-    "ContraptionEntityRendererMixin"
+    "ChiseledBlockEntityMixin"
   ],
   "mixins": [
     "ContraptionMixin"

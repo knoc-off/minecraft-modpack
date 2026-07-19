@@ -120,4 +120,23 @@ public record FaceFrame(Direction normal, Direction up) {
             ? horizontal(face, playerFacing)
             : wall(face);
     }
+
+    /**
+     * The single editor-display policy: which frame the canvas should present a decal in.
+     *
+     * <ul>
+     *   <li><b>Floor/ceiling</b> (vertical normal): oriented to the viewer, so the image reads
+     *       upright from where the player currently stands.</li>
+     *   <li><b>Wall</b> (horizontal normal): oriented to world-UP, so the canvas top is always
+     *       gravity-up regardless of how the decal was rolled (e.g. by a Create contraption).</li>
+     * </ul>
+     *
+     * The transform from the stored frame to this display frame is computed generically by
+     * {@link DisplayTransform#between}, so no caller needs to special-case face types.
+     */
+    public static FaceFrame displayFrameFor(Direction normal, Direction viewerFacing) {
+        return normal.getAxis().isVertical()
+            ? horizontal(normal, viewerFacing)
+            : wall(normal);
+    }
 }

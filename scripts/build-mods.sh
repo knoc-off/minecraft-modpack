@@ -8,9 +8,16 @@
 #   3. nix run .#installPrism           (push into the live Prism Launcher instance)
 #
 # Usage:
-#   scripts/build-mods.sh                 build + install ALL local mods
+#   scripts/build-mods.sh                 build + install ALL local mods (full Prism sync)
 #   scripts/build-mods.sh paint-craft     build + install only the given mod(s)
 #   scripts/build-mods.sh --no-install …  skip the Prism install step
+#
+# Naming specific mods does a *targeted* install: only those jars are copied into
+# the Prism instance, so every other mod — including ones you've disabled in Prism
+# for testing (foo.jar.disabled) — is left untouched. If the target jar is itself
+# currently disabled, its .disabled file is updated in place (it stays disabled).
+# A bare `build-mods.sh` (no mods named) still does the full `installPrism` sync,
+# which rebuilds the mods dir from scratch and re-enables everything.
 #
 set -euo pipefail
 
@@ -71,10 +78,40 @@ done
 
 # ── 3. Push into the live Prism Launcher instance ──────────────────────────────
 if [ "$DO_INSTALL" -eq 1 ]; then
-  echo ">> Updating Prism Launcher instance (nix run .#installPrism)"
-  nix run "$REPO#installPrism"
+  if [ "${#SELECTED[@]}" -gt 0 ]; then
+    # Targeted install: copy only the selected jars, leaving every other mod
+    # (including ones disabled in Prism for testing) untouched.
+    INSTANCE="$(sed -n 's/.*name = "\([^"]*\)".*/\1/p' "$REPO/flake.nix" | head -1)"
+    PRISM_DIR="${PRISM_INSTANCES:-${XDG_DATA_HOME:-$HOME/.local/share}/PrismLauncher/instances}"
+    MODS_DEST="$PRISM_DIR/$INSTANCE/.minecraft/mods"
+    if [ ! -d "$MODS_DEST" ]; then
+      echo "!! Prism mods dir not found: $MODS_DEST" >&2
+      echo "   Run a full 'scripts/build-mods.sh' once to create the instance first." >&2
+      exit 1
+    fi
+    echo ">> Targeted install into $MODS_DEST"
+    for m in "${MODS[@]}"; do
+      props="$REPO/packages/$m/gradle.properties"
+      id="$(sed -n 's/^mod_id=//p' "$props")"
+      ver="$(sed -n 's/^mod_version=//p' "$props")"
+      jar="${id}-${ver}.jar"
+      if [ -f "$MODS_DEST/$jar.disabled" ] && [ ! -f "$MODS_DEST/$jar" ]; then
+        cp -f "$REPO/local-mods/$jar" "$MODS_DEST/$jar.disabled"
+        chmod u+w "$MODS_DEST/$jar.disabled"
+        echo ">>   $jar  (kept disabled)"
+      else
+        cp -f "$REPO/local-mods/$jar" "$MODS_DEST/$jar"
+        chmod u+w "$MODS_DEST/$jar"
+        echo ">>   $jar"
+      fi
+    done
+    echo ">> Done — other mods left untouched."
+  else
+    echo ">> Updating Prism Launcher instance (nix run .#installPrism)"
+    nix run "$REPO#installPrism"
+    echo ">> Done."
+  fi
 else
   echo ">> Skipping Prism install (--no-install). Jars are in local-mods/."
+  echo ">> Done."
 fi
-
-echo ">> Done."
