@@ -54,15 +54,27 @@
     allModJars    = jarsForSides [ "both" "client" "server" ];
     serverModJars = jarsForSides [ "both" "server" ];
 
-    # ── Local mods (committed JARs, all side=BOTH) ─────────────
+    # ── Local mods (asset-shelf, paint-craft, structure-stash) ──
+    # Built by CI and published as GitHub Release assets, consumed here via
+    # fetchurl (see nix/local-mods.nix). Falls back to an uncommitted jar in
+    # ./local-mods/ (gitignored) for local dev iteration via
+    # scripts/build-mods.sh, before a release exists or while testing an
+    # unreleased change.
+    releasedLocalMods = import ./nix/local-mods.nix { inherit pkgs; };
+    releasedJarNames = lib.mapAttrsToList (_: m: m.jar.name) releasedLocalMods;
+
     localModsPath = ./local-mods;
-    localModJars = if builtins.pathExists localModsPath
-      then map (f: pkgs.runCommand f {} ''
+    localModsDirJars = if builtins.pathExists localModsPath
+      then builtins.filter (f: lib.hasSuffix ".jar" f)
+             (builtins.attrNames (builtins.readDir localModsPath))
+      else [];
+
+    localModJars =
+      (lib.mapAttrsToList (_: m: m.jar) releasedLocalMods)
+      ++ map (f: pkgs.runCommand f {} ''
              cp ${localModsPath + "/${f}"} $out
            '')
-           (builtins.filter (f: lib.hasSuffix ".jar" f)
-             (builtins.attrNames (builtins.readDir localModsPath)))
-      else [];
+           (builtins.filter (f: !(lib.elem f releasedJarNames)) localModsDirJars);
 
     # Full set (client / singleplayer) and server-safe subset.
     modsDir       = pkgs.linkFarmFromDrvs "mods" (allModJars ++ localModJars);
@@ -206,8 +218,12 @@
         pkgs.python3
         pkgs.jdk21
         pkgs.gradle
+        pkgs.jq
         (pkgs.writeShellScriptBin "gen-nix-from-packwiz" ''
           exec ${pkgs.python3}/bin/python3 ${./scripts/gen_nix_from_packwiz.py} "$@"
+        '')
+        (pkgs.writeShellScriptBin "gen-nix-local-mods" ''
+          exec ${./scripts/gen-local-mods-nix.sh} "$@"
         '')
       ];
 
@@ -219,6 +235,11 @@
         echo "    cd pack && packwiz mr add <slug>   add a mod"
         echo "    packwiz update --all               update all mods"
         echo "    gen-nix-from-packwiz               regenerate nix/mods.nix"
+        echo ""
+        echo "  Local mods (asset-shelf, paint-craft, structure-stash):"
+        echo "    scripts/build-mods.sh               build + install locally (dev iteration)"
+        echo "    git tag mods-vX.Y.Z && git push --tags   cut a release (CI builds + publishes jars)"
+        echo "    gen-nix-local-mods mods-vX.Y.Z       regenerate nix/local-mods.nix from a release"
         echo ""
         echo "  Build/Run:"
         echo "    nix run .#installPrism             install to Prism Launcher"

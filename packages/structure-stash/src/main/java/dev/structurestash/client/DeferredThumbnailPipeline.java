@@ -22,7 +22,7 @@ import java.util.concurrent.Executors;
  * <p>
  * Usage:
  * <ol>
- *   <li>Call {@link #submit} to start background NBT parsing + C&amp;B storage decoding.</li>
+ *   <li>Call {@link #submit} to start background NBT parsing.</li>
  *   <li>Each frame, call {@link #poll} on the render thread to retrieve completed preparations.</li>
  *   <li>Render the returned {@link StructureGrid} via
  *       {@link StructureThumbnailRenderer#renderGridToImage}.</li>

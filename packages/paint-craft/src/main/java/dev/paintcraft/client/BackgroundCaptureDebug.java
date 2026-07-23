@@ -1,6 +1,5 @@
 package dev.paintcraft.client;
 
-import dev.paintcraft.client.compat.ChiseledBlockHelper;
 import dev.paintcraft.core.Decal;
 import dev.paintcraft.core.FaceFrame;
 import dev.paintcraft.projection.Projection;
@@ -29,7 +28,6 @@ import java.util.*;
 public final class BackgroundCaptureDebug {
 
     private static final RandomSource RANDOM = RandomSource.createNewThreadLocalInstance();
-    private static final boolean HAS_CNB = net.neoforged.fml.ModList.get().isLoaded("chiselsandbits");
 
     private BackgroundCaptureDebug() {}
 
@@ -42,7 +40,6 @@ public final class BackgroundCaptureDebug {
         sb.append("Dimensions: ").append(widthBlocks).append("x").append(heightBlocks)
           .append(" blocks (").append(widthBlocks * 16).append("x").append(heightBlocks * 16).append(" px)\n");
         sb.append("Depth: ").append(depth).append('\n');
-        sb.append("C&B loaded: ").append(net.neoforged.fml.ModList.get().isLoaded("chiselsandbits")).append('\n');
         sb.append('\n');
 
         int wPx = widthBlocks * Decal.PX_PER_BLOCK;
@@ -153,78 +150,6 @@ public final class BackgroundCaptureDebug {
         appendPixelDebug(sb, level, vol, candidates, winnerIdx, centerPx, centerPy, wPx, hPx);
         sb.append('\n');
 
-        // Find first C&B block and dump its details
-        {
-            sb.append("--- Modded Block Details (C&B etc.) ---\n");
-            boolean foundCnb = false;
-            for (int i = 0; i < candidates.size() && !foundCnb; i++) {
-                var c = candidates.get(i);
-                BlockState st = blockStates.getOrDefault(c.blockPos(), null);
-                if (st != null && st.toString().contains("chiselsandbits")) {
-                    foundCnb = true;
-                    sb.append("C&B block at ").append(c.blockPos()).append(" state=").append(st).append('\n');
-
-                    // Block entity check
-                    BlockEntity be = level.getBlockEntity(c.blockPos());
-                    sb.append("  BlockEntity present: ").append(be != null).append('\n');
-                    if (be != null) {
-                        sb.append("  BlockEntity class: ").append(be.getClass().getName()).append('\n');
-                    }
-
-                    // Model and quads
-                    BakedModel model = Minecraft.getInstance().getBlockRenderer().getBlockModel(st);
-                    sb.append("  Model class: ").append(model.getClass().getName()).append('\n');
-
-                    List<BakedQuad> vanillaQuads = model.getQuads(st, c.faceNormal(), RANDOM);
-                    sb.append("  Vanilla getQuads(").append(c.faceNormal()).append("): ").append(vanillaQuads.size()).append(" quads\n");
-
-                    ModelData modelData = be != null ? be.getModelData() : ModelData.EMPTY;
-                    sb.append("  NeoForge ModelData: ").append(modelData == ModelData.EMPTY ? "EMPTY" : modelData.toString()).append('\n');
-                    List<BakedQuad> dataQuads = model.getQuads(st, c.faceNormal(), RANDOM, modelData, null);
-                    sb.append("  NeoForge data-aware getQuads(").append(c.faceNormal()).append(", null RT): ").append(dataQuads.size()).append(" quads\n");
-
-                    // Scena/C&B direct path (bypass delegate)
-                    List<BakedQuad> scenaQuads = HAS_CNB
-                        ? ChiseledBlockHelper.getDataAwareQuads(level, c.blockPos(), st, model, c.faceNormal(), RANDOM)
-                        : List.of();
-                    sb.append("  Scena direct path getQuads(").append(c.faceNormal()).append("): ").append(scenaQuads.size()).append(" quads\n");
-
-                    List<BakedQuad> allQuads = !scenaQuads.isEmpty() ? scenaQuads : (!dataQuads.isEmpty() ? dataQuads : vanillaQuads);
-                    for (int q = 0; q < Math.min(allQuads.size(), 10); q++) {
-                        BakedQuad quad = allQuads.get(q);
-                        int[] verts = quad.getVertices();
-                        sb.append("  Quad #").append(q).append(": sprite=").append(quad.getSprite().contents().name());
-                        sb.append(" verts=[");
-                        for (int vi = 0; vi < 4; vi++) {
-                            float vx = Float.intBitsToFloat(verts[vi * 8]);
-                            float vy = Float.intBitsToFloat(verts[vi * 8 + 1]);
-                            float vz = Float.intBitsToFloat(verts[vi * 8 + 2]);
-                            if (vi > 0) sb.append(", ");
-                            sb.append("(").append(fmt(vx)).append(",").append(fmt(vy)).append(",").append(fmt(vz)).append(")");
-                        }
-                        sb.append("]\n");
-                    }
-                    if (allQuads.size() > 10) {
-                        sb.append("  ... and ").append(allQuads.size() - 10).append(" more quads\n");
-                    }
-
-                    // Find a pixel that hits this C&B block and dump its s/t analysis
-                    for (int idx = 0; idx < winnerIdx.length; idx++) {
-                        if (winnerIdx[idx] >= 0 && candidates.get(winnerIdx[idx]).blockPos().equals(c.blockPos())) {
-                            int samplePx = idx % wPx;
-                            int samplePy = idx / wPx;
-                            sb.append("\n  --- Sample pixel [").append(samplePx).append(", ").append(samplePy).append("] hitting this C&B block ---\n");
-                            appendPixelDebug(sb, level, vol, candidates, winnerIdx, samplePx, samplePy, wPx, hPx);
-                            break;
-                        }
-                    }
-                }
-            }
-            if (!foundCnb) {
-                sb.append("No modded blocks (C&B etc.) found in projection volume\n");
-            }
-        }
-
         return sb.toString();
     }
 
@@ -276,13 +201,6 @@ public final class BackgroundCaptureDebug {
         List<BakedQuad> dataQuads = model.getQuads(state, hit.faceNormal(), RANDOM, modelData, null);
         sb.append("  NeoForge data-aware quads: ").append(dataQuads.size()).append('\n');
 
-        // Try Scena direct path
-        if (HAS_CNB) {
-            List<BakedQuad> scenaQuads = ChiseledBlockHelper.getDataAwareQuads(
-                level, hit.blockPos(), state, model, hit.faceNormal(), RANDOM);
-            sb.append("  Scena direct quads: ").append(scenaQuads.size()).append('\n');
-            if (scenaQuads.size() > quads.size()) quads = scenaQuads;
-        }
         // Use null-face filtered quads if face-specific is empty
         if (quads.isEmpty() && nullMatching > 0) {
             quads = nullQuads.stream().filter(q -> q.getDirection() == hit.faceNormal()).toList();

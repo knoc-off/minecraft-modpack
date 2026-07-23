@@ -4,17 +4,10 @@ import com.mojang.blaze3d.platform.NativeImage;
 import dev.assetshelf.api.AssetType;
 import dev.assetshelf.api.ItemCost;
 import dev.structurestash.StructureStash;
-import dev.structurestash.client.BitsStashClientCache;
 import dev.structurestash.client.DeferredThumbnailPipeline;
 import dev.structurestash.client.StructureThumbnailRenderer;
 import dev.structurestash.item.ModDataComponents;
 import dev.structurestash.item.ModItems;
-import dev.structurestash.network.StashNetwork;
-import dev.structurestash.stash.BitsStash;
-import mod.chiselsandbits.api.block.storage.StateEntryStorage;
-import mod.chiselsandbits.api.blockinformation.BlockInformation;
-import mod.chiselsandbits.api.item.bit.IBitItem;
-import mod.chiselsandbits.api.item.bit.IBitItemManager;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtIo;
@@ -34,9 +27,7 @@ import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
 
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.util.*;
-import java.util.Optional;
 
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
@@ -44,22 +35,17 @@ import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.neoforge.server.ServerLifecycleHooks;
 
 /**
- * Asset Shelf integration for Chisels & Bits chiseled blocks.
- * Supports both single-block (custom format) and multi-block (StructureTemplate format).
+ * Asset Shelf integration for captured multi-block structures (blueprints).
+ * Structures are stored/rendered in the vanilla {@code StructureTemplate} NBT format.
  */
-public class ChiseledAssetType implements AssetType {
+public class StructureAssetType implements AssetType {
 
     public static final ResourceLocation TYPE_ID =
-        ResourceLocation.fromNamespaceAndPath(StructureStash.MODID, "chiseled_block");
+        ResourceLocation.fromNamespaceAndPath(StructureStash.MODID, "structure");
 
     // ── Caches ──
 
-    /** Cached isMultiBlock results: avoids repeated NBT decompression for format detection. */
-    private final Map<Integer, Boolean> multiBlockCache = new LinkedHashMap<>(64, 0.75f, true) {
-        @Override protected boolean removeEldestEntry(Map.Entry<Integer, Boolean> e) { return size() > 256; }
-    };
-
-    /** Cached preview stacks for multi-block data: keyed on data content hash. */
+    /** Cached preview stacks: keyed on data content hash. */
     private final Map<Integer, Optional<ItemStack>> previewCache = new LinkedHashMap<>(32, 0.75f, true) {
         @Override protected boolean removeEldestEntry(Map.Entry<Integer, Optional<ItemStack>> e) { return size() > 64; }
     };
@@ -69,7 +55,7 @@ public class ChiseledAssetType implements AssetType {
         @Override protected boolean removeEldestEntry(Map.Entry<Long, int[]> e) { return size() > 128; }
     };
 
-    /** Cached cost breakdowns: avoids per-frame NBT decompression + voxel counting. */
+    /** Cached cost breakdowns: avoids per-frame NBT decompression + block counting. */
     private final Map<Integer, CostBreakdown> costCache = new LinkedHashMap<>(32, 0.75f, true) {
         @Override protected boolean removeEldestEntry(Map.Entry<Integer, CostBreakdown> e) { return size() > 64; }
     };
@@ -95,7 +81,7 @@ public class ChiseledAssetType implements AssetType {
     public ResourceLocation id() { return TYPE_ID; }
 
     @Override
-    public Component displayName() { return Component.literal("Chiseled Blocks"); }
+    public Component displayName() { return Component.literal("Structures"); }
 
     @Override
     public int accentColor() { return 0xFF6AAFCF; }
@@ -107,15 +93,7 @@ public class ChiseledAssetType implements AssetType {
 
     @Override
     public Optional<ItemStack> getPreviewStack(byte[] data) {
-        if (!isMultiBlock(data)) {
-            StateEntryStorage storage = deserializeSingle(data);
-            if (storage == null) return Optional.empty();
-            ItemStack stack = CnBInterop.createChiseledItemStack(
-                CnBInterop.getChiseledBlockItem(), storage
-            );
-            return stack.isEmpty() ? Optional.empty() : Optional.of(stack);
-        }
-        // Cache the multi-block preview result — avoids re-decompressing NBT
+        // Cache the preview result — avoids re-decompressing NBT
         // on every buildThumbs/rebuildDetailTex call for the same asset
         int key = Arrays.hashCode(data);
         return previewCache.computeIfAbsent(key, k -> extractSingleBlockPreview(data));
@@ -123,105 +101,41 @@ public class ChiseledAssetType implements AssetType {
 
     @Override
     public void renderThumbnail(byte[] data, NativeImage target, int size) {
-        if (isMultiBlock(data)) {
-            renderMultiBlockThumbnail(data, target, size);
-        } else {
-            renderSingleBlockThumbnail(data, target, size);
-        }
+        renderMultiBlockThumbnail(data, target, size);
     }
 
     @Override
     public List<ItemCost> computeCost(byte[] data) {
-        if (isMultiBlock(data)) {
-            return computeMultiBlockCost(data);
-        } else {
-            return computeSingleBlockCost(data);
-        }
+        return computeMultiBlockCost(data);
     }
 
     @Override
     public boolean consumeCost(ServerPlayer player, byte[] data, int quantity) {
-        if (isMultiBlock(data)) {
-            return consumeMultiBlockCost(player, data, quantity);
-        } else {
-            return consumeSingleBlockCost(player, data, quantity);
-        }
+        return consumeMultiBlockCost(player, data, quantity);
     }
 
     @Override
     public boolean canAffordClient(byte[] data, int quantity) {
-        if (isMultiBlock(data)) {
-            return canAffordMultiBlockClient(data, quantity);
-        } else {
-            return canAffordSingleBlockClient(data, quantity);
-        }
-    }
-
-    @Override
-    public long countAvailableClient(ItemCost cost) {
-        // Bit items: check the bits stash, not player inventory
-        if (cost.stack().getItem() instanceof IBitItem bitItem) {
-            BlockInformation info = bitItem.getBlockInformation(cost.stack());
-            return BitsStashClientCache.getCount(info);
-        }
-        // Regular items: default inventory scan
-        return AssetType.super.countAvailableClient(cost);
+        return canAffordMultiBlockClient(data, quantity);
     }
 
     @Override
     public void onUse(ServerPlayer player, byte[] data) {
-        if (isMultiBlock(data)) {
-            // Give a Blueprint item with the structure data
-            ItemStack blueprint = new ItemStack(ModItems.BLUEPRINT.get());
-            blueprint.set(ModDataComponents.BLUEPRINT_DATA.get(), new dev.structurestash.item.BlueprintData(data));
-            if (!player.getInventory().add(blueprint)) {
-                player.drop(blueprint, false);
-            }
-        } else {
-            // Single block: give chiseled block item
-            StateEntryStorage storage = deserializeSingle(data, player.registryAccess());
-            if (storage == null) {
-                player.displayClientMessage(Component.literal("Invalid chiseled block data"), true);
-                return;
-            }
-            ItemStack chiseledItem = CnBInterop.createChiseledItemStack(
-                CnBInterop.getChiseledBlockItem(), storage
-            );
-            if (chiseledItem.isEmpty()) {
-                player.displayClientMessage(Component.literal("Failed to create chiseled block"), true);
-                return;
-            }
-            if (!player.getInventory().add(chiseledItem)) {
-                player.drop(chiseledItem, false);
-            }
+        // Give a Blueprint item with the structure data
+        ItemStack blueprint = new ItemStack(ModItems.BLUEPRINT.get());
+        blueprint.set(ModDataComponents.BLUEPRINT_DATA.get(), new dev.structurestash.item.BlueprintData(data));
+        if (!player.getInventory().add(blueprint)) {
+            player.drop(blueprint, false);
         }
     }
 
     // ═══════════════════════════════════════════════════════════════
-    //  Format detection
+    //  Preview (1x1x1 structures)
     // ═══════════════════════════════════════════════════════════════
-
-    private boolean isMultiBlock(byte[] data) {
-        if (data == null || data.length == 0) return false;
-        int key = Arrays.hashCode(data);
-        Boolean cached = multiBlockCache.get(key);
-        if (cached != null) return cached;
-        try {
-            CompoundTag root = NbtIo.readCompressed(
-                new ByteArrayInputStream(data), NbtAccounter.unlimitedHeap());
-            boolean result = root.contains("blocks") && root.contains("size");
-            multiBlockCache.put(key, result);
-            return result;
-        } catch (Exception e) {
-            multiBlockCache.put(key, false);
-            return false;
-        }
-    }
 
     /**
-     * For 1x1x1 multi-block structures, extract the single block and return a
-     * preview ItemStack for native 3D rendering. Chiseled blocks use C&B's
-     * item model pipeline; regular blocks return a plain ItemStack.
+     * For 1x1x1 structures, extract the single block and return a
+     * preview ItemStack for native 3D rendering.
      */
     private Optional<ItemStack> extractSingleBlockPreview(byte[] data) {
         if (data == null || data.length == 0) return Optional.empty();
@@ -250,18 +164,6 @@ public class ChiseledAssetType implements AssetType {
                 .result().orElse(null);
             if (state == null || state.isAir()) return Optional.empty();
 
-            if (CnBInterop.isChiseledBlock(state.getBlock()) && entry.contains("nbt")) {
-                // Chiseled block: decode StateEntryStorage → C&B native item render
-                StateEntryStorage storage = decodeStorageFromBlockEntityNbt(
-                    entry.getCompound("nbt"), registries);
-                if (storage == null) return Optional.empty();
-                ItemStack stack = CnBInterop.createChiseledItemStack(
-                    CnBInterop.getChiseledBlockItem(), storage
-                );
-                return stack.isEmpty() ? Optional.empty() : Optional.of(stack);
-            }
-
-            // Regular block: return a plain ItemStack
             Item item = state.getBlock().asItem();
             if (item == Items.AIR) return Optional.empty();
             return Optional.of(new ItemStack(item));
@@ -271,13 +173,10 @@ public class ChiseledAssetType implements AssetType {
     }
 
     // ═══════════════════════════════════════════════════════════════
-    //  Multi-block cost computation
+    //  Cost computation
     // ═══════════════════════════════════════════════════════════════
 
-    private record CostBreakdown(
-        Map<BlockInformation, Integer> bitCosts,
-        Map<Item, Integer> blockCosts
-    ) {}
+    private record CostBreakdown(Map<Item, Integer> blockCosts) {}
 
     private CostBreakdown computeDetailedMultiBlockCost(byte[] data) {
         int key = Arrays.hashCode(data);
@@ -289,16 +188,14 @@ public class ChiseledAssetType implements AssetType {
     }
 
     private CostBreakdown computeDetailedMultiBlockCost(byte[] data, HolderLookup.Provider registries) {
-        Map<BlockInformation, Integer> bitCosts = new LinkedHashMap<>();
         Map<Item, Integer> blockCosts = new LinkedHashMap<>();
-        if (registries == null) return new CostBreakdown(bitCosts, blockCosts);
+        if (registries == null) return new CostBreakdown(blockCosts);
 
         try {
             CompoundTag root = NbtIo.readCompressed(new ByteArrayInputStream(data), NbtAccounter.unlimitedHeap());
 
             // Parse the StructureTemplate palette to identify blocks
             // The template format: "blocks" list entries reference "palette" by index
-            // Each block entry has "state" (palette index) and optional "nbt"
             ListTag paletteList = root.getList("palette", Tag.TAG_COMPOUND);
             ListTag blocksList = root.getList("blocks", Tag.TAG_COMPOUND);
 
@@ -330,41 +227,29 @@ public class ChiseledAssetType implements AssetType {
                 if (state.hasProperty(BlockStateProperties.DOUBLE_BLOCK_HALF)
                         && state.getValue(BlockStateProperties.DOUBLE_BLOCK_HALF) == DoubleBlockHalf.UPPER) continue;
 
-                if (CnBInterop.isChiseledBlock(state.getBlock()) && blockEntry.contains("nbt")) {
-                    // Chiseled block: decode bits from block entity NBT
-                    CompoundTag beNbt = blockEntry.getCompound("nbt");
-                    StateEntryStorage storage = decodeStorageFromBlockEntityNbt(beNbt, registries);
-                    if (storage != null) {
-                        Map<BlockInformation, Integer> bits = countBits(storage);
-                        bits.forEach((info, count) -> {
-                            if (!info.isAir()) bitCosts.merge(info, count, Integer::sum);
-                        });
-                    }
+                // Normal block: costs the block item
+                Item blockItem = state.getBlock().asItem();
+                if (blockItem != Items.AIR) {
+                    blockCosts.merge(blockItem, 1, Integer::sum);
                 } else {
-                    // Normal block: costs the block item
-                    Item blockItem = state.getBlock().asItem();
-                    if (blockItem != Items.AIR) {
-                        blockCosts.merge(blockItem, 1, Integer::sum);
-                    } else {
-                        // No item form — check synthetic cost map (e.g. farmland → dirt)
-                        ItemStack synth = BlockNormalizer.getSyntheticCost(state.getBlock());
-                        if (synth != null) {
-                            blockCosts.merge(synth.getItem(), synth.getCount(), Integer::sum);
-                        }
+                    // No item form — check synthetic cost map (e.g. farmland → dirt)
+                    ItemStack synth = BlockNormalizer.getSyntheticCost(state.getBlock());
+                    if (synth != null) {
+                        blockCosts.merge(synth.getItem(), synth.getCount(), Integer::sum);
                     }
-                    // Framed blocks: also cost the camo material(s)
-                    if (blockEntry.contains("nbt")) {
-                        CompoundTag beNbt = blockEntry.getCompound("nbt");
-                        addCamoCost(beNbt, "camo", ops, blockCosts);
-                        addCamoCost(beNbt, "camo_two", ops, blockCosts);
-                    }
+                }
+                // Framed blocks: also cost the camo material(s)
+                if (blockEntry.contains("nbt")) {
+                    CompoundTag beNbt = blockEntry.getCompound("nbt");
+                    addCamoCost(beNbt, "camo", ops, blockCosts);
+                    addCamoCost(beNbt, "camo_two", ops, blockCosts);
                 }
             }
         } catch (Exception e) {
             StructureStash.LOGGER.error("Failed to compute multi-block cost", e);
         }
 
-        return new CostBreakdown(bitCosts, blockCosts);
+        return new CostBreakdown(blockCosts);
     }
 
     /** Extract camo material from framed block NBT and add it to the cost map. */
@@ -386,39 +271,16 @@ public class ChiseledAssetType implements AssetType {
     private List<ItemCost> computeMultiBlockCost(byte[] data) {
         CostBreakdown breakdown = computeDetailedMultiBlockCost(data);
         List<ItemCost> costs = new ArrayList<>();
-
-        // Bit costs (as C&B bit items)
-        for (var entry : breakdown.bitCosts.entrySet()) {
-            ItemStack bitStack = IBitItemManager.getInstance().create(entry.getKey(), entry.getValue());
-            if (!bitStack.isEmpty()) {
-                costs.add(new ItemCost(bitStack));
-            }
-        }
-
-        // Block costs (as regular item stacks)
         for (var entry : breakdown.blockCosts.entrySet()) {
             costs.add(ItemCost.of(entry.getKey(), entry.getValue()));
         }
-
         return costs;
     }
 
     private boolean consumeMultiBlockCost(ServerPlayer player, byte[] data, int quantity) {
         CostBreakdown breakdown = computeDetailedMultiBlockCost(data, player.registryAccess());
-        BitsStash stash = BitsStash.get(player);
 
-        // Phase 1: Check ALL bits available
-        for (var entry : breakdown.bitCosts.entrySet()) {
-            long required = (long) entry.getValue() * quantity;
-            if (stash.getCount(entry.getKey()) < required) {
-                String name = entry.getKey().blockState().getBlock().getName().getString();
-                player.displayClientMessage(
-                    Component.literal("Not enough " + name + " bits! (need " + required + ")"), true);
-                return false;
-            }
-        }
-
-        // Phase 2: Check ALL blocks available in inventory
+        // Phase 1: Check ALL blocks available in inventory
         for (var entry : breakdown.blockCosts.entrySet()) {
             int required = entry.getValue() * quantity;
             int have = countInventoryItem(player, entry.getKey());
@@ -430,26 +292,16 @@ public class ChiseledAssetType implements AssetType {
             }
         }
 
-        // Phase 3: All checks passed — atomically deduct everything
-        for (var entry : breakdown.bitCosts.entrySet()) {
-            stash.consume(entry.getKey(), (long) entry.getValue() * quantity);
-        }
+        // Phase 2: All checks passed — atomically deduct everything
         for (var entry : breakdown.blockCosts.entrySet()) {
             consumeInventoryItem(player, entry.getKey(), entry.getValue() * quantity);
         }
 
-        StashNetwork.syncToClient(player);
         return true;
     }
 
     private boolean canAffordMultiBlockClient(byte[] data, int quantity) {
         CostBreakdown breakdown = computeDetailedMultiBlockCost(data);
-
-        // Check bits in stash cache
-        for (var entry : breakdown.bitCosts.entrySet()) {
-            long required = (long) entry.getValue() * quantity;
-            if (BitsStashClientCache.getCount(entry.getKey()) < required) return false;
-        }
 
         // Check blocks in player inventory
         var mc = net.minecraft.client.Minecraft.getInstance();
@@ -467,90 +319,8 @@ public class ChiseledAssetType implements AssetType {
     }
 
     // ═══════════════════════════════════════════════════════════════
-    //  Single-block cost (existing)
+    //  Thumbnail rendering (GPU-accelerated)
     // ═══════════════════════════════════════════════════════════════
-
-    private List<ItemCost> computeSingleBlockCost(byte[] data) {
-        StateEntryStorage storage = deserializeSingle(data);
-        if (storage == null) return List.of();
-        Map<BlockInformation, Integer> counts = countBits(storage);
-        List<ItemCost> costs = new ArrayList<>();
-        for (var entry : counts.entrySet()) {
-            if (entry.getKey().isAir()) continue;
-            ItemStack bitStack = IBitItemManager.getInstance().create(entry.getKey(), entry.getValue());
-            if (!bitStack.isEmpty()) costs.add(new ItemCost(bitStack));
-        }
-        return costs;
-    }
-
-    private boolean consumeSingleBlockCost(ServerPlayer player, byte[] data, int quantity) {
-        StateEntryStorage storage = deserializeSingle(data, player.registryAccess());
-        if (storage == null) {
-            player.displayClientMessage(Component.literal("Invalid chiseled block data"), true);
-            return false;
-        }
-        Map<BlockInformation, Integer> counts = countBits(storage);
-        BitsStash stash = BitsStash.get(player);
-        for (var entry : counts.entrySet()) {
-            if (entry.getKey().isAir()) continue;
-            long required = (long) entry.getValue() * quantity;
-            if (stash.getCount(entry.getKey()) < required) {
-                String name = entry.getKey().blockState().getBlock().getName().getString();
-                player.displayClientMessage(
-                    Component.literal("Not enough " + name + " bits! (need " + required + ")"), true);
-                return false;
-            }
-        }
-        for (var entry : counts.entrySet()) {
-            if (entry.getKey().isAir()) continue;
-            stash.consume(entry.getKey(), (long) entry.getValue() * quantity);
-        }
-        StashNetwork.syncToClient(player);
-        return true;
-    }
-
-    private boolean canAffordSingleBlockClient(byte[] data, int quantity) {
-        StateEntryStorage storage = deserializeSingle(data);
-        if (storage == null) return false;
-        Map<BlockInformation, Integer> counts = countBits(storage);
-        for (var entry : counts.entrySet()) {
-            if (entry.getKey().isAir()) continue;
-            long required = (long) entry.getValue() * quantity;
-            if (BitsStashClientCache.getCount(entry.getKey()) < required) return false;
-        }
-        return true;
-    }
-
-    // ═══════════════════════════════════════════════════════════════
-    //  Thumbnail rendering
-    // ═══════════════════════════════════════════════════════════════
-
-    private void renderSingleBlockThumbnail(byte[] data, NativeImage target, int size) {
-        StateEntryStorage storage = deserializeSingle(data);
-        if (storage == null) return;
-        float scale = (float) size / 16f;
-        for (int x = 0; x < 16; x++) {
-            for (int z = 0; z < 16; z++) {
-                BlockInformation topBit = null;
-                for (int y = 15; y >= 0; y--) {
-                    BlockInformation info = storage.getBlockInformation(x, y, z);
-                    if (info != null && !info.isAir()) { topBit = info; break; }
-                }
-                if (topBit == null) continue;
-                int color = getBlockColor(topBit);
-                int abgr = argbToAbgr(color);
-                int startX = (int) (x * scale);
-                int startZ = (int) (z * scale);
-                int endX = (int) ((x + 1) * scale);
-                int endZ = (int) ((z + 1) * scale);
-                for (int py = startZ; py < endZ && py < size; py++)
-                    for (int px = startX; px < endX && px < size; px++)
-                        target.setPixelRGBA(px, py, abgr);
-            }
-        }
-    }
-
-    // ── Multi-block thumbnail (GPU-accelerated) ────────────────────
 
     private void renderMultiBlockThumbnail(byte[] data, NativeImage target, int size) {
         // Check cache first
@@ -574,10 +344,10 @@ public class ChiseledAssetType implements AssetType {
             cachePixels(cacheKey, target, size);
 
             long ms = (System.nanoTime() - t0) / 1_000_000;
-            StructureStash.LOGGER.debug("Rendered multi-block thumbnail {}x{} in {}ms (GPU, cache miss, key={})",
+            StructureStash.LOGGER.debug("Rendered structure thumbnail {}x{} in {}ms (GPU, cache miss, key={})",
                 size, size, ms, Long.toHexString(cacheKey));
         } catch (Exception e) {
-            StructureStash.LOGGER.error("Failed to render multi-block thumbnail", e);
+            StructureStash.LOGGER.error("Failed to render structure thumbnail", e);
         }
     }
 
@@ -585,13 +355,6 @@ public class ChiseledAssetType implements AssetType {
 
     @Override
     public void submitDeferredThumbnail(byte[] data, NativeImage target, int size, Runnable onReady) {
-        if (!isMultiBlock(data)) {
-            // Single-block: instant pixel-map render
-            renderSingleBlockThumbnail(data, target, size);
-            onReady.run();
-            return;
-        }
-
         long cacheKey = ((long) Arrays.hashCode(data) << 32) | (size & 0xFFFFFFFFL);
 
         // Check pixel cache — instant copy if cached
@@ -662,41 +425,7 @@ public class ChiseledAssetType implements AssetType {
     public String generateDebugInfo(byte[] data) {
         if (data == null || data.length == 0) return "";
         StringBuilder sb = new StringBuilder();
-
-        if (!isMultiBlock(data)) {
-            return generateSingleBlockDebug(data, sb);
-        }
-        return generateMultiBlockDebug(data, sb);
-    }
-
-    private String generateSingleBlockDebug(byte[] data, StringBuilder sb) {
         sb.append("═══ Structure Analysis ═══\n");
-        sb.append("format: single-block (custom C&B)\n");
-        StateEntryStorage storage = deserializeSingle(data);
-        if (storage == null) {
-            sb.append("error: failed to decode storage\n");
-            return sb.toString();
-        }
-        Map<BlockInformation, Integer> counts = countBits(storage);
-        int totalNonAir = 0;
-        for (var entry : counts.entrySet()) {
-            if (!entry.getKey().isAir()) totalNonAir += entry.getValue();
-        }
-        sb.append("voxel_count: 4096 (16×16×16)\n");
-        sb.append("non_air_voxels: ").append(totalNonAir).append("\n");
-        sb.append("unique_materials: ").append(counts.size()).append("\n");
-        for (var entry : counts.entrySet()) {
-            String name = entry.getKey().isAir() ? "air"
-                : entry.getKey().blockState().getBlock().builtInRegistryHolder()
-                    .key().location().toString();
-            sb.append("  ").append(name).append(" × ").append(entry.getValue()).append("\n");
-        }
-        return sb.toString();
-    }
-
-    private String generateMultiBlockDebug(byte[] data, StringBuilder sb) {
-        sb.append("═══ Structure Analysis ═══\n");
-        sb.append("format: multi-block (StructureTemplate)\n");
 
         HolderLookup.Provider registries = getRegistries();
         if (registries == null) {
@@ -753,19 +482,7 @@ public class ChiseledAssetType implements AssetType {
                 CompoundTag beNbt = entry.getCompound("nbt");
                 String blockId = state.getBlock().builtInRegistryHolder().key().location().toString();
 
-                if (CnBInterop.isChiseledBlock(state.getBlock())) {
-                    // C&B block — report decode status + material count
-                    StateEntryStorage storage = CnBInterop.decodeStorage(beNbt, registries);
-                    if (storage != null) {
-                        Map<BlockInformation, Integer> bits = countBits(storage);
-                        int uniqueNonAir = (int) bits.keySet().stream().filter(b -> !b.isAir()).count();
-                        entityDetails.add(pos + " " + blockId + " — storage OK, "
-                            + uniqueNonAir + " unique materials");
-                    } else {
-                        entityDetails.add(pos + " " + blockId + " — ⚠ DECODE FAILED");
-                        anomalies.add(pos + " " + blockId + ": C&B storage decode failed");
-                    }
-                } else if (beNbt.contains("camo")) {
+                if (beNbt.contains("camo")) {
                     // Framed block — report camo state
                     CompoundTag camoTag = beNbt.getCompound("camo");
                     String camoDesc = "<empty>";
@@ -854,49 +571,6 @@ public class ChiseledAssetType implements AssetType {
         return sb.toString();
     }
 
-    public static byte[] serialize(StateEntryStorage storage, HolderLookup.Provider registries) {
-        try {
-            var ops = registries.createSerializationContext(NbtOps.INSTANCE);
-            var encoded = StateEntryStorage.CODEC.encodeStart(ops, storage).getOrThrow();
-            CompoundTag root = new CompoundTag();
-            root.putInt("version", 1);
-            root.putString("format", "single");
-            root.put("storage", encoded);
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            NbtIo.writeCompressed(root, baos);
-            return baos.toByteArray();
-        } catch (Exception e) {
-            StructureStash.LOGGER.error("Failed to serialize chiseled block asset", e);
-            return new byte[0];
-        }
-    }
-
-    private StateEntryStorage deserializeSingle(byte[] raw) {
-        return deserializeSingle(raw, getRegistries());
-    }
-
-    private StateEntryStorage deserializeSingle(byte[] raw, HolderLookup.Provider registries) {
-        if (raw == null || raw.length == 0) return null;
-        if (registries == null) return null;
-        try {
-            ByteArrayInputStream bais = new ByteArrayInputStream(raw);
-            CompoundTag root = NbtIo.readCompressed(bais, NbtAccounter.unlimitedHeap());
-            var ops = registries.createSerializationContext(NbtOps.INSTANCE);
-            return StateEntryStorage.CODEC.parse(ops, root.get("storage")).result().orElse(null);
-        } catch (Exception e) {
-            StructureStash.LOGGER.error("Failed to deserialize single-block asset", e);
-            return null;
-        }
-    }
-
-    /**
-     * Decode StateEntryStorage from a C&B block entity's NBT ("data" sub-tag).
-     * Delegates to {@link CnBInterop#decodeStorage(CompoundTag, HolderLookup.Provider)}.
-     */
-    private StateEntryStorage decodeStorageFromBlockEntityNbt(CompoundTag beNbt, HolderLookup.Provider registries) {
-        return CnBInterop.decodeStorage(beNbt, registries);
-    }
-
     // ═══════════════════════════════════════════════════════════════
     //  Helpers
     // ═══════════════════════════════════════════════════════════════
@@ -917,34 +591,6 @@ public class ChiseledAssetType implements AssetType {
         var server = mc.getSingleplayerServer();
         if (server != null) return server.registryAccess();
         return null;
-    }
-
-    private static Map<BlockInformation, Integer> countBits(StateEntryStorage storage) {
-        Map<BlockInformation, Integer> counts = new LinkedHashMap<>();
-        for (int x = 0; x < 16; x++)
-            for (int y = 0; y < 16; y++)
-                for (int z = 0; z < 16; z++) {
-                    BlockInformation info = storage.getBlockInformation(x, y, z);
-                    if (info != null && !info.isAir()) counts.merge(info, 1, Integer::sum);
-                }
-        return counts;
-    }
-
-    private static int getBlockColor(BlockInformation info) {
-        try {
-            int mapColor = info.blockState().getMapColor(null, null).col;
-            if (mapColor == 0) return 0xFF808080;
-            return 0xFF000000 | mapColor;
-        } catch (Exception e) {
-            return 0xFF808080;
-        }
-    }
-
-    private static int argbToAbgr(int argb) {
-        return ((argb & 0xFF000000))
-             | ((argb & 0x00FF0000) >> 16)
-             | ((argb & 0x0000FF00))
-             | ((argb & 0x000000FF) << 16);
     }
 
     private static int countInventoryItem(ServerPlayer player, Item item) {

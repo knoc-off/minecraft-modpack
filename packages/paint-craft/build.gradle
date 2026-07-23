@@ -57,8 +57,6 @@ configurations {
 }
 
 dependencies {
-    compileOnly files("${projectDir}/libs/chisels-and-bits-core-21.1.32.jar")
-    compileOnly files("${projectDir}/libs/scena-core-21.1.20.jar")
     compileOnly files("${projectDir}/../asset-shelf/build/libs/assetshelf-0.1.0.jar")
 
     // Create + its render stack (Flywheel, Catnip-via-Ponder) — optional compat, compile-only.

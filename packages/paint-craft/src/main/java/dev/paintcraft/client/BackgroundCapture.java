@@ -1,6 +1,5 @@
 package dev.paintcraft.client;
 
-import dev.paintcraft.client.compat.ChiseledBlockHelper;
 import dev.paintcraft.core.Decal;
 import dev.paintcraft.core.FaceFrame;
 import dev.paintcraft.projection.Projection;
@@ -35,8 +34,6 @@ public final class BackgroundCapture {
     private static final RandomSource RANDOM = RandomSource.createNewThreadLocalInstance();
 
     private static final float SHADE_FACTOR = 0.5f; // 50% darker at max depth
-
-    private static final boolean HAS_CNB = net.neoforged.fml.ModList.get().isLoaded("chiselsandbits");
 
     private BackgroundCapture() {}
 
@@ -176,12 +173,6 @@ public final class BackgroundCapture {
                 if (q.getDirection() == face) combined.add(q);
             }
             quads = combined;
-        }
-
-        // Fallback for C&B: Scena doesn't bridge into NeoForge's ModelData,
-        // so extract the resolved model directly from Scena's IBlockModelData
-        if (quads.isEmpty() && HAS_CNB) {
-            quads = ChiseledBlockHelper.getDataAwareQuads(level, pos, state, model, face, RANDOM);
         }
 
         if (quads.isEmpty()) {

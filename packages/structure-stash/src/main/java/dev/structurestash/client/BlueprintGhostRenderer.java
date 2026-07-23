@@ -1,15 +1,11 @@
 package dev.structurestash.client;
 
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.math.Axis;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import dev.structurestash.StructureStash;
 import dev.structurestash.client.StructureThumbnailRenderer.StructureGrid;
-import dev.structurestash.compat.CnBCompat;
-import dev.structurestash.compat.CnBInterop;
 import dev.structurestash.item.BlueprintItem;
 import dev.structurestash.item.ModDataComponents;
-import mod.chiselsandbits.api.block.storage.StateEntryStorage;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.RenderType;
@@ -35,7 +31,6 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 
 import java.io.ByteArrayInputStream;
-import java.util.List;
 
 /**
  * Renders a textured ghost preview when holding a Blueprint item.
@@ -54,8 +49,6 @@ public class BlueprintGhostRenderer {
     // Cache: avoid re-parsing NBT and rebuilding models every frame
     private static byte[] cachedData;
     private static StructureGrid cachedGrid;
-    @SuppressWarnings("unchecked")
-    private static List<BakedModel>[][][] cachedChiselModels;
 
     // Confirm-mode state
     private static boolean confirming;
@@ -113,7 +106,6 @@ public class BlueprintGhostRenderer {
                 if (!(held.getItem() instanceof BlueprintItem)) {
                     cachedData = null;
                     cachedGrid = null;
-                    cachedChiselModels = null;
                     return;
                 }
             }
@@ -180,20 +172,7 @@ public class BlueprintGhostRenderer {
                     poseStack.scale(1.001f, 1.001f, 1.001f);
                     poseStack.translate(-0.5, -0.5, -0.5);
 
-                    if (CnBInterop.isChiseledBlock(state.getBlock()) && cachedChiselModels != null
-                            && cachedChiselModels[bx][by][bz] != null) {
-                        // C&B voxel data isn't rotated by BlockState.rotate() — apply
-                        // rotation via PoseStack so the ghost preview matches placement.
-                        if (rotation != Rotation.NONE) {
-                            poseStack.translate(0.5, 0.5, 0.5);
-                            poseStack.mulPose(Axis.YP.rotationDegrees(rotationToDegrees(rotation)));
-                            poseStack.translate(-0.5, -0.5, -0.5);
-                        }
-                        renderChiseledGhost(poseStack, ghostBuffer, blockRenderer,
-                            rotatedState, cachedChiselModels[bx][by][bz]);
-                    } else {
-                        renderVanillaGhost(poseStack, ghostBuffer, blockRenderer, rotatedState);
-                    }
+                    renderVanillaGhost(poseStack, ghostBuffer, blockRenderer, rotatedState);
 
                     poseStack.popPose();
                 }
@@ -220,27 +199,6 @@ public class BlueprintGhostRenderer {
             r, g, b, LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY);
     }
 
-    private static void renderChiseledGhost(PoseStack poseStack, VertexConsumer ghostBuffer,
-                                            BlockRenderDispatcher blockRenderer,
-                                            BlockState state, List<BakedModel> models) {
-        for (BakedModel model : models) {
-            blockRenderer.getModelRenderer().renderModel(
-                poseStack.last(), ghostBuffer, state, model,
-                1f, 1f, 1f, LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY);
-        }
-    }
-
-    // ── Utilities ─────────────────────────────────────────────────────
-
-    private static float rotationToDegrees(Rotation rotation) {
-        return switch (rotation) {
-            case CLOCKWISE_90 -> -90f;
-            case CLOCKWISE_180 -> -180f;
-            case COUNTERCLOCKWISE_90 -> 90f;
-            default -> 0f;
-        };
-    }
-
     // ── Caching ──────────────────────────────────────────────────────
 
     private static StructureGrid getGrid(byte[] data) {
@@ -248,7 +206,6 @@ public class BlueprintGhostRenderer {
 
         cachedData = data;
         cachedGrid = null;
-        cachedChiselModels = null;
 
         try {
             CompoundTag root = NbtIo.readCompressed(
@@ -260,27 +217,6 @@ public class BlueprintGhostRenderer {
             if (grid == null) return null;
 
             cachedGrid = grid;
-
-            // Pre-build all C&B baked models so rendering is just a cheap renderModel() call.
-            // Only attempt this when C&B is present — without it, grid.storages() is null
-            // and there are no chiseled cells to bake.
-            if (CnBCompat.isLoaded() && grid.storages() != null) {
-                @SuppressWarnings("unchecked")
-                List<BakedModel>[][][] models = new List[grid.sx()][grid.sy()][grid.sz()];
-                for (int x = 0; x < grid.sx(); x++) {
-                    for (int y = 0; y < grid.sy(); y++) {
-                        for (int z = 0; z < grid.sz(); z++) {
-                            StateEntryStorage storage = grid.storages()[x][y][z];
-                            if (storage != null) {
-                                List<BakedModel> blockModels = CnBInterop.buildBakedModels(storage);
-                                if (!blockModels.isEmpty()) models[x][y][z] = blockModels;
-                            }
-                        }
-                    }
-                }
-                cachedChiselModels = models;
-            }
-
             return cachedGrid;
         } catch (Exception e) {
             StructureStash.LOGGER.debug("Failed to parse blueprint for ghost render", e);

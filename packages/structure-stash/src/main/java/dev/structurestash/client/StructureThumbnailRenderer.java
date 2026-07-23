@@ -7,9 +7,6 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexSorting;
 import dev.structurestash.StructureStash;
-import dev.structurestash.compat.CnBCompat;
-import dev.structurestash.compat.CnBInterop;
-import mod.chiselsandbits.api.block.storage.StateEntryStorage;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -36,7 +33,7 @@ import java.util.List;
  * <p>
  * Two-phase pipeline for non-blocking rendering:
  * <ol>
- *   <li>{@link #prepareGrid} — parse structure NBT + decode C&amp;B voxel storages.
+ *   <li>{@link #prepareGrid} — parse structure NBT.
  *       <b>Thread-safe</b>: can run on a background thread.</li>
  *   <li>{@link #renderGridToImage} — FBO render using pre-decoded data.
  *       <b>Render-thread only</b>.</li>
@@ -51,26 +48,25 @@ public final class StructureThumbnailRenderer {
     // ── Data ─────────────────────────────────────────────────────────
 
     /**
-     * Pre-parsed structure grid with block states, raw NBT, pre-decoded
-     * C&amp;B voxel storages, and camo render overrides for framed blocks.
-     * Produced by {@link #prepareGrid}, consumed by {@link #renderGridToImage}.
+     * Pre-parsed structure grid with block states, raw NBT, and camo render
+     * overrides for framed blocks. Produced by {@link #prepareGrid}, consumed
+     * by {@link #renderGridToImage}.
      */
     public record StructureGrid(int sx, int sy, int sz,
                                  BlockState[][][] states,
                                  CompoundTag[][][] nbt,
-                                 StateEntryStorage[][][] storages,
                                  BlockState[][][] camoOverrides) {}
 
     // ── Phase 1: Background-safe preparation ─────────────────────────
 
     /**
-     * Parse structure NBT into a {@link StructureGrid} with pre-decoded C&amp;B
-     * voxel storages. <b>Thread-safe</b>: uses only stateless codecs and
-     * immutable registries — safe to call from a background thread.
+     * Parse structure NBT into a {@link StructureGrid}. <b>Thread-safe</b>:
+     * uses only stateless codecs and immutable registries — safe to call
+     * from a background thread.
      *
      * @param root       the StructureTemplate's root CompoundTag
      * @param registries registry access for codec context
-     * @return parsed grid with storages pre-decoded, or null if invalid
+     * @return parsed grid, or null if invalid
      */
     @Nullable
     public static StructureGrid prepareGrid(CompoundTag root, HolderLookup.Provider registries) {
@@ -88,11 +84,6 @@ public final class StructureThumbnailRenderer {
 
         BlockState[][][] states = new BlockState[sx][sy][sz];
         CompoundTag[][][] nbt = new CompoundTag[sx][sy][sz];
-        // The storages array holds C&B voxel data. Only allocate it (which loads a
-        // C&B class) when C&B is present; otherwise leave it null and chiseled cells
-        // are simply skipped — chiseled blocks don't resolve without the mod anyway.
-        StateEntryStorage[][][] storages =
-            CnBCompat.isLoaded() ? new StateEntryStorage[sx][sy][sz] : null;
         BlockState[][][] camoOverrides = new BlockState[sx][sy][sz];
 
         ListTag blocksList = root.getList("blocks", Tag.TAG_COMPOUND);
@@ -106,14 +97,10 @@ public final class StructureThumbnailRenderer {
 
             BlockState state = palette.get(stateIdx);
             states[bx][by][bz] = state;
-            if (CnBInterop.isChiseledBlock(state.getBlock()) && entry.contains("nbt")) {
-                CompoundTag beNbt = entry.getCompound("nbt");
-                nbt[bx][by][bz] = beNbt;
-                // Pre-decode C&B voxel storage (the expensive CPU part)
-                storages[bx][by][bz] = CnBInterop.decodeStorage(beNbt, registries);
-            } else if (entry.contains("nbt")) {
+            if (entry.contains("nbt")) {
                 // Check for framed block camo — resolve render override on background thread
                 CompoundTag beNbt = entry.getCompound("nbt");
+                nbt[bx][by][bz] = beNbt;
                 if (beNbt.contains("camo")) {
                     CompoundTag camoTag = beNbt.getCompound("camo");
                     if (camoTag.contains("state")) {
@@ -127,7 +114,7 @@ public final class StructureThumbnailRenderer {
             }
         }
 
-        return new StructureGrid(sx, sy, sz, states, nbt, storages, camoOverrides);
+        return new StructureGrid(sx, sy, sz, states, nbt, camoOverrides);
     }
 
     // ── Phase 2: Render-thread FBO render ────────────────────────────
@@ -258,18 +245,11 @@ public final class StructureThumbnailRenderer {
                     poseStack.pushPose();
                     poseStack.translate(bx, by, bz);
 
-                    StateEntryStorage storage =
-                        grid.storages != null ? grid.storages[bx][by][bz] : null;
-                    if (storage != null) {
-                        // C&B block with pre-decoded storage
-                        renderChiseledBlock(poseStack, bufferSource, blockRenderer, state, storage);
-                    } else {
-                        // Use camo override for framed blocks (shows actual material texture)
-                        BlockState renderState = grid.camoOverrides[bx][by][bz] != null
-                            ? grid.camoOverrides[bx][by][bz] : state;
-                        blockRenderer.renderSingleBlock(renderState, poseStack, bufferSource,
-                            LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY);
-                    }
+                    // Use camo override for framed blocks (shows actual material texture)
+                    BlockState renderState = grid.camoOverrides[bx][by][bz] != null
+                        ? grid.camoOverrides[bx][by][bz] : state;
+                    blockRenderer.renderSingleBlock(renderState, poseStack, bufferSource,
+                        LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY);
 
                     poseStack.popPose();
                 }
@@ -277,19 +257,5 @@ public final class StructureThumbnailRenderer {
         }
 
         bufferSource.endBatch();
-    }
-
-    private static void renderChiseledBlock(PoseStack poseStack,
-                                             MultiBufferSource.BufferSource bufferSource,
-                                             BlockRenderDispatcher blockRenderer,
-                                             BlockState state,
-                                             StateEntryStorage storage) {
-        CnBInterop.forEachEntityLayer(storage, (model, rt) -> {
-            var consumer = bufferSource.getBuffer(rt);
-            blockRenderer.getModelRenderer().renderModel(
-                poseStack.last(), consumer, state, model,
-                1f, 1f, 1f,
-                LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY);
-        });
     }
 }

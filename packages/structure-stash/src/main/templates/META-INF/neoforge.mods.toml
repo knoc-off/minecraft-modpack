@@ -7,7 +7,7 @@ issueTrackerURL = ""
 modId = "${mod_id}"
 version = "${mod_version}"
 displayName = "${mod_name}"
-description = '''Structure management for Asset Shelf. Provides blueprint capture/placement, a bits stash for C&B materials, and registers chiseled blocks as an asset type.'''
+description = '''Structure management for Asset Shelf. Provides blueprint capture and placement of multi-block structures.'''
 
 [[dependencies.${mod_id}]]
 modId = "neoforge"
@@ -27,12 +27,5 @@ side = "BOTH"
 modId = "assetshelf"
 type = "required"
 versionRange = "[0.1.0,)"
-ordering = "AFTER"
-side = "BOTH"
-
-[[dependencies.${mod_id}]]
-modId = "chiselsandbits"
-type = "optional"
-versionRange = "[21.1,)"
 ordering = "AFTER"
 side = "BOTH"

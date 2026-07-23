@@ -1,18 +1,13 @@
 package dev.structurestash.client;
 
-import com.mojang.blaze3d.platform.InputConstants;
 import dev.structurestash.StructureStash;
-import dev.structurestash.client.gui.BitsStashScreen;
-import dev.structurestash.compat.CnBCompat;
 import dev.structurestash.item.BlueprintItem;
 import dev.structurestash.item.BlueprintWandItem;
 import dev.structurestash.item.ModDataComponents;
 import dev.structurestash.item.ModItems;
 import dev.structurestash.network.ConfirmBlueprintPlacePayload;
-import dev.structurestash.network.StashRequestPayload;
 import dev.structurestash.network.WandClickAirPayload;
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.client.gui.GuiGraphics;
@@ -26,38 +21,14 @@ import java.util.Arrays;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.InputEvent;
 import net.neoforged.neoforge.client.event.RenderGuiEvent;
 import net.neoforged.neoforge.client.event.RegisterItemDecorationsEvent;
-import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 import net.neoforged.neoforge.client.event.ScreenEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
-import org.lwjgl.glfw.GLFW;
 
 @EventBusSubscriber(modid = StructureStash.MODID, value = Dist.CLIENT, bus = EventBusSubscriber.Bus.GAME)
-public class BitsClientEvents {
-
-    public static final KeyMapping OPEN_STASH = new KeyMapping(
-        "key.structurestash.open_stash",
-        InputConstants.Type.KEYSYM,
-        GLFW.GLFW_KEY_B,
-        "key.categories.structurestash"
-    );
-
-    @SubscribeEvent
-    public static void onClientTick(ClientTickEvent.Post event) {
-        var mc = Minecraft.getInstance();
-        if (mc.player == null || mc.screen != null) return;
-
-        // Always drain the keybind so presses don't queue up, but only open the
-        // bits stash when Chisels & Bits is present — the stash stores C&B bits,
-        // so it has nothing to show without the mod.
-        if (OPEN_STASH.consumeClick() && CnBCompat.isLoaded()) {
-            PacketDistributor.sendToServer(new StashRequestPayload());
-            mc.setScreen(new BitsStashScreen());
-        }
-    }
+public class ClientEvents {
 
     /**
      * Intercept right-click when holding the wand and looking at air.
@@ -175,11 +146,6 @@ public class BitsClientEvents {
 
     @EventBusSubscriber(modid = StructureStash.MODID, value = Dist.CLIENT, bus = EventBusSubscriber.Bus.MOD)
     public static class ModBusEvents {
-        @SubscribeEvent
-        public static void registerKeys(RegisterKeyMappingsEvent event) {
-            event.register(OPEN_STASH);
-        }
-
         @SubscribeEvent
         public static void registerItemDecorations(RegisterItemDecorationsEvent event) {
             event.register(ModItems.BLUEPRINT.get(), new BlueprintItemDecorator());

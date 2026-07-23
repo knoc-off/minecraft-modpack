@@ -1,19 +1,19 @@
-name: Build PaintCraft
+name: Build mods
 
 on:
   push:
+    branches: [main]
     paths:
-      - 'packages/paint-craft/**'
+      - 'packages/**'
+    tags:
+      - 'mods-v*'
   pull_request:
     paths:
-      - 'packages/paint-craft/**'
+      - 'packages/**'
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: packages/paint-craft
 
     steps:
       - uses: actions/checkout@v4
@@ -27,8 +27,38 @@ jobs:
         with:
           cache-read-only: ${{ github.ref != 'refs/heads/main' }}
 
-      - name: Compile
-        run: ./gradlew classes
+      # Build order matters: paint-craft and structure-stash both compile against
+      # asset-shelf's jar via a relative file path (../asset-shelf/build/libs/...),
+      # not a proper Gradle multi-project build, so asset-shelf must build first.
+      - name: Build asset-shelf
+        working-directory: packages/asset-shelf
+        run: ./gradlew build
 
-      - name: Build JAR
-        run: ./gradlew jar
+      - name: Build paint-craft
+        working-directory: packages/paint-craft
+        run: ./gradlew build
+
+      - name: Build structure-stash
+        working-directory: packages/structure-stash
+        run: ./gradlew build
+
+      - name: Collect jars
+        run: |
+          mkdir -p dist
+          cp packages/asset-shelf/build/libs/assetshelf-*.jar dist/
+          cp packages/paint-craft/build/libs/paintcraft-*.jar dist/
+          cp packages/structure-stash/build/libs/structurestash-*.jar dist/
+          sha256sum dist/*.jar | tee dist/SHA256SUMS
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mod-jars
+          path: dist/
+
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/mods-v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.jar
+            dist/SHA256SUMS

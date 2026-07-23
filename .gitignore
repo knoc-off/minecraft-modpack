@@ -8,6 +8,11 @@ result-*
 # Server working dirs
 *-data/
 
+# Built local-mod jars: built by CI, published as GitHub Release assets,
+# and consumed via nix/local-mods.nix. Kept locally (uncommitted) as a
+# dev-iteration fallback for scripts/build-mods.sh — see nix/local-mods.nix.
+local-mods/*.jar
+
 
 # trash
 .Trash-1000/

@@ -2,9 +2,8 @@ package dev.structurestash.client;
 
 import dev.assetshelf.api.AssetShelfApi;
 import dev.assetshelf.api.AssetType;
-import dev.structurestash.compat.ChiseledAssetType;
+import dev.structurestash.compat.StructureAssetType;
 import dev.structurestash.network.CapturedStructurePayload;
-import dev.structurestash.network.StashSyncPayload;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 
@@ -22,14 +21,10 @@ public final class ClientStashHandlers {
 
     private ClientStashHandlers() {}
 
-    public static void handleStashSync(StashSyncPayload payload) {
-        BitsStashClientCache.receive(payload.stash());
-    }
-
     public static void handleCapturedStructure(CapturedStructurePayload payload) {
         var mc = Minecraft.getInstance();
-        AssetType type = AssetShelfApi.getType(ChiseledAssetType.TYPE_ID);
-        String typeName = type != null ? type.displayName().getString() : "Chiseled Blocks";
+        AssetType type = AssetShelfApi.getType(StructureAssetType.TYPE_ID);
+        String typeName = type != null ? type.displayName().getString() : "Structures";
         int accent = type != null ? type.accentColor() : 0xFF6AAFCF;
 
         dev.assetshelf.client.gui.SaveAssetScreen.Builder builder =
@@ -39,7 +34,7 @@ public final class ClientStashHandlers {
                 .defaultName(payload.name())
                 .defaultTags(java.util.List.of(payload.sizeX() + "x" + payload.sizeZ()))
                 .onAction((name, description, tags) -> {
-                    AssetShelfApi.saveLocal(ChiseledAssetType.TYPE_ID, payload.data(),
+                    AssetShelfApi.saveLocal(StructureAssetType.TYPE_ID, payload.data(),
                         name, payload.sizeX(), payload.sizeZ(), tags);
                     if (mc.player != null)
                         mc.player.displayClientMessage(
