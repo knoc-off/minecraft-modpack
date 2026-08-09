@@ -1,5 +1,5 @@
 # Auto-generated from packwiz -- do not edit manually.
-# 79 mods
+# 76 mods
 
 { pkgs }:
 
@@ -628,39 +628,6 @@
       outputHashAlgo = "sha512";
       outputHash = "e70bfbc8b5595bb39371d3ba318ecc6292fa0acd6f3450f90a2fdd34e0cb80b4516287eedb7d0c08d0ae42938ac40c84b194e6315d085dc4a254221083819fff";
       name = "sodium-extra-neoforge-0.8.7+mc1.21.1.jar";
-    };
-  };
-
-  # Sophisticated Backpacks
-  "sophisticated-backpacks" = {
-    side = "both";
-    jar = pkgs.fetchurl {
-      url = "https://cdn.modrinth.com/data/TyCTlI4b/versions/4aSD3qjF/sophisticatedbackpacks-1.21.1-3.25.53.1822.jar";
-      outputHashAlgo = "sha512";
-      outputHash = "8b80ef00368787d5b300416a6146ae854d4fb15590b353ffb9d3f12da24eb2dd90c3881af1c27e9e778e3ec5e075a05e9d547f323835f15a091ee18293586a46";
-      name = "sophisticatedbackpacks-1.21.1-3.25.53.1822.jar";
-    };
-  };
-
-  # Sophisticated Core
-  "sophisticated-core" = {
-    side = "both";
-    jar = pkgs.fetchurl {
-      url = "https://cdn.modrinth.com/data/nmoqTijg/versions/AzEDQviJ/sophisticatedcore-1.21.1-1.4.46.1946.jar";
-      outputHashAlgo = "sha512";
-      outputHash = "adc0cd98c5e31a69a105606049f1d3f7f5857a1e8e43a35a700c1f56874d429e460e655efd32f0d3869f7138495ccbd23de2b22e90f387c5c6845d858abd0088";
-      name = "sophisticatedcore-1.21.1-1.4.46.1946.jar";
-    };
-  };
-
-  # Sophisticated Storage
-  "sophisticated-storage" = {
-    side = "both";
-    jar = pkgs.fetchurl {
-      url = "https://cdn.modrinth.com/data/hMlaZH8f/versions/BUphshgO/sophisticatedstorage-1.21.1-1.5.57.1790.jar";
-      outputHashAlgo = "sha512";
-      outputHash = "3bf68dc4a0f66cc101e9a68d9fd0d683dfa2af70bb7b461f0c936ecad7ab4c7fb1ad5be8c33cf716ae74c488d8005a56488b3a22a24efd3c1b5116d749d46970";
-      name = "sophisticatedstorage-1.21.1-1.5.57.1790.jar";
     };
   };
 
