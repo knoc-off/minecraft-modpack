@@ -1,6 +1,8 @@
 # bricks-building-extended -- Minecraft modpack
 #
-# NeoForge 1.21.1 — packwiz-managed mods + local mods in local-mods/
+# NeoForge 1.21.1 — all mods (including the local ones: asset-shelf,
+# paint-craft, structure-stash) are packwiz-managed; see pack/mods/*.pw.toml
+# and nix/mods.nix.
 #
 # QUICK START:
 #   nix run .#installPrism     -- install/update Prism Launcher instance (client)
@@ -55,13 +57,13 @@
     serverModJars = jarsForSides [ "both" "server" ];
 
     # ── Local mods (asset-shelf, paint-craft, structure-stash) ──
-    # Built by CI and published as GitHub Release assets, consumed here via
-    # fetchurl (see nix/local-mods.nix). Falls back to an uncommitted jar in
-    # ./local-mods/ (gitignored) for local dev iteration via
-    # scripts/build-mods.sh, before a release exists or while testing an
-    # unreleased change.
-    releasedLocalMods = import ./nix/local-mods.nix { inherit pkgs; };
-    releasedJarNames = lib.mapAttrsToList (_: m: m.jar.name) releasedLocalMods;
+    # Pinned via packwiz like any other mod (pack/mods/*.pw.toml, added with
+    # `packwiz github add`, tracking GitHub Release assets) — see `mods`
+    # above. For local dev iteration before a release exists, or while
+    # testing an unreleased change, scripts/build-mods.sh drops a jar into
+    # ./local-mods/ (gitignored); any jar there whose filename isn't already
+    # pinned via packwiz is picked up here as a fallback/override.
+    pinnedJarNames = lib.mapAttrsToList (_: m: m.jar.name) mods;
 
     localModsPath = ./local-mods;
     localModsDirJars = if builtins.pathExists localModsPath
@@ -70,11 +72,10 @@
       else [];
 
     localModJars =
-      (lib.mapAttrsToList (_: m: m.jar) releasedLocalMods)
-      ++ map (f: pkgs.runCommand f {} ''
-             cp ${localModsPath + "/${f}"} $out
-           '')
-           (builtins.filter (f: !(lib.elem f releasedJarNames)) localModsDirJars);
+      map (f: pkgs.runCommand f {} ''
+        cp ${localModsPath + "/${f}"} $out
+      '')
+      (builtins.filter (f: !(lib.elem f pinnedJarNames)) localModsDirJars);
 
     # Full set (client / singleplayer) and server-safe subset.
     modsDir       = pkgs.linkFarmFromDrvs "mods" (allModJars ++ localModJars);
@@ -222,9 +223,6 @@
         (pkgs.writeShellScriptBin "gen-nix-from-packwiz" ''
           exec ${pkgs.python3}/bin/python3 ${./scripts/gen_nix_from_packwiz.py} "$@"
         '')
-        (pkgs.writeShellScriptBin "gen-nix-local-mods" ''
-          exec ${./scripts/gen-local-mods-nix.sh} "$@"
-        '')
       ];
 
       shellHook = ''
@@ -233,13 +231,14 @@
         echo ""
         echo "  Workflow:"
         echo "    cd pack && packwiz mr add <slug>   add a mod"
+        echo "    cd pack && packwiz github add <owner/repo> --regex <name>   add a GitHub-released mod"
         echo "    packwiz update --all               update all mods"
         echo "    gen-nix-from-packwiz               regenerate nix/mods.nix"
         echo ""
         echo "  Local mods (asset-shelf, paint-craft, structure-stash):"
         echo "    scripts/build-mods.sh               build + install locally (dev iteration)"
         echo "    git tag mods-vX.Y.Z && git push --tags   cut a release (CI builds + publishes jars)"
-        echo "    gen-nix-local-mods mods-vX.Y.Z       regenerate nix/local-mods.nix from a release"
+        echo "    cd pack && packwiz update <mod>     re-pin to the new release (in \`nix develop\`)"
         echo ""
         echo "  Build/Run:"
         echo "    nix run .#installPrism             install to Prism Launcher"

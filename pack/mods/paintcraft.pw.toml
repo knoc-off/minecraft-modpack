@@ -1,0 +1,15 @@
+name = "minecraft-modpack"
+filename = "paintcraft-0.1.0.jar"
+side = "both"
+
+[download]
+url = "https://github.com/knoc-off/minecraft-modpack/releases/download/mods-v0.1.2/paintcraft-0.1.0.jar"
+hash-format = "sha256"
+hash = "3b51189f7f2aa818283ac1d0435242f34dc49a3a5e7ea23c3539143cd0fc8517"
+
+[update]
+[update.github]
+branch = "main"
+regex = "paintcraft"
+slug = "knoc-off/minecraft-modpack"
+tag = "mods-v0.1.2"

@@ -1,0 +1,15 @@
+name = "minecraft-modpack"
+filename = "assetshelf-0.1.0.jar"
+side = "both"
+
+[download]
+url = "https://github.com/knoc-off/minecraft-modpack/releases/download/mods-v0.1.2/assetshelf-0.1.0.jar"
+hash-format = "sha256"
+hash = "acae9011242e6306b386b533b6643a0d638e3b0921e558bcce9a964f0496603d"
+
+[update]
+[update.github]
+branch = "main"
+regex = "assetshelf"
+slug = "knoc-off/minecraft-modpack"
+tag = "mods-v0.1.2"
