@@ -1452,13 +1452,29 @@ public class PaintScreen extends Screen {
             if (bytes != null) { loadFromImageBytes(bytes, mime, snap); return; }
         }
 
-        // 2. Try AWT system clipboard — works on Windows, macOS, and X11
+        // 2. Windows: PowerShell subprocess using System.Windows.Forms.Clipboard.
+        // Bypasses AWT entirely — Minecraft/FML force java.awt.headless=true at
+        // startup (see FancyModLoader's FatalErrorReporting, which has to work
+        // around the very same thing), so Toolkit.getSystemClipboard() below
+        // always throws HeadlessException on every platform. On Linux that's
+        // masked because step 1 succeeds first; Windows has no such subprocess
+        // tool, so it always fell through to the broken AWT path.
+        if (isWindows()) {
+            byte[] winBytes = readWindowsClipboardImageBytes();
+            if (winBytes != null) { loadFromImageBytes(winBytes, "windows-clipboard", snap); return; }
+        }
+
+        // 3. Try AWT system clipboard — works on macOS and X11; on Windows this
+        // is expected to fail (see above) but is cheap to leave as a fallback.
         byte[] awtBytes = readAwtClipboardBytes();
         if (awtBytes != null) { loadFromImageBytes(awtBytes, "awt", snap); return; }
 
-        // 3. Fall back: clipboard text that looks like an image file path
-        long window = Minecraft.getInstance().getWindow().getWindow();
-        String text = org.lwjgl.glfw.GLFW.glfwGetClipboardString(window);
+        // 4. Fall back: clipboard text that looks like an image file path.
+        // Read via AWT (not GLFW's glfwGetClipboardString) — on Windows, asking
+        // GLFW for clipboard text when the clipboard only holds image data
+        // triggers a native Win32 "Element not found" error that GLFW reports
+        // through Minecraft's error callback (logged as "### GL ERROR ###").
+        String text = readAwtClipboardText();
         if (text == null || text.isEmpty()) {
             PaintCraft.LOGGER.info("[paste] Clipboard empty / no image / no path");
             return;
@@ -1472,6 +1488,10 @@ public class PaintScreen extends Screen {
             PaintCraft.LOGGER.info("[paste] Clipboard text doesn't look like image path: {}",
                 text.length() > 80 ? text.substring(0, 80) + "…" : text);
         }
+    }
+
+    private static boolean isWindows() {
+        return System.getProperty("os.name", "").toLowerCase().contains("win");
     }
 
     private void loadImageFromPath(String pathStr, boolean snap) {
@@ -1525,7 +1545,7 @@ public class PaintScreen extends Screen {
         return null;
     }
 
-    /** Reads image data from the AWT system clipboard and encodes it as PNG bytes. Works on Windows, macOS, X11. */
+    /** Reads image data from the AWT system clipboard and encodes it as PNG bytes. Works on macOS, X11. */
     private static byte[] readAwtClipboardBytes() {
         try {
             java.awt.datatransfer.Clipboard cb = java.awt.Toolkit.getDefaultToolkit().getSystemClipboard();
@@ -1550,6 +1570,63 @@ public class PaintScreen extends Screen {
             PaintCraft.LOGGER.debug("[paste] AWT clipboard unavailable: {}", e.getMessage());
             return null;
         }
+    }
+
+    /**
+     * Reads clipboard text via AWT (not GLFW). GLFW's glfwGetClipboardString on Win32 throws
+     * a native "Element not found" error — reported through Minecraft's GLFW error callback as
+     * "### GL ERROR ###" — when the clipboard holds image data but no text. AWT fails silently
+     * (an exception we already catch) instead, on every platform.
+     */
+    private static String readAwtClipboardText() {
+        try {
+            java.awt.datatransfer.Clipboard cb = java.awt.Toolkit.getDefaultToolkit().getSystemClipboard();
+            if (!cb.isDataFlavorAvailable(java.awt.datatransfer.DataFlavor.stringFlavor)) return null;
+            return (String) cb.getData(java.awt.datatransfer.DataFlavor.stringFlavor);
+        } catch (Exception e) {
+            PaintCraft.LOGGER.debug("[paste] AWT clipboard text unavailable: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Windows-only: reads a clipboard image via a PowerShell subprocess using
+     * System.Windows.Forms.Clipboard, bypassing AWT entirely (Minecraft/FML force
+     * java.awt.headless=true at startup, which breaks Toolkit.getSystemClipboard()
+     * on every platform — see the comment in pasteFromClipboard()). Raw PNG bytes
+     * are written directly to stdout (not base64/text) to avoid PowerShell's
+     * output formatter mangling long lines.
+     */
+    private static byte[] readWindowsClipboardImageBytes() {
+        String script =
+            "Add-Type -AssemblyName System.Windows.Forms; " +
+            "Add-Type -AssemblyName System.Drawing; " +
+            "if ([System.Windows.Forms.Clipboard]::ContainsImage()) { " +
+            "  $img = [System.Windows.Forms.Clipboard]::GetImage(); " +
+            "  $stdout = [Console]::OpenStandardOutput(); " +
+            "  $img.Save($stdout, [System.Drawing.Imaging.ImageFormat]::Png); " +
+            "  $stdout.Flush(); " +
+            "}";
+        for (String exe : new String[]{ "powershell", "pwsh" }) {
+            try {
+                Process proc = new ProcessBuilder(
+                    exe, "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Sta", "-Command", script
+                ).redirectError(ProcessBuilder.Redirect.DISCARD).start();
+                byte[] bytes = proc.getInputStream().readAllBytes(); // read before waitFor to avoid deadlock
+                if (!proc.waitFor(5, TimeUnit.SECONDS)) {
+                    proc.destroyForcibly();
+                    PaintCraft.LOGGER.info("[paste] {} timed out", exe);
+                    continue;
+                }
+                PaintCraft.LOGGER.info("[paste] {} exit={} bytes={}", exe, proc.exitValue(), bytes.length);
+                if (proc.exitValue() == 0 && bytes.length > 8) return bytes;
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            } catch (Exception e) {
+                PaintCraft.LOGGER.debug("[paste] {} unavailable: {}", exe, e.getMessage());
+            }
+        }
+        return null;
     }
 
     private void copyDebug() {
