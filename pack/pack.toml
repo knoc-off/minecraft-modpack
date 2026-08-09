@@ -1,10 +1,12 @@
 name = "bricks-building-extended"
+author = "knoc-off"
+version = "0.1.0"
 pack-format = "packwiz:1.1.0"
 
 [index]
 file = "index.toml"
 hash-format = "sha256"
-hash = "9fd257defc918a9794b9ffb1b171be11450f5061f3b6811c58d88b21be1881f4"
+hash = "cf47ec9a88fc32712fcba59b24115a2ebd2fdde2e300701d9abe799890b4e751"
 
 [versions]
 minecraft = "1.21.1"

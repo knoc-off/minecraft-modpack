@@ -246,6 +246,11 @@
         echo "    nix build .#export                 distributable tarball"
         echo "    server: import nixosModules.default on a NixOS host"
         echo ""
+        echo "  Share the pack (.mrpack, importable in Prism/Modrinth App):"
+        echo "    bump version in pack/pack.toml"
+        echo "    git tag pack-vX.Y.Z && git push --tags   CI exports + publishes the .mrpack"
+        echo "    cd pack && packwiz modrinth export       build one locally instead"
+        echo ""
       '';
     };
   };

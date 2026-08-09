@@ -1,0 +1,28 @@
+name: Release pack
+
+on:
+  push:
+    tags:
+      - 'pack-v*'
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: DeterminateSystems/nix-installer-action@main
+
+      - name: Export mrpack
+        run: |
+          cd pack
+          nix develop .. --command packwiz --yes modrinth export \
+            --output "../bricks-building-extended-${GITHUB_REF_NAME#pack-v}.mrpack"
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: bricks-building-extended-*.mrpack

@@ -37,7 +37,7 @@
     };
   };
 
-  # minecraft-modpack
+  # asset-shelf
   "assetshelf" = {
     side = "both";
     jar = pkgs.fetchurl {
@@ -543,7 +543,7 @@
     };
   };
 
-  # minecraft-modpack
+  # paint-craft
   "paintcraft" = {
     side = "both";
     jar = pkgs.fetchurl {
@@ -708,7 +708,7 @@
     };
   };
 
-  # minecraft-modpack
+  # structure-stash
   "structurestash" = {
     side = "both";
     jar = pkgs.fetchurl {
