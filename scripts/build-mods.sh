@@ -4,16 +4,13 @@
 # and install them into the modpack, for fast local dev iteration.
 #
 #   1. gradle build (run inside `nix develop` so jdk21 + gradle are available)
-#   2. copy each jar into local-mods/   (gitignored; the flake's localModJars
-#      overrides the packwiz-pinned jar for the same mod id -- see the
-#      "Local mods" comment in flake.nix)
+#   2. copy each jar into local-mods/
 #   3. nix run .#installPrism           (push into the live Prism Launcher instance)
 #
-# This is for local iteration only — it does not publish anywhere. To ship a
-# durable, reproducible build of these mods (consumed by CI, other machines,
-# etc.), cut a release instead:
-#   git tag mods-vX.Y.Z && git push --tags   # CI builds + publishes the jars
-#   pin-local-mods mods-vX.Y.Z               # re-pin pack/mods/*.pw.toml (in `nix develop`)
+# local-mods/ is committed and is the single source of truth for these mods --
+# there is no separate release step. To ship a change: run this, then commit
+# the new jar and `git rm` the superseded one in the same commit. Leaving two
+# versions of the same mod id behind is a hard NeoForge load failure.
 #
 # Usage:
 #   scripts/build-mods.sh                 build + install ALL local mods (full Prism sync)

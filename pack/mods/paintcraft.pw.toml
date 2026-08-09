@@ -1,7 +1,0 @@
-name = "paint-craft"
-filename = "paintcraft-0.1.2.jar"
-
-[download]
-url = "https://github.com/knoc-off/minecraft-modpack/releases/download/mods-v0.1.4/paintcraft-0.1.2.jar"
-hash-format = "sha256"
-hash = "ba1d910e15318edeaabdc0186e83e8c40d6514a2de03d617abb2128ee33ec06d"

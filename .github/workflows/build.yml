@@ -1,14 +1,13 @@
 name: Build mods
 
+# Compile check only. The jars that ship are the ones committed under
+# local-mods/ (see the "Local mods" comment in flake.nix); nothing here is
+# published or consumed by the pack. This exists to catch a mod that stops
+# compiling, not to produce artifacts.
+
 on:
   push:
     branches: [main]
-    # No `paths` filter here on purpose. GitHub requires *both* the ref filter
-    # and the paths filter to match, and that applies to tag pushes too -- so
-    # with `paths: packages/**` a `mods-v*` tag on a commit that didn't touch
-    # packages/ would silently never build, publishing no jars at all.
-    tags:
-      - 'mods-v*'
   pull_request:
     paths:
       - 'packages/**'
@@ -22,8 +21,6 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    permissions:
-      contents: write
 
     steps:
       - uses: actions/checkout@v4
@@ -79,11 +76,3 @@ jobs:
         with:
           name: mod-jars
           path: dist/
-
-      - name: Publish release
-        if: startsWith(github.ref, 'refs/tags/mods-v')
-        uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            dist/*.jar
-            dist/SHA256SUMS

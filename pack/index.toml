@@ -16,11 +16,6 @@ hash = "ea336d25c3e21ef168aec20e1ea470c96949ad29632646ee8e8ab0d74b4bbfc9"
 metafile = true
 
 [[files]]
-file = "mods/assetshelf.pw.toml"
-hash = "b6ea1a3eabe487e9ca298a9ff6e30b5b15e62b932f93b3e02edecf32c224c8a1"
-metafile = true
-
-[[files]]
 file = "mods/athena-ctm.pw.toml"
 hash = "f54cf71372645810ce22b0ba68e706139565437150e4cfd22bde4c14606099c4"
 metafile = true
@@ -241,11 +236,6 @@ hash = "09ba6db54e6f13fafa1e12a9adcd83db9137617d631288579f520ab11b4bfe9a"
 metafile = true
 
 [[files]]
-file = "mods/paintcraft.pw.toml"
-hash = "1d41ade958ab407cd585f057d022fba1eac65f28b4ce684a5e89780d1d2204b6"
-metafile = true
-
-[[files]]
 file = "mods/particle-rain.pw.toml"
 hash = "6f24e7f5ecef862b1bdb61031637e27b093f185c3219023bea94d2d954ec4180"
 metafile = true
@@ -298,11 +288,6 @@ metafile = true
 [[files]]
 file = "mods/ssrd.pw.toml"
 hash = "6b3e2e0ac68c1a7608e3cac896fe8d5089c528d43a6cbd1326c0c05de03d8ff8"
-metafile = true
-
-[[files]]
-file = "mods/structurestash.pw.toml"
-hash = "efe45778337b878e5d218fe30974ff462daebd0dc27c93e940e0da96d4d63280"
 metafile = true
 
 [[files]]

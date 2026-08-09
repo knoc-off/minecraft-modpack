@@ -8,11 +8,9 @@ result-*
 # Server working dirs
 *-data/
 
-# Built local-mod jars: built by CI, published as GitHub Release assets,
-# and pinned in pack/mods/*.pw.toml (see scripts/pin-local-mods.sh). Kept
-# locally (uncommitted) as a dev-iteration override for scripts/build-mods.sh
-# -- see the "Local mods" comment in flake.nix.
-local-mods/*.jar
+# local-mods/*.jar is deliberately NOT ignored: the jars are committed and are
+# the single source of truth for the local mods. See the "Local mods" comment
+# in flake.nix.
 
 
 # trash

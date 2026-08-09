@@ -1,7 +1,0 @@
-name = "structure-stash"
-filename = "structurestash-0.1.1.jar"
-
-[download]
-url = "https://github.com/knoc-off/minecraft-modpack/releases/download/mods-v0.1.4/structurestash-0.1.1.jar"
-hash-format = "sha256"
-hash = "2ac544029e938bbd8f7d2179c3f29d976daa55d0f796eeb417384b699bd949be"

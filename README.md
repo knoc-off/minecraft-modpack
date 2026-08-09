@@ -4,11 +4,17 @@ Minecraft 1.21.1, NeoForge 21.1.233.
 
 ## Playing (fastest way)
 
-1. Grab the latest `.mrpack` from the [Releases page](https://github.com/knoc-off/minecraft-modpack/releases) (look for a `pack-v*` tag).
-2. Import it:
-   - **Prism Launcher**: "Add Instance" → "Import" → select the `.mrpack` file.
-   - **Modrinth App**: drag-and-drop the `.mrpack` onto the launcher, or "Import" → "Modrinth pack".
-3. Launch — mods download automatically on first run.
+1. Download <https://mc.niko.ink/pack/bricks-building-extended.zip>
+2. Prism Launcher: "Add Instance" -> "Import from zip" -> select the file.
+3. Launch.
+
+The instance ships no mods. Its pre-launch hook runs `packwiz-installer`
+against <https://mc.niko.ink/pack/pack.toml>, which pulls the mods on first
+launch and then keeps them in sync on every launch after that -- when the pack
+changes, you just press play. Everything (mods, installer) comes from
+mc.niko.ink; no Modrinth or GitHub account or access is needed.
+
+Server: `mc.niko.ink`.
 
 ## Playing (Nix)
 
@@ -18,7 +24,8 @@ If you're on NixOS/nix-darwin/nix with flakes:
 nix run github:knoc-off/minecraft-modpack#installPrism
 ```
 
-Installs/updates a Prism Launcher instance from this flake directly.
+Installs/updates a Prism Launcher instance from this flake directly. This is a
+static install -- it does not self-update; re-run it to pick up changes.
 
 ## Development
 
@@ -26,20 +33,57 @@ Installs/updates a Prism Launcher instance from this flake directly.
 nix develop
 ```
 
-Drops you into a shell with `packwiz`, Java 21, and Gradle, and prints the available workflows (add/update mods, cut mod/pack releases, build/export).
+Drops you into a shell with `packwiz`, Java 21, and Gradle, and prints the
+available workflows.
 
-## deploy
+### Adding or updating a Modrinth mod
 
-git tag mods-v0.1.4
-git push origin mods-v0.1.4
+```
+cd pack && packwiz mr add <slug>     # or: packwiz update --all
+gen-nix-from-packwiz                 # regenerate nix/mods.nix
+```
 
-...
-pin-local-mods mods-v0.1.4
-git add pack/ nix/mods.nix
-git commit -m "pin local mods to mods-v0.1.4"
-git push origin main
+Commit `pack/` and `nix/mods.nix` together.
 
-git tag pack-v0.1.4
-git push origin pack-v0.1.4
-This triggers pack-release.yml, which refreshes the index and exports/publishes the .mrpack.
-A few notes: your --tags flag pushes all local tags at once (fine here since you only have the two new ones, but worth knowing), and step 3 must come after step 2's commit lands on main — otherwise the export runs against the stale pins again, the exact bug we just found. Also mods-v0.1.4 and pack-v0.1.4 sharing the same version number is coincidental/cosmetic (they're independent tag namespaces on this repo) — not a hard requirement, just keep them roughly in sync for sanity.
+### Updating a local mod (asset-shelf, paint-craft, structure-stash)
+
+The jars under `local-mods/` are committed and are the single source of truth
+-- there is no release step.
+
+```
+scripts/build-mods.sh paint-craft
+git add local-mods/paintcraft-<new>.jar
+git rm  local-mods/paintcraft-<old>.jar
+```
+
+Both in the same commit: two jars with the same mod id in the mods dir is a
+hard NeoForge load failure.
+
+These jars are not packwiz-managed and are not in `nix/mods.nix`. The metadata
+clients need is synthesised when the pack site is built. The reason they are
+committed rather than fetched: the served pack rewrites every download URL to
+point at the host serving it, so fetching them over the network would mean
+building the pack requires the artifact being built.
+
+## Publishing
+
+```
+git push                                    # this repo
+# then in the nixos repo:
+nix flake update minecraft-modpack
+# deploy optiplex AND hetzner from the same lock
+```
+
+Both the server's mods and the published pack come from the same pinned input.
+Deploying only hetzner publishes mods the server doesn't have, and NeoForge
+disconnects clients whose mod set doesn't match during registry sync.
+
+## Layout
+
+| path | what |
+| --- | --- |
+| `pack/` | packwiz pack -- the 73 Modrinth mods |
+| `nix/mods.nix` | generated from `pack/`; Modrinth mods only |
+| `local-mods/` | committed jars for the three local mods |
+| `packages/` | Gradle sources for the local mods |
+| `flake.nix` | `packSite`, `clientMods`, `installPrism`, NixOS server module |

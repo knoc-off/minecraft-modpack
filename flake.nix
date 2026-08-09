@@ -1,13 +1,14 @@
 # bricks-building-extended -- Minecraft modpack
 #
-# NeoForge 1.21.1 — all mods (including the local ones: asset-shelf,
-# paint-craft, structure-stash) are packwiz-managed; see pack/mods/*.pw.toml
-# and nix/mods.nix.
+# NeoForge 1.21.1. Mods come from two places: the 73 Modrinth-hosted ones are
+# packwiz-managed (pack/mods/*.pw.toml -> nix/mods.nix), and the three local
+# ones (asset-shelf, paint-craft, structure-stash) are committed jars under
+# local-mods/. See the "Local mods" comment below for why they differ.
 #
 # QUICK START:
 #   nix run .#installPrism     -- install/update Prism Launcher instance (client)
 #   nix build .#clientMods     -- flat dir of all mod JARs (client/singleplayer)
-#   nix build .#export         -- distributable tarball
+#   nix build .#packSite       -- self-hosted packwiz remote (served by hetzner)
 #   nix develop                -- dev shell with packwiz + tools
 #
 # Server is deployed via nixosModules.default (nix-minecraft).
@@ -44,43 +45,36 @@
 
     # ── Mods ───────────────────────────────────────────────────
     # Each entry is { side = "both"|"client"|"server"; jar = <drv>; }.
+    # Modrinth-hosted mods only -- see the local mods note below.
     # Regenerate after packwiz changes:
     #   gen-nix-from-packwiz   (in `nix develop`)
     mods = import ./nix/mods.nix { inherit pkgs; };
 
     # ── Local mods (asset-shelf, paint-craft, structure-stash) ──
-    # Pinned via packwiz like any other mod (pack/mods/*.pw.toml, kept in
-    # sync with GitHub Releases via `pin-local-mods mods-vX.Y.Z` -- see
-    # scripts/pin-local-mods.sh). For local dev iteration before a release
-    # exists, or while testing an unreleased change, scripts/build-mods.sh
-    # drops a jar into ./local-mods/ (gitignored).
+    # The committed jars in ./local-mods are the single source of truth. They
+    # are NOT packwiz-managed and NOT in nix/mods.nix; gen_nix_from_packwiz.py
+    # skips any mod id discovered under packages/*/, and the metadata clients
+    # need is synthesised into the served pack by mkPackSite below.
     #
-    # A jar in ./local-mods/ always overrides the packwiz-pinned jar for the
-    # same mod, matched by *mod id* (the local jar's filename with its
-    # trailing "-<version>.jar" stripped), not by exact filename -- so a
-    # version bump on either side can't leave both the pinned and the local
-    # jar in the mods dir at once, which NeoForge refuses to load (duplicate
-    # mod id).
+    # Why they are not fetched over the network like every other mod: the
+    # served pack rewrites every download URL to point at the host serving it,
+    # so a fetchurl for these would make building the pack require the very
+    # artifact being built. Committing the jars (~500 KB total) breaks that
+    # cycle and makes a flake rev fully determine the pack.
+    #
+    # To update one: scripts/build-mods.sh <mod>, then commit the new jar.
+    # Delete the superseded jar in the same commit -- two versions of the same
+    # mod id in the mods dir is a hard NeoForge load failure.
     localModsPath = ./local-mods;
-    localModsDirJars = if builtins.pathExists localModsPath
-      then builtins.filter (f: lib.hasSuffix ".jar" f)
-             (builtins.attrNames (builtins.readDir localModsPath))
+    localModJarFiles = if builtins.pathExists localModsPath
+      then lib.naturalSort (builtins.filter (f: lib.hasSuffix ".jar" f)
+             (builtins.attrNames (builtins.readDir localModsPath)))
       else [];
-
-    localOverrideIds = builtins.filter (id: id != null)
-      (map
-        (f: let m = builtins.match "(.+)-[0-9][0-9.]*\\.jar" f;
-            in if m == null then null else builtins.head m)
-        localModsDirJars);
-
-    pinnedMods = lib.filterAttrs
-      (_: m: !(lib.any (id: lib.hasPrefix (id + "-") m.jar.name) localOverrideIds))
-      mods;
 
     # mods whose `side` is in the given list → list of jar derivations
     jarsForSides = sides:
       lib.mapAttrsToList (_: m: m.jar)
-        (lib.filterAttrs (_: m: builtins.elem m.side sides) pinnedMods);
+        (lib.filterAttrs (_: m: builtins.elem m.side sides) mods);
 
     allModJars    = jarsForSides [ "both" "client" "server" ];
     serverModJars = jarsForSides [ "both" "server" ];
@@ -89,7 +83,7 @@
       map (f: pkgs.runCommand f {} ''
         cp ${localModsPath + "/${f}"} $out
       '')
-      localModsDirJars;
+      localModJarFiles;
 
     # Full set (client / singleplayer) and server-safe subset.
     modsDir       = pkgs.linkFarmFromDrvs "mods" (allModJars ++ localModJars);
@@ -115,6 +109,176 @@
 
     # ── JVM flags ──────────────────────────────────────────────
     jvmOpts = "-Xms3G -Xmx6G -XX:+UseG1GC -XX:+ParallelRefProcEnabled -XX:MaxGCPauseMillis=200";
+
+    # ── packwiz-installer-bootstrap ────────────────────────────
+    # Served alongside the pack so clients never need github.com either.
+    packwizInstallerBootstrap = pkgs.fetchurl {
+      url = "https://github.com/packwiz/packwiz-installer-bootstrap/releases/download/v0.0.3/packwiz-installer-bootstrap.jar";
+      hash = "sha256-qPuyTcYEJ46X9GiOgtPZGjGLmO/AjV2/y8vKtkQ9EWw=";
+    };
+
+    # ── Self-hosted packwiz remote ─────────────────────────────
+    # Builds a complete, standalone packwiz remote whose every download URL
+    # points back at `baseUrl`. Clients (via packwiz-installer) then talk to
+    # exactly one host -- no Modrinth, no GitHub -- and get incremental
+    # updates instead of re-downloading the whole pack on every mod bump.
+    #
+    # The committed pack/ keeps its upstream Modrinth URLs on purpose: those
+    # feed nix/mods.nix, and rewriting them in place would mean a build could
+    # only fetch its mods from the server that is serving the build's output.
+    # The rewrite therefore happens here, at build time, and only in $out.
+    #
+    # The three local mods have no committed .pw.toml at all (see the local
+    # mods note above), so their metadata is synthesised here from the jars.
+    mkPackSite = { baseUrl }:
+      let
+        # Strip trailing slash so ${baseUrl}/jars/... can't produce "//".
+        base = lib.removeSuffix "/" baseUrl;
+
+        # side is "both" for all local mods today; they are gameplay content
+        # that has to exist on both ends to avoid a registry desync.
+        localMetafile = f:
+          let
+            jar = localModsPath + "/${f}";
+            modId = lib.head (builtins.match "(.+)-[0-9][0-9.]*\\.jar" f);
+          in pkgs.writeText "${modId}.pw.toml" ''
+            name = "${modId}"
+            filename = "${f}"
+            side = "both"
+
+            [download]
+            url = "${base}/jars/${f}"
+            hash-format = "sha256"
+            hash = "${builtins.hashFile "sha256" jar}"
+          '';
+      in
+      pkgs.runCommand "${packMeta.name}-pack-site"
+        {
+          nativeBuildInputs = [ pkgs.packwiz pkgs.python3 pkgs.zip ];
+        }
+        ''
+          # packwiz writes a settings file on first run
+          export HOME="$(mktemp -d)"
+
+          # The pack is assembled in a scratch dir that contains *only* the
+          # packwiz files. `packwiz refresh` indexes every file under the pack
+          # root, so if the jars were already in place it would list them as
+          # plain pack files -- and clients would then fetch each mod twice,
+          # once as an indexed file and once via its metafile. The jars are
+          # copied in only after the index is final.
+          work="$(mktemp -d)"
+          cp -r ${./pack}/. "$work/"
+          chmod -R u+w "$work"
+
+          # Synthesised metadata for the committed local mods. install(1)
+          # rather than cp: it sets the mode on write, so these land writable
+          # despite coming straight out of the store.
+          ${lib.concatMapStringsSep "\n" (f: ''
+            install -m644 ${localMetafile f} "$work/mods/${lib.head (builtins.match "(.+)-[0-9][0-9.]*\\.jar" f)}.pw.toml"
+          '') localModJarFiles}
+
+          # Repoint every download at this host. Only the url line changes --
+          # the hashes still describe the same bytes, so they stay valid.
+          python3 - "$work" <<'PYEOF'
+          import os, re, sys
+          out = sys.argv[1]
+          base = "${base}"
+          moddir = os.path.join(out, "mods")
+          for name in sorted(os.listdir(moddir)):
+              if not name.endswith(".pw.toml"):
+                  continue
+              path = os.path.join(moddir, name)
+              src = open(path).read()
+              fn = re.search(r'^filename\s*=\s*"([^"]+)"', src, re.M)
+              if not fn:
+                  raise SystemExit(f"{name}: no filename field")
+              jar = fn.group(1)
+              new, n = re.subn(
+                  r'^(\s*)url\s*=\s*"[^"]*"',
+                  lambda m: f'{m.group(1)}url = "{base}/jars/{jar}"',
+                  src, count=1, flags=re.M)
+              if n != 1:
+                  raise SystemExit(f"{name}: no url field to rewrite")
+              open(path, "w").write(new)
+          PYEOF
+
+          # Rebuild index.toml + pack.toml's index hash: the metafiles above
+          # changed, and packwiz verifies both on the client.
+          ( cd "$work" && packwiz --yes refresh )
+
+          mkdir -p $out/jars
+          cp -r "$work"/. $out/
+
+          # Every jar the pack references, served from one place. Filenames
+          # already carry versions, so a flat directory cannot collide.
+          for jar in ${modsDir}/*; do
+            cp -L "$jar" "$out/jars/"
+          done
+
+          # Fail loudly rather than serve a pack whose metafiles point at jars
+          # that aren't here -- a client would only find out mid-install.
+          python3 - "$out" <<'PYEOF'
+          import os, re, sys
+          out = sys.argv[1]
+          moddir = os.path.join(out, "mods")
+          missing = []
+          for name in sorted(os.listdir(moddir)):
+              if not name.endswith(".pw.toml"):
+                  continue
+              src = open(os.path.join(moddir, name)).read()
+              jar = re.search(r'^filename\s*=\s*"([^"]+)"', src, re.M).group(1)
+              if not os.path.exists(os.path.join(out, "jars", jar)):
+                  missing.append(jar)
+          if missing:
+              raise SystemExit("jars referenced but not served: " + ", ".join(missing))
+          PYEOF
+
+          cp ${packwizInstallerBootstrap} $out/packwiz-installer-bootstrap.jar
+
+          # Importable Prism instance. Deliberately ships no jars -- the
+          # pre-launch hook pulls them from this same host on first launch and
+          # keeps them current on every launch after that.
+          instdir=$(mktemp -d)
+          cp -r ${prismInstanceThin}/. "$instdir/"
+          chmod -R u+w "$instdir"
+          ( cd "$instdir" && zip -qr $out/${packMeta.name}.zip . )
+        '';
+
+    # Thin Prism instance: no mods, just the loader definition plus the
+    # packwiz-installer pre-launch hook that populates and updates them.
+    mkPrismInstanceThin = { baseUrl }:
+      pkgs.runCommand "${packMeta.name}-prism-thin" {} ''
+        INST="$out/${packMeta.name}"
+        mkdir -p "$INST/.minecraft"
+
+        cat > "$INST/instance.cfg" <<'EOF'
+        InstanceType=OneSix
+        name=${packMeta.name}
+        OverrideCommands=true
+        PreLaunchCommand="$INST_JAVA" -jar packwiz-installer-bootstrap.jar ${lib.removeSuffix "/" baseUrl}/pack.toml
+        EOF
+
+        cat > "$INST/mmc-pack.json" <<'MMCEOF'
+        ${builtins.toJSON {
+          formatVersion = 1;
+          components = [
+            { cachedName = "Minecraft"; uid = "net.minecraft"; version = packMeta.mcVersion; }
+            {
+              cachedName = "NeoForge";
+              uid = "net.neoforged";
+              version = packMeta.loaderVersion;
+            }
+          ];
+        }}
+        MMCEOF
+
+        cp ${packwizInstallerBootstrap} "$INST/.minecraft/packwiz-installer-bootstrap.jar"
+      '';
+
+    # Where the pack is published. Bump both hosts together when this changes.
+    packBaseUrl = "https://mc.niko.ink/pack";
+    prismInstanceThin = mkPrismInstanceThin { baseUrl = packBaseUrl; };
+    packSite = mkPackSite { baseUrl = packBaseUrl; };
 
     # ── Prism Launcher instance (client) ───────────────────────
     prismInstance = pkgs.runCommand "${packMeta.name}-prism" {} ''
@@ -198,9 +362,13 @@
   in {
     # ── Packages ───────────────────────────────────────────────
     packages.${system} = {
-      inherit prismInstance clientMods installPrism export;
+      inherit prismInstance prismInstanceThin clientMods installPrism export packSite;
       default = clientMods;
     };
+
+    # Build a pack site for a different host:
+    #   inputs.minecraft-modpack.lib.mkPackSite { baseUrl = "https://..."; }
+    lib = { inherit mkPackSite mkPrismInstanceThin; };
 
     # ── NixOS module (server, nix-minecraft) ───────────────────
     nixosModules.default = { ... }: {
@@ -238,9 +406,6 @@
         (pkgs.writeShellScriptBin "gen-nix-from-packwiz" ''
           exec ${pkgs.python3}/bin/python3 ${./scripts/gen_nix_from_packwiz.py} "$@"
         '')
-        (pkgs.writeShellScriptBin "pin-local-mods" ''
-          exec ${pkgs.bash}/bin/bash ${./scripts/pin-local-mods.sh} "$@"
-        '')
       ];
 
       shellHook = ''
@@ -254,20 +419,21 @@
         echo "    gen-nix-from-packwiz               regenerate nix/mods.nix"
         echo ""
         echo "  Local mods (asset-shelf, paint-craft, structure-stash):"
-        echo "    scripts/build-mods.sh               build + install locally (dev iteration)"
-        echo "    git tag mods-vX.Y.Z && git push --tags   cut a release (CI builds + publishes jars)"
-        echo "    pin-local-mods mods-vX.Y.Z          re-pin pack/mods/*.pw.toml to the new release"
+        echo "    scripts/build-mods.sh <mod>         build + install locally"
+        echo "    git add local-mods/<new>.jar && git rm local-mods/<old>.jar"
+        echo "                                        the committed jar IS the release"
         echo ""
         echo "  Build/Run:"
         echo "    nix run .#installPrism             install to Prism Launcher"
         echo "    nix build .#clientMods             flat dir of mod JARs"
+        echo "    nix build .#packSite               self-hosted packwiz remote"
         echo "    nix build .#export                 distributable tarball"
         echo "    server: import nixosModules.default on a NixOS host"
         echo ""
-        echo "  Share the pack (.mrpack, importable in Prism/Modrinth App):"
-        echo "    bump version in pack/pack.toml"
-        echo "    git tag pack-vX.Y.Z && git push --tags   CI exports + publishes the .mrpack"
-        echo "    cd pack && packwiz modrinth export       build one locally instead"
+        echo "  Publishing (served at https://mc.niko.ink/pack):"
+        echo "    commit + push, then in the nixos repo:"
+        echo "      nix flake update minecraft-modpack"
+        echo "      deploy optiplex AND hetzner from the same lock"
         echo ""
       '';
     };

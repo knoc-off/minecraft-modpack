@@ -1,5 +1,5 @@
 # Auto-generated from packwiz -- do not edit manually.
-# 76 mods
+# 73 mods
 
 { pkgs }:
 
@@ -34,17 +34,6 @@
       outputHashAlgo = "sha512";
       outputHash = "65e3664953385d880320dd6bb818bcb96d361c07c53e2a7f65e64c6a47720ee26b233224ae9cad465ef0b2bbaefdaf30fb0175a983cecd91de058817d6fcf57e";
       name = "architectury-13.0.8-neoforge.jar";
-    };
-  };
-
-  # asset-shelf
-  "assetshelf" = {
-    side = "both";
-    jar = pkgs.fetchurl {
-      url = "https://github.com/knoc-off/minecraft-modpack/releases/download/mods-v0.1.4/assetshelf-0.1.0.jar";
-      outputHashAlgo = "sha256";
-      outputHash = "acae9011242e6306b386b533b6643a0d638e3b0921e558bcce9a964f0496603d";
-      name = "assetshelf-0.1.0.jar";
     };
   };
 
@@ -532,17 +521,6 @@
     };
   };
 
-  # paint-craft
-  "paintcraft" = {
-    side = "both";
-    jar = pkgs.fetchurl {
-      url = "https://github.com/knoc-off/minecraft-modpack/releases/download/mods-v0.1.4/paintcraft-0.1.2.jar";
-      outputHashAlgo = "sha256";
-      outputHash = "ba1d910e15318edeaabdc0186e83e8c40d6514a2de03d617abb2128ee33ec06d";
-      name = "paintcraft-0.1.2.jar";
-    };
-  };
-
   # Particle Rain
   "particle-rain" = {
     side = "client";
@@ -661,17 +639,6 @@
       outputHashAlgo = "sha512";
       outputHash = "2ae36a7a8bf73a64e58a245b795a04fdeff9d87f4bfb94156400c2ef15a9ec2b0b2e7f1031efa197cea0270b7815335c99c50ab8b9d219188521fc14233850fd";
       name = "SSRD-1.8.1-1.21.1.jar";
-    };
-  };
-
-  # structure-stash
-  "structurestash" = {
-    side = "both";
-    jar = pkgs.fetchurl {
-      url = "https://github.com/knoc-off/minecraft-modpack/releases/download/mods-v0.1.4/structurestash-0.1.1.jar";
-      outputHashAlgo = "sha256";
-      outputHash = "2ac544029e938bbd8f7d2179c3f29d976daa55d0f796eeb417384b699bd949be";
-      name = "structurestash-0.1.1.jar";
     };
   };
 
