@@ -41,7 +41,7 @@
   "assetshelf" = {
     side = "both";
     jar = pkgs.fetchurl {
-      url = "https://github.com/knoc-off/minecraft-modpack/releases/download/mods-v0.1.2/assetshelf-0.1.0.jar";
+      url = "https://github.com/knoc-off/minecraft-modpack/releases/download/mods-v0.1.4/assetshelf-0.1.0.jar";
       outputHashAlgo = "sha256";
       outputHash = "acae9011242e6306b386b533b6643a0d638e3b0921e558bcce9a964f0496603d";
       name = "assetshelf-0.1.0.jar";
@@ -536,10 +536,10 @@
   "paintcraft" = {
     side = "both";
     jar = pkgs.fetchurl {
-      url = "https://github.com/knoc-off/minecraft-modpack/releases/download/mods-v0.1.2/paintcraft-0.1.0.jar";
+      url = "https://github.com/knoc-off/minecraft-modpack/releases/download/mods-v0.1.4/paintcraft-0.1.2.jar";
       outputHashAlgo = "sha256";
-      outputHash = "3b51189f7f2aa818283ac1d0435242f34dc49a3a5e7ea23c3539143cd0fc8517";
-      name = "paintcraft-0.1.0.jar";
+      outputHash = "ba1d910e15318edeaabdc0186e83e8c40d6514a2de03d617abb2128ee33ec06d";
+      name = "paintcraft-0.1.2.jar";
     };
   };
 
@@ -701,10 +701,10 @@
   "structurestash" = {
     side = "both";
     jar = pkgs.fetchurl {
-      url = "https://github.com/knoc-off/minecraft-modpack/releases/download/mods-v0.1.2/structurestash-0.1.0.jar";
+      url = "https://github.com/knoc-off/minecraft-modpack/releases/download/mods-v0.1.4/structurestash-0.1.1.jar";
       outputHashAlgo = "sha256";
-      outputHash = "d0bd2cfe28be2ffe2b6df33b4cad6ac34ef942487373869a3244efa1b6f08623";
-      name = "structurestash-0.1.0.jar";
+      outputHash = "2ac544029e938bbd8f7d2179c3f29d976daa55d0f796eeb417384b699bd949be";
+      name = "structurestash-0.1.1.jar";
     };
   };
 

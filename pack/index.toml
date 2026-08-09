@@ -17,7 +17,7 @@ metafile = true
 
 [[files]]
 file = "mods/assetshelf.pw.toml"
-hash = "290b8fef1982accf5cf080d0c54f5f478887102477b349d345089c41d04ec53c"
+hash = "b6ea1a3eabe487e9ca298a9ff6e30b5b15e62b932f93b3e02edecf32c224c8a1"
 metafile = true
 
 [[files]]
@@ -242,7 +242,7 @@ metafile = true
 
 [[files]]
 file = "mods/paintcraft.pw.toml"
-hash = "1c66ffeecd7ba9987ee7f5f2b5a64913586ebfcf25813df56660f8c6c02c376a"
+hash = "1d41ade958ab407cd585f057d022fba1eac65f28b4ce684a5e89780d1d2204b6"
 metafile = true
 
 [[files]]
@@ -317,7 +317,7 @@ metafile = true
 
 [[files]]
 file = "mods/structurestash.pw.toml"
-hash = "29dc4bd9091e4146b742802b7cd05e1cc19f97f5b811e55cd2198a8996a7d772"
+hash = "efe45778337b878e5d218fe30974ff462daebd0dc27c93e940e0da96d4d63280"
 metafile = true
 
 [[files]]

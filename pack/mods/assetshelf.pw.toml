@@ -2,6 +2,6 @@ name = "asset-shelf"
 filename = "assetshelf-0.1.0.jar"
 
 [download]
-url = "https://github.com/knoc-off/minecraft-modpack/releases/download/mods-v0.1.2/assetshelf-0.1.0.jar"
+url = "https://github.com/knoc-off/minecraft-modpack/releases/download/mods-v0.1.4/assetshelf-0.1.0.jar"
 hash-format = "sha256"
 hash = "acae9011242e6306b386b533b6643a0d638e3b0921e558bcce9a964f0496603d"
