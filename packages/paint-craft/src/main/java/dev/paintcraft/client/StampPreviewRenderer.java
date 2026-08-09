@@ -4,6 +4,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import dev.paintcraft.core.Decal;
 import dev.paintcraft.core.FaceFrame;
+import dev.paintcraft.core.PixelGrid;
 import dev.paintcraft.item.StampData;
 import dev.paintcraft.item.StampItem;
 import dev.paintcraft.projection.ProjectionResult;
@@ -92,11 +93,15 @@ public final class StampPreviewRenderer {
             return;
         }
 
+        // Match placeStamp: stamp pixels are canonical, so re-derive them for this face's
+        // stored frame — otherwise the ghost disagrees with what actually gets placed.
+        PixelGrid stored = data.toStoredFor(new FaceFrame(face, up));
+
         // Build a temporary decal for resolving
         previewDecal = new Decal(
             PREVIEW_UUID, 0, pos, face, up,
-            data.widthPx(), data.heightPx(), Decal.MAX_DEPTH,
-            data.pixels(), (byte) 0
+            stored.width(), stored.height(), Decal.MAX_DEPTH,
+            stored.data(), (byte) 0
         );
 
         // Resolve surface fragments

@@ -80,11 +80,16 @@ public record FaceFrame(Direction normal, Direction up) {
 
     /**
      * Whether this frame needs horizontal flip in the editor display.
-     * True for wall faces with negative-direction normals (NORTH, WEST).
+     *
+     * <p>{@link #right()} is derived from {@code up.getClockWise(axis)}, which keys on the
+     * normal's <em>axis</em> only and ignores its direction — so opposite faces share the same
+     * world-space right vector (NORTH and SOUTH are both EAST). For a viewer the correct basis
+     * is right-handed about the outward normal ({@code right × up == normal}), which holds only
+     * for positive-direction normals. Every negative-direction normal (NORTH, WEST, DOWN) is
+     * therefore mirrored relative to its viewer, and is flipped for display to compensate.
      */
     public boolean needsHFlip() {
-        return normal.getAxis() != Direction.Axis.Y
-            && normal.getAxisDirection() == Direction.AxisDirection.NEGATIVE;
+        return normal.getAxisDirection() == Direction.AxisDirection.NEGATIVE;
     }
 
     // === Factories ===

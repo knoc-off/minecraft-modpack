@@ -4,6 +4,7 @@ import dev.paintcraft.ModServerConfig;
 import dev.paintcraft.PaintCraft;
 import dev.paintcraft.core.Decal;
 import dev.paintcraft.core.FaceFrame;
+import dev.paintcraft.core.PixelGrid;
 import dev.paintcraft.network.DecalCreatePayload;
 import dev.paintcraft.storage.ChunkPaintStorage;
 import net.minecraft.core.BlockPos;
@@ -67,10 +68,18 @@ public class StampItem extends Item {
         FaceFrame frame = FaceFrame.forFace(face, player.getDirection());
         Direction up = frame.up();
 
+        // Stamp pixels are canonical; re-derive them for this face's stored frame so the image
+        // reads the same way here as it did where it was copied. A rotation may swap the axes,
+        // so dimensions come from the transformed grid, not from the stamp.
+        PixelGrid stored = data.toStoredFor(frame);
+        int widthPx = stored.width();
+        int heightPx = stored.height();
+        int[] pixels = stored.data();
+
         // Create decal via the normal pipeline
         DecalCreatePayload payload = new DecalCreatePayload(
             UUID.randomUUID(), 0, 0, pos, face, up,
-            data.widthPx(), data.heightPx(), ModServerConfig.CONFIG.maxDepth.get().floatValue(), (byte) 0, data.pixels()
+            widthPx, heightPx, ModServerConfig.CONFIG.maxDepth.get().floatValue(), (byte) 0, pixels
         );
 
         // Store server-side and broadcast to all tracking players (including placer)
@@ -78,7 +87,7 @@ public class StampItem extends Item {
         long seqNo = storage.nextSeqNo();
         Decal decal = new Decal(
             payload.id(), seqNo, pos, face, up,
-            data.widthPx(), data.heightPx(), ModServerConfig.CONFIG.maxDepth.get().floatValue(), data.pixels().clone(), (byte) 0
+            widthPx, heightPx, ModServerConfig.CONFIG.maxDepth.get().floatValue(), pixels.clone(), (byte) 0
         );
         decal.setAuthor(player.getGameProfile().getName());
         storage.putDecal(decal);

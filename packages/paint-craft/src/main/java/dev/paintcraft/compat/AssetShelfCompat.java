@@ -56,7 +56,7 @@ public final class AssetShelfCompat {
      * Serialize current canvas pixels into the asset format (StampData NBT bytes).
      */
     public static byte[] serializeCanvas(int widthPx, int heightPx, int[] pixels) {
-        StampData data = new StampData(widthPx, heightPx, net.minecraft.core.Direction.UP, pixels.clone());
+        StampData data = new StampData(widthPx, heightPx, pixels.clone());
         net.minecraft.nbt.CompoundTag tag = data.save();
         try {
             java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
