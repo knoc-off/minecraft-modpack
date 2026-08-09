@@ -5,15 +5,15 @@
 #
 #   1. gradle build (run inside `nix develop` so jdk21 + gradle are available)
 #   2. copy each jar into local-mods/   (gitignored; the flake's localModJars
-#      falls back to any jar here that isn't already pinned in
-#      nix/local-mods.nix)
+#      overrides the packwiz-pinned jar for the same mod id -- see the
+#      "Local mods" comment in flake.nix)
 #   3. nix run .#installPrism           (push into the live Prism Launcher instance)
 #
 # This is for local iteration only — it does not publish anywhere. To ship a
 # durable, reproducible build of these mods (consumed by CI, other machines,
 # etc.), cut a release instead:
 #   git tag mods-vX.Y.Z && git push --tags   # CI builds + publishes the jars
-#   gen-nix-local-mods mods-vX.Y.Z           # regenerate nix/local-mods.nix (in `nix develop`)
+#   pin-local-mods mods-vX.Y.Z               # re-pin pack/mods/*.pw.toml (in `nix develop`)
 #
 # Usage:
 #   scripts/build-mods.sh                 build + install ALL local mods (full Prism sync)

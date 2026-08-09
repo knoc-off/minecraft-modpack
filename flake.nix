@@ -48,34 +48,48 @@
     #   gen-nix-from-packwiz   (in `nix develop`)
     mods = import ./nix/mods.nix { inherit pkgs; };
 
-    # mods whose `side` is in the given list → list of jar derivations
-    jarsForSides = sides:
-      lib.mapAttrsToList (_: m: m.jar)
-        (lib.filterAttrs (_: m: builtins.elem m.side sides) mods);
-
-    allModJars    = jarsForSides [ "both" "client" "server" ];
-    serverModJars = jarsForSides [ "both" "server" ];
-
     # ── Local mods (asset-shelf, paint-craft, structure-stash) ──
-    # Pinned via packwiz like any other mod (pack/mods/*.pw.toml, added with
-    # `packwiz github add`, tracking GitHub Release assets) — see `mods`
-    # above. For local dev iteration before a release exists, or while
-    # testing an unreleased change, scripts/build-mods.sh drops a jar into
-    # ./local-mods/ (gitignored); any jar there whose filename isn't already
-    # pinned via packwiz is picked up here as a fallback/override.
-    pinnedJarNames = lib.mapAttrsToList (_: m: m.jar.name) mods;
-
+    # Pinned via packwiz like any other mod (pack/mods/*.pw.toml, kept in
+    # sync with GitHub Releases via `pin-local-mods mods-vX.Y.Z` -- see
+    # scripts/pin-local-mods.sh). For local dev iteration before a release
+    # exists, or while testing an unreleased change, scripts/build-mods.sh
+    # drops a jar into ./local-mods/ (gitignored).
+    #
+    # A jar in ./local-mods/ always overrides the packwiz-pinned jar for the
+    # same mod, matched by *mod id* (the local jar's filename with its
+    # trailing "-<version>.jar" stripped), not by exact filename -- so a
+    # version bump on either side can't leave both the pinned and the local
+    # jar in the mods dir at once, which NeoForge refuses to load (duplicate
+    # mod id).
     localModsPath = ./local-mods;
     localModsDirJars = if builtins.pathExists localModsPath
       then builtins.filter (f: lib.hasSuffix ".jar" f)
              (builtins.attrNames (builtins.readDir localModsPath))
       else [];
 
+    localOverrideIds = builtins.filter (id: id != null)
+      (map
+        (f: let m = builtins.match "(.+)-[0-9][0-9.]*\\.jar" f;
+            in if m == null then null else builtins.head m)
+        localModsDirJars);
+
+    pinnedMods = lib.filterAttrs
+      (_: m: !(lib.any (id: lib.hasPrefix (id + "-") m.jar.name) localOverrideIds))
+      mods;
+
+    # mods whose `side` is in the given list → list of jar derivations
+    jarsForSides = sides:
+      lib.mapAttrsToList (_: m: m.jar)
+        (lib.filterAttrs (_: m: builtins.elem m.side sides) pinnedMods);
+
+    allModJars    = jarsForSides [ "both" "client" "server" ];
+    serverModJars = jarsForSides [ "both" "server" ];
+
     localModJars =
       map (f: pkgs.runCommand f {} ''
         cp ${localModsPath + "/${f}"} $out
       '')
-      (builtins.filter (f: !(lib.elem f pinnedJarNames)) localModsDirJars);
+      localModsDirJars;
 
     # Full set (client / singleplayer) and server-safe subset.
     modsDir       = pkgs.linkFarmFromDrvs "mods" (allModJars ++ localModJars);
@@ -220,8 +234,12 @@
         pkgs.jdk21
         pkgs.gradle
         pkgs.jq
+        pkgs.curl
         (pkgs.writeShellScriptBin "gen-nix-from-packwiz" ''
           exec ${pkgs.python3}/bin/python3 ${./scripts/gen_nix_from_packwiz.py} "$@"
+        '')
+        (pkgs.writeShellScriptBin "pin-local-mods" ''
+          exec ${pkgs.bash}/bin/bash ${./scripts/pin-local-mods.sh} "$@"
         '')
       ];
 
@@ -238,7 +256,7 @@
         echo "  Local mods (asset-shelf, paint-craft, structure-stash):"
         echo "    scripts/build-mods.sh               build + install locally (dev iteration)"
         echo "    git tag mods-vX.Y.Z && git push --tags   cut a release (CI builds + publishes jars)"
-        echo "    cd pack && packwiz update <mod>     re-pin to the new release (in \`nix develop\`)"
+        echo "    pin-local-mods mods-vX.Y.Z          re-pin pack/mods/*.pw.toml to the new release"
         echo ""
         echo "  Build/Run:"
         echo "    nix run .#installPrism             install to Prism Launcher"

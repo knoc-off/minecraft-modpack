@@ -9,8 +9,9 @@ result-*
 *-data/
 
 # Built local-mod jars: built by CI, published as GitHub Release assets,
-# and consumed via nix/local-mods.nix. Kept locally (uncommitted) as a
-# dev-iteration fallback for scripts/build-mods.sh — see nix/local-mods.nix.
+# and pinned in pack/mods/*.pw.toml (see scripts/pin-local-mods.sh). Kept
+# locally (uncommitted) as a dev-iteration override for scripts/build-mods.sh
+# -- see the "Local mods" comment in flake.nix.
 local-mods/*.jar
 
 

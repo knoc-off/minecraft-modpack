@@ -3,17 +3,25 @@ name: Build mods
 on:
   push:
     branches: [main]
-    paths:
-      - 'packages/**'
+    # No `paths` filter here on purpose. GitHub requires *both* the ref filter
+    # and the paths filter to match, and that applies to tag pushes too -- so
+    # with `paths: packages/**` a `mods-v*` tag on a commit that didn't touch
+    # packages/ would silently never build, publishing no jars at all.
     tags:
       - 'mods-v*'
   pull_request:
     paths:
       - 'packages/**'
+  workflow_dispatch:
+
+concurrency:
+  group: build-mods-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       contents: write
 
