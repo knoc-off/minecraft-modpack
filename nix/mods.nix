@@ -1,5 +1,5 @@
 # Auto-generated from packwiz -- do not edit manually.
-# 81 mods
+# 79 mods
 
 { pkgs }:
 
@@ -78,17 +78,6 @@
       outputHashAlgo = "sha512";
       outputHash = "54b5b8026484bf44dc79f46b61965c2d45f4733bb6b580a59d2268c5d4dc11e8ae3fe9238d4ee045292cc3adc80ec9bcfd2e21a4b7433e31dbf1344a52b932f2";
       name = "c2me-neoforge-mc1.21.1-0.4.0-alpha.0.116.jar";
-    };
-  };
-
-  # C2ME OpenCL Acceleration Module
-  "c2me-ocl" = {
-    side = "both";
-    jar = pkgs.fetchurl {
-      url = "https://cdn.modrinth.com/data/qtPMklut/versions/k3BXPDat/c2me-neoforge-opts-accel-opencl-mc1.21.1-0.4.0-alpha.0.116.jar";
-      outputHashAlgo = "sha512";
-      outputHash = "b1ddf74656c12e06b595927425df43cf3c36032a9144b6b9c177d5c6f31b0c2706f394caec85fdb25439e4a407ef29f4aec7fd24083c8be955e8e432aeac58c6";
-      name = "c2me-neoforge-opts-accel-opencl-mc1.21.1-0.4.0-alpha.0.116.jar";
     };
   };
 
@@ -595,17 +584,6 @@
       outputHashAlgo = "sha512";
       outputHash = "c13c4da086001c205361905cd3a6c59a76e3c7d4c082265aaf3baf2fd30c79808f6634bca89aba29db5c096aa7da4066f76454093c306c3ae91c6c0d4d63ae0d";
       name = "sable-neoforge-1.21.1-2.0.3.jar";
-    };
-  };
-
-  # ScalableLux
-  "scalablelux" = {
-    side = "both";
-    jar = pkgs.fetchurl {
-      url = "https://cdn.modrinth.com/data/Ps1zyz6x/versions/w2yQbU01/ScalableLux-neoforge-0.3.0-alpha.0.6-all.jar";
-      outputHashAlgo = "sha512";
-      outputHash = "6ae3a81bdebe9821682f193caa5e82fdd2fba9b94f72aafabc9ce47398bc9e0b09008c7e13338ff438405a5db79e80f3e4d87cf0b5a975669f64e0317d9414e3";
-      name = "ScalableLux-neoforge-0.3.0-alpha.0.6-all.jar";
     };
   };
 
