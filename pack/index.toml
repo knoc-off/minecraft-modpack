@@ -166,11 +166,6 @@ hash = "184c6768f11e0c33c22c104397ad559c5b9337c709d1d05c8e9c93891dcddaee"
 metafile = true
 
 [[files]]
-file = "mods/full-brightness-toggle.pw.toml"
-hash = "26569c9601e7490fff75ed2f556badced7f25177bebd4fad0c8789f386a4672a"
-metafile = true
-
-[[files]]
 file = "mods/fusion-connected-textures.pw.toml"
 hash = "0e79bdc0e20758b00f330867f389e57cd9046496da89fcd37701789443f96d24"
 metafile = true
@@ -227,7 +222,7 @@ metafile = true
 
 [[files]]
 file = "mods/lithostitched.pw.toml"
-hash = "eec0715d020c6079c430338684d4cd752aa55231cb7887174b361481834e3ac4"
+hash = "03db1002af8f411a1b594817232859247e352f16f1c7907d29893b3472dce440"
 metafile = true
 
 [[files]]
@@ -372,30 +367,30 @@ metafile = true
 
 [[files]]
 file = "mods/yungs-better-caves.pw.toml"
-hash = "9bd04b84287a7ceaae9333f87bb4ca3741506ac7bc2851174f5bc1dd4e3dcc70"
+hash = "31ae9ae93a8e3020278dd846c58d3376f53d2f90e2f0e8a25eab81029e2e8604"
 metafile = true
 
 [[files]]
 file = "mods/yungs-better-desert-temples.pw.toml"
-hash = "634130ab233121c290fdb2567afd3939af6d98760c11f14db0426b64b8955894"
+hash = "c2cb28859e7bcc0eb4ce59c5792f90fa5f8ab8865f5867ba26a5a345ec60b498"
 metafile = true
 
 [[files]]
 file = "mods/yungs-better-dungeons.pw.toml"
-hash = "4c2830674a08ec9f10af13e4d259aa60158bd306a3996d935e678281ec0cb5fd"
+hash = "1496ffa30020676979e65921b91e583a2fdc77e50001e2ed55f99edf1a0ae880"
 metafile = true
 
 [[files]]
 file = "mods/yungs-better-mineshafts.pw.toml"
-hash = "0cc13a86488cf89d2989edc1636fa63c7efa2fe819246d42af35113458d5ba5b"
+hash = "e839608ebc974e9e7819adc7bf29132ea86fc41b46af540fe0fa39b2007b2439"
 metafile = true
 
 [[files]]
 file = "mods/yungs-better-strongholds.pw.toml"
-hash = "1a33e6d64e88ad59b65d126c6457d582e62724167349ea184eb237435298985e"
+hash = "03084966c05070b5c4b17cd89234f3c0d813940a2d76b405a6699deac10a0ab8"
 metafile = true
 
 [[files]]
 file = "mods/yungs-extras.pw.toml"
-hash = "2541b092b92a82757e5d200a6093658e20db548bb8583abad3f4506ed04e5ce6"
+hash = "cfb7ce4c2b00cedd2e61f7d345b824d6bcc1471021668d2319ee2e4079108639"
 metafile = true

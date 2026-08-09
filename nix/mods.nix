@@ -1,5 +1,5 @@
 # Auto-generated from packwiz -- do not edit manually.
-# 80 mods
+# 79 mods
 
 { pkgs }:
 
@@ -367,17 +367,6 @@
     };
   };
 
-  # Full Brightness Toggle
-  "full-brightness-toggle" = {
-    side = "client";
-    jar = pkgs.fetchurl {
-      url = "https://cdn.modrinth.com/data/aEK1KhsC/versions/8S5iOkIh/fullbrightnesstoggle-1.21.1-4.4.jar";
-      outputHashAlgo = "sha512";
-      outputHash = "970c95a10655939a9c5eb2ab49adde59fcee87388ee6fdd0563ba14c1f78da06bfd5d12d5cba0720964e52c3f05ef1d5d770884f5161c4e6966da1ccbf3eb5ec";
-      name = "fullbrightnesstoggle-1.21.1-4.4.jar";
-    };
-  };
-
   # Fusion (Connected Textures)
   "fusion-connected-textures" = {
     side = "client";
@@ -501,7 +490,7 @@
 
   # Lithostitched
   "lithostitched" = {
-    side = "server";
+    side = "both";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/XaDC71GB/versions/wiffJSbz/lithostitched-1.7.9-neoforge-21.1.jar";
       outputHashAlgo = "sha512";
@@ -820,7 +809,7 @@
 
   # YUNG's Better Caves
   "yungs-better-caves" = {
-    side = "server";
+    side = "both";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/Dfu00ggU/versions/ygKiHadA/YungsBetterCaves-1.21.1-NeoForge-3.1.4.jar";
       outputHashAlgo = "sha512";
@@ -831,7 +820,7 @@
 
   # YUNG's Better Desert Temples
   "yungs-better-desert-temples" = {
-    side = "server";
+    side = "both";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/XNlO7sBv/versions/GQ9iNWkI/YungsBetterDesertTemples-1.21.1-NeoForge-4.1.5.jar";
       outputHashAlgo = "sha512";
@@ -842,7 +831,7 @@
 
   # YUNG's Better Dungeons
   "yungs-better-dungeons" = {
-    side = "server";
+    side = "both";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/o1C1Dkj5/versions/D6aZn0Em/YungsBetterDungeons-1.21.1-NeoForge-5.1.4.jar";
       outputHashAlgo = "sha512";
@@ -853,7 +842,7 @@
 
   # YUNG's Better Mineshafts
   "yungs-better-mineshafts" = {
-    side = "server";
+    side = "both";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/HjmxVlSr/versions/Go3nbneL/YungsBetterMineshafts-1.21.1-NeoForge-5.1.1.jar";
       outputHashAlgo = "sha512";
@@ -864,7 +853,7 @@
 
   # YUNG's Better Strongholds
   "yungs-better-strongholds" = {
-    side = "server";
+    side = "both";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/kidLKymU/versions/8U0dIfSM/YungsBetterStrongholds-1.21.1-NeoForge-5.1.3.jar";
       outputHashAlgo = "sha512";
@@ -875,7 +864,7 @@
 
   # YUNG's Extras
   "yungs-extras" = {
-    side = "server";
+    side = "both";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/ZYgyPyfq/versions/N2EpMhR7/YungsExtras-1.21.1-NeoForge-5.1.1.jar";
       outputHashAlgo = "sha512";
