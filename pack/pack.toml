@@ -1,6 +1,6 @@
 name = "bricks-building-extended"
 author = "knoc-off"
-version = "0.1.0"
+version = "0.1.4"
 pack-format = "packwiz:1.1.0"
 
 [index]
