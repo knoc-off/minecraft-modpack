@@ -1,4 +1,4 @@
-# bricks-building-extended -- Minecraft modpack
+# Inkwell -- Minecraft modpack
 #
 # NeoForge 1.21.1. Mods come from two places: the 73 Modrinth-hosted ones are
 # packwiz-managed (pack/mods/*.pw.toml -> nix/mods.nix), and the three local
@@ -13,7 +13,7 @@
 #
 # Server is deployed via nixosModules.default (nix-minecraft).
 {
-  description = "bricks-building-extended -- Minecraft modpack";
+  description = "Inkwell -- Minecraft modpack";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -32,13 +32,23 @@
 
     # ── Pack metadata ──────────────────────────────────────────
     packMeta = {
-      name = "bricks-building-extended";
+      name = "inkwell";
       mcVersion = "1.21.1";
       loader = "neoforge";
       loaderVersion = "21.1.233";
     };
 
     mcVersionUnderscore = builtins.replaceStrings ["."] ["_"] packMeta.mcVersion;
+
+    # ── Branding ───────────────────────────────────────────────
+    packIcon = ./assets/inkwell.png;
+
+    # Minecraft's server list ping requires exactly 64x64.
+    serverIcon = pkgs.runCommand "server-icon.png" {
+      nativeBuildInputs = [ pkgs.imagemagick ];
+    } ''
+      magick ${packIcon} -resize 64x64! $out
+    '';
 
     # ── Server package ─────────────────────────────────────────
     serverPackage = pkgs.neoforgeServers."neoforge-${mcVersionUnderscore}";
@@ -280,9 +290,12 @@
         cat > "$INST/instance.cfg" <<'EOF'
         InstanceType=OneSix
         name=${packMeta.name}
+        iconKey=${packMeta.name}
         OverrideCommands=true
         PreLaunchCommand="$INST_JAVA" -jar packwiz-installer-bootstrap.jar ${lib.removeSuffix "/" baseUrl}/pack.toml
         EOF
+
+        cp ${packIcon} "$INST/${packMeta.name}.png"
 
         cat > "$INST/mmc-pack.json" <<'MMCEOF'
         ${builtins.toJSON {
@@ -314,7 +327,10 @@
       cat > "$INST/instance.cfg" <<EOF
       InstanceType=OneSix
       name=${packMeta.name}
+      iconKey=${packMeta.name}
       EOF
+
+      cp ${packIcon} "$INST/${packMeta.name}.png"
 
       cat > "$INST/mmc-pack.json" <<'MMCEOF'
       ${builtins.toJSON {
@@ -357,6 +373,14 @@
       set -euo pipefail
       PRISM_DIR="''${1:-''${XDG_DATA_HOME:-$HOME/.local/share}/PrismLauncher/instances}"
       DEST="$PRISM_DIR/${packMeta.name}"
+
+      # Prism only picks up an instance's icon from its own global icon list,
+      # not from a file sitting in the instance folder -- register it there
+      # too, since this path skips the GUI's zip-import flow that would
+      # normally do this automatically.
+      ICONS_DIR="$(dirname "$PRISM_DIR")/icons"
+      mkdir -p "$ICONS_DIR"
+      cp ${packIcon} "$ICONS_DIR/${packMeta.name}.png"
 
       if [ -d "$DEST" ]; then
         echo "Instance exists at $DEST -- updating mods..."
@@ -427,14 +451,24 @@
 
           symlinks = {
             "mods" = serverModsDir;
+            "server-icon.png" = serverIcon;
           };
 
           # `files`, not `symlinks`: these mods rewrite their own config on
           # startup, which a read-only store symlink cannot absorb. Copies are
           # re-applied on every service start, so the file here stays
           # authoritative and a hand-edit on the box is transient.
+          #
+          # Must be wrapped in `builtins.path`: a bare ./path here is already
+          # inside the flake's own store source (fetched via git+ssh), so
+          # interpolating it produces a string with no store-path context and
+          # Nix never records it as a dependency. The file then silently never
+          # gets copied to the target machine.
           files = {
-            "config/DistantHorizons.toml" = ./server-config/DistantHorizons.toml;
+            "config/DistantHorizons.toml" = builtins.path {
+              path = ./server-config/DistantHorizons.toml;
+              name = "DistantHorizons.toml";
+            };
           };
 
           serverProperties = prodServerProperties;

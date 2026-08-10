@@ -1,10 +1,10 @@
-# bricks-building-extended
+# Inkwell
 
 Minecraft 1.21.1, NeoForge 21.1.233.
 
 ## Playing (fastest way)
 
-1. Download <https://mc.niko.ink/pack/bricks-building-extended.zip>
+1. Download <https://mc.niko.ink/pack/inkwell.zip>
 2. Prism Launcher: "Add Instance" -> "Import from zip" -> select the file.
 3. Launch.
 

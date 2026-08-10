@@ -11,7 +11,7 @@ import struct
 import sys
 
 SERVERS = [
-    {"name": "bricks-building-extended", "ip": "mc.niko.ink"},
+    {"name": "inkwell", "ip": "mc.niko.ink"},
 ]
 
 TAG_END = 0
