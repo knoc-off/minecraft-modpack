@@ -1,5 +1,5 @@
 # Auto-generated from packwiz -- do not edit manually.
-# 73 mods
+# 74 mods, 1 shaderpacks
 
 { pkgs }:
 
@@ -7,6 +7,7 @@
   # Amendments
   "amendments" = {
     side = "both";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/6iTJugQR/versions/8xf6Wpxs/amendments-1.21-2.0.15-neoforge.jar";
       outputHashAlgo = "sha512";
@@ -18,6 +19,7 @@
   # AppleSkin
   "appleskin" = {
     side = "both";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/EsAfCjCV/versions/uAKA6Laj/appleskin-neoforge-mc1.21-3.0.9.jar";
       outputHashAlgo = "sha512";
@@ -29,6 +31,7 @@
   # Architectury API
   "architectury-api" = {
     side = "both";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/lhGA9TYQ/versions/ZxYGwlk0/architectury-13.0.8-neoforge.jar";
       outputHashAlgo = "sha512";
@@ -40,6 +43,7 @@
   # Athena
   "athena-ctm" = {
     side = "client";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/b1ZV3DIJ/versions/dJgL278E/athena-neoforge-1.21.1-4.0.6.jar";
       outputHashAlgo = "sha512";
@@ -51,6 +55,7 @@
   # Better Clouds
   "better-clouds" = {
     side = "client";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/5srFLIaK/versions/bfurRkm7/better-clouds-1.13.5-beta%2B1.21.1-neoforge.rev.a60dfa0.jar";
       outputHashAlgo = "sha512";
@@ -62,6 +67,7 @@
   # Concurrent Chunk Management Engine (NeoForge)
   "c2me-neoforge" = {
     side = "both";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/COlSi5iR/versions/5Q757s3v/c2me-neoforge-mc1.21.1-0.4.0-alpha.0.116.jar";
       outputHashAlgo = "sha512";
@@ -73,6 +79,7 @@
   # Chipped
   "chipped" = {
     side = "both";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/BAscRYKm/versions/eqVowbGc/chipped-neoforge-1.21.1-4.0.2.jar";
       outputHashAlgo = "sha512";
@@ -84,6 +91,7 @@
   # Chunky
   "chunky" = {
     side = "both";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/fALzjamp/versions/LuFhm4eU/Chunky-NeoForge-1.4.23.jar";
       outputHashAlgo = "sha512";
@@ -95,6 +103,7 @@
   # Cloth Config API
   "cloth-config" = {
     side = "both";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/9s6osm5g/versions/izKINKFg/cloth-config-15.0.140-neoforge.jar";
       outputHashAlgo = "sha512";
@@ -106,6 +115,7 @@
   # Clumps
   "clumps" = {
     side = "both";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/Wnxd13zP/versions/jo7lDoK4/Clumps-neoforge-1.21.1-19.0.0.1.jar";
       outputHashAlgo = "sha512";
@@ -117,6 +127,7 @@
   # Collective
   "collective" = {
     side = "both";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/e0M1UDsY/versions/BV3sMDFA/collective-1.21.1-8.23.jar";
       outputHashAlgo = "sha512";
@@ -128,6 +139,7 @@
   # Comforts
   "comforts" = {
     side = "both";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/SaCpeal4/versions/3kpPjcTc/comforts-neoforge-9.0.5%2B1.21.1.jar";
       outputHashAlgo = "sha512";
@@ -139,6 +151,7 @@
   # Create: Copycats+
   "copycats" = {
     side = "both";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/UT2M39wf/versions/kecZ0sl7/copycats-3.0.4%2Bmc.1.21.1-neoforge.jar";
       outputHashAlgo = "sha512";
@@ -150,6 +163,7 @@
   # Create
   "create" = {
     side = "both";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/LNytGWDc/versions/UjX6dr61/create-1.21.1-6.0.10.jar";
       outputHashAlgo = "sha512";
@@ -161,6 +175,7 @@
   # Create Aeronautics
   "create-aeronautics" = {
     side = "both";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/oWaK0Q19/versions/w7zlLnea/create-aeronautics-bundled-1.21.1-1.3.0.jar";
       outputHashAlgo = "sha512";
@@ -172,6 +187,7 @@
   # Create: Connected
   "create-connected" = {
     side = "both";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/Vg5TIO6d/versions/tSy3IGxT/create_connected-1.2.0-mc1.21.1.jar";
       outputHashAlgo = "sha512";
@@ -183,6 +199,7 @@
   # Create Deco
   "create-deco" = {
     side = "both";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/sMvUb4Rb/versions/qrcMVoBD/createdeco-2.1.3.jar";
       outputHashAlgo = "sha512";
@@ -194,6 +211,7 @@
   # Create: Dragons Plus
   "create-dragons-plus" = {
     side = "both";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/dzb1a5WV/versions/V011gYLr/CreateDragonsPlus-1.11.1b.jar";
       outputHashAlgo = "sha512";
@@ -205,6 +223,7 @@
   # Create: Enchantment Industry
   "create-enchantment-industry" = {
     side = "both";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/JWGBpFUP/versions/QclZk1u6/create-enchantment-industry-2.4.1.jar";
       outputHashAlgo = "sha512";
@@ -216,6 +235,7 @@
   # Create: Sound of Steam
   "create-sound-of-steam" = {
     side = "both";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/yGttHo06/versions/iFePoN10/pipeorgans-0.8.2%2B1.21.1.jar";
       outputHashAlgo = "sha512";
@@ -227,6 +247,7 @@
   # Create Crafts & Additions
   "createaddition" = {
     side = "both";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/kU1G12Nn/versions/qPr8V4G2/createaddition-1.6.0.jar";
       outputHashAlgo = "sha512";
@@ -238,6 +259,7 @@
   # Cristel Lib
   "cristel-lib" = {
     side = "both";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/cl223EMc/versions/GlBkE8Zq/cristellib-neoforge-1.21.1-3.1.6.jar";
       outputHashAlgo = "sha512";
@@ -249,6 +271,7 @@
   # Diagonal Fences
   "diagonal-fences" = {
     side = "both";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/IKARgflD/versions/bgR1e0O5/DiagonalFences-v21.1.1-1.21.1-NeoForge.jar";
       outputHashAlgo = "sha512";
@@ -260,6 +283,7 @@
   # Diagonal Walls
   "diagonal-walls" = {
     side = "both";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/FQgc8dib/versions/2k3GCxEt/DiagonalWalls-v21.1.2-1.21.1-NeoForge.jar";
       outputHashAlgo = "sha512";
@@ -271,6 +295,7 @@
   # Distant Horizons
   "distanthorizons" = {
     side = "both";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/uCdwusMi/versions/g68FsgfE/DistantHorizons-3.1.2-b-1.21.1-fabric-neoforge.jar";
       outputHashAlgo = "sha512";
@@ -282,6 +307,7 @@
   # Dramatic Doors
   "dramatic-doors" = {
     side = "both";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/aQ7h7gal/versions/X5oMCwaA/DramaticDoors-NeoQuiFab-1.21.1-3.3.2.jar";
       outputHashAlgo = "sha512";
@@ -293,6 +319,7 @@
   # Dynamic FPS
   "dynamic-fps" = {
     side = "client";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/LQ3K71Q1/versions/T238FZpQ/dynamic-fps-3.11.4%2Bminecraft-1.21.0-neoforge.jar";
       outputHashAlgo = "sha512";
@@ -304,6 +331,7 @@
   # Entity Culling
   "entityculling" = {
     side = "client";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/NNAgCjsB/versions/2tOn8XA2/entityculling-neoforge-1.10.2-mc1.21.1.jar";
       outputHashAlgo = "sha512";
@@ -315,6 +343,7 @@
   # Farmer's Delight
   "farmers-delight" = {
     side = "both";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/R2OftAxM/versions/GbNuOZ4S/FarmersDelight-1.21.1-1.3.2.jar";
       outputHashAlgo = "sha512";
@@ -326,6 +355,7 @@
   # FerriteCore
   "ferrite-core" = {
     side = "both";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/uXXizFIs/versions/x7kQWVju/ferritecore-7.0.3-neoforge.jar";
       outputHashAlgo = "sha512";
@@ -337,6 +367,7 @@
   # FramedBlocks
   "framedblocks" = {
     side = "both";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/wbgfS34j/versions/1lKlr9Uf/FramedBlocks-10.6.0.jar";
       outputHashAlgo = "sha512";
@@ -348,6 +379,7 @@
   # Freecam
   "freecam" = {
     side = "client";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/XeEZ3fK2/versions/ROfcbxxe/freecam-neoforge-1.3.0%2Bmc1.21.jar";
       outputHashAlgo = "sha512";
@@ -359,6 +391,7 @@
   # Fusion (Connected Textures)
   "fusion-connected-textures" = {
     side = "client";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/p19vrgc2/versions/FQbOs0Y6/fusion-1.3.4-neoforge-mc1.21.1.jar";
       outputHashAlgo = "sha512";
@@ -370,6 +403,7 @@
   # Handcrafted
   "handcrafted" = {
     side = "both";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/pJmCFF0p/versions/JfqnpP2Z/handcrafted-neoforge-1.21.1-4.0.3.jar";
       outputHashAlgo = "sha512";
@@ -381,6 +415,7 @@
   # Iceberg
   "iceberg" = {
     side = "both";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/5faXoLqX/versions/IMssx9du/Iceberg-1.21.1-neoforge-1.3.2.jar";
       outputHashAlgo = "sha512";
@@ -392,6 +427,7 @@
   # Create: Interiors
   "interiors" = {
     side = "both";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/r4Knci2k/versions/gBrfZy6S/interiors-1.21.1-neoforge-0.6.1.jar";
       outputHashAlgo = "sha512";
@@ -403,6 +439,7 @@
   # Iris Shaders
   "iris" = {
     side = "client";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/YL57xq9U/versions/KduFYu4t/iris-neoforge-1.8.14-beta.1%2Bmc1.21.1.jar";
       outputHashAlgo = "sha512";
@@ -414,6 +451,7 @@
   # Iris & Oculus Flywheel Compat
   "iris-flw-compat" = {
     side = "client";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/ndHYMY2K/versions/6ZQz5Ow2/iris-flywheel-compat-NeoForge-2.4.0.jar";
       outputHashAlgo = "sha512";
@@ -425,6 +463,7 @@
   # Item Highlighter
   "item-highlighter" = {
     side = "client";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/cVNW5lr6/versions/AsQ0Y2G9/Highlighter-1.21-neoforge-1.1.11.jar";
       outputHashAlgo = "sha512";
@@ -436,6 +475,7 @@
   # Jade 🔍
   "jade" = {
     side = "both";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/nvQzSEkH/versions/yd8FKCmx/Jade-1.21.1-NeoForge-15.10.5.jar";
       outputHashAlgo = "sha512";
@@ -447,6 +487,7 @@
   # Just Enough Items (JEI)
   "jei" = {
     side = "both";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/u6dRKJwZ/versions/YAcQ6elZ/jei-1.21.1-neoforge-19.27.0.340.jar";
       outputHashAlgo = "sha512";
@@ -458,6 +499,7 @@
   # Just Enough Resources (JER)
   "just-enough-resources-jer" = {
     side = "client";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/uEfK2CXF/versions/TgNFki8j/JustEnoughResources-NeoForge-1.21.1-1.6.0.17.jar";
       outputHashAlgo = "sha512";
@@ -469,6 +511,7 @@
   # LambDynamicLights - Dynamic Lights
   "lambdynamiclights" = {
     side = "client";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/yBW8D80W/versions/IQcvNDtF/lambdynamiclights-4.8.8%2B1.21.1.jar";
       outputHashAlgo = "sha512";
@@ -480,6 +523,7 @@
   # Lithostitched
   "lithostitched" = {
     side = "both";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/XaDC71GB/versions/wiffJSbz/lithostitched-1.7.9-neoforge-21.1.jar";
       outputHashAlgo = "sha512";
@@ -491,6 +535,7 @@
   # ModernFix
   "modernfix" = {
     side = "both";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/nmDcB62a/versions/nWk1yGgV/modernfix-neoforge-5.27.11%2Bmc1.21.1.jar";
       outputHashAlgo = "sha512";
@@ -502,6 +547,7 @@
   # Moonlight Lib
   "moonlight" = {
     side = "both";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/twkfQtEc/versions/GIPutI3U/moonlight-neoforge-1.21.1-3.0.20.jar";
       outputHashAlgo = "sha512";
@@ -513,6 +559,7 @@
   # Not Enough Crashes
   "notenoughcrashes" = {
     side = "both";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/yM94ont6/versions/alR8L7vF/notenoughcrashes-neoforge-4.4.9%2B1.21.1.jar";
       outputHashAlgo = "sha512";
@@ -524,6 +571,7 @@
   # Particle Rain
   "particle-rain" = {
     side = "client";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/nrikgvxm/versions/CJeVXIae/particlerain-4.0.0-beta.10%2B1.21.1-neoforge.jar";
       outputHashAlgo = "sha512";
@@ -535,6 +583,7 @@
   # Puzzles Lib
   "puzzles-lib" = {
     side = "both";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/QAGBst4M/versions/PRF4qcdp/PuzzlesLib-v21.1.51-1.21.1-NeoForge.jar";
       outputHashAlgo = "sha512";
@@ -546,6 +595,7 @@
   # Resourceful Lib
   "resourceful-lib" = {
     side = "both";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/G1hIVOrD/versions/x99nCLTm/resourcefullib-neoforge-1.21-3.0.12.jar";
       outputHashAlgo = "sha512";
@@ -557,6 +607,7 @@
   # Sable
   "sable" = {
     side = "both";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/T9PomCSv/versions/1L6XJqnY/sable-neoforge-1.21.1-2.0.3.jar";
       outputHashAlgo = "sha512";
@@ -565,9 +616,22 @@
     };
   };
 
+  # ServerCore
+  "servercore" = {
+    side = "server";
+    dest = "mods";
+    jar = pkgs.fetchurl {
+      url = "https://cdn.modrinth.com/data/4WWQxlQP/versions/6N9hXiRa/servercore-neoforge-1.5.19%2B1.21.1.jar";
+      outputHashAlgo = "sha512";
+      outputHash = "55b97df4cc46f52db85b96487188d73c62d511229d98859991c115414c5f1ab37f2f40a0f2edb5692220aa94d6c48b392b0a2d8593b3c3381b1fcbde2a728c8f";
+      name = "servercore-neoforge-1.5.19+1.21.1.jar";
+    };
+  };
+
   # Shulker Box Tooltip
   "shulkerboxtooltip" = {
     side = "both";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/2M01OLQq/versions/IuqNIoAi/shulkerboxtooltip-neoforge-5.1.9%2B1.21.1.jar";
       outputHashAlgo = "sha512";
@@ -579,6 +643,7 @@
   # Simple Voice Chat
   "simple-voice-chat" = {
     side = "both";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/9eGKb6K1/versions/8xOu3Um5/voicechat-neoforge-1.21.1-2.6.20.jar";
       outputHashAlgo = "sha512";
@@ -590,6 +655,7 @@
   # Sodium
   "sodium" = {
     side = "client";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/AANobbMI/versions/7XOIgnrf/sodium-neoforge-0.8.12-beta.2%2Bmc1.21.1.jar";
       outputHashAlgo = "sha512";
@@ -601,6 +667,7 @@
   # Sodium Extra
   "sodium-extra" = {
     side = "client";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/PtjYWJkn/versions/hXez7Tlk/sodium-extra-neoforge-0.8.7%2Bmc1.21.1.jar";
       outputHashAlgo = "sha512";
@@ -612,6 +679,7 @@
   # Sound Physics Perfected
   "sound-physics-perfected" = {
     side = "client";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/KS6Hbu9Z/versions/rljqrkhf/sound_physics_perfected-1.17.3%2B1.21.1-neoforge.jar";
       outputHashAlgo = "sha512";
@@ -623,6 +691,7 @@
   # spark
   "spark" = {
     side = "both";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/l6YH9Als/versions/v5qtqRQi/spark-1.10.124-neoforge.jar";
       outputHashAlgo = "sha512";
@@ -634,6 +703,7 @@
   # Separate Sable Render Distance
   "ssrd" = {
     side = "both";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/fJ183v3D/versions/ia8u5lk9/SSRD-1.8.1-1.21.1.jar";
       outputHashAlgo = "sha512";
@@ -645,6 +715,7 @@
   # Supplementaries
   "supplementaries" = {
     side = "both";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/fFEIiSDQ/versions/53oYzPfG/supplementaries-neoforge-1.21.1-3.7.4.jar";
       outputHashAlgo = "sha512";
@@ -656,6 +727,7 @@
   # Tectonic
   "tectonic" = {
     side = "both";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/lWDHr9jE/versions/iCGkqnnx/tectonic-3.0.22-neoforge-21.1.jar";
       outputHashAlgo = "sha512";
@@ -667,6 +739,7 @@
   # Terralith
   "terralith" = {
     side = "both";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/8oi3bsk5/versions/MuJMtPGQ/Terralith_1.21.x_v2.5.8.jar";
       outputHashAlgo = "sha512";
@@ -678,6 +751,7 @@
   # Towns and Towers
   "towns-and-towers" = {
     side = "both";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/DjLobEOy/versions/5PS5OhIh/t_and_t-neoforge-fabric-1.13.9%2B1.21.1.jar";
       outputHashAlgo = "sha512";
@@ -689,6 +763,7 @@
   # WI Zoom
   "wi-zoom" = {
     side = "client";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/o7DitHWP/versions/NBm3hI80/WI-Zoom-1.6-MC1.21.1-NeoForge.jar";
       outputHashAlgo = "sha512";
@@ -700,6 +775,7 @@
   # Xaero's Minimap
   "xaeros-minimap" = {
     side = "both";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/1bokaNcj/versions/CklXEjmp/xaerominimap-neoforge-1.21.1-25.3.13.jar";
       outputHashAlgo = "sha512";
@@ -711,6 +787,7 @@
   # Xaero's World Map
   "xaeros-world-map" = {
     side = "both";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/NcUtCpym/versions/XwL25au3/xaeroworldmap-neoforge-1.21.1-1.40.16.jar";
       outputHashAlgo = "sha512";
@@ -722,6 +799,7 @@
   # YetAnotherConfigLib (YACL)
   "yacl" = {
     side = "both";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/1eAoo2KR/versions/7TVdVtxF/yet_another_config_lib_v3-3.8.2%2B1.21.1-neoforge.jar";
       outputHashAlgo = "sha512";
@@ -733,6 +811,7 @@
   # YUNG's API
   "yungs-api" = {
     side = "both";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/Ua7DFN59/versions/ZB22DE9q/YungsApi-1.21.1-NeoForge-5.1.6.jar";
       outputHashAlgo = "sha512";
@@ -744,6 +823,7 @@
   # YUNG's Better Caves
   "yungs-better-caves" = {
     side = "both";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/Dfu00ggU/versions/ygKiHadA/YungsBetterCaves-1.21.1-NeoForge-3.1.4.jar";
       outputHashAlgo = "sha512";
@@ -755,6 +835,7 @@
   # YUNG's Better Desert Temples
   "yungs-better-desert-temples" = {
     side = "both";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/XNlO7sBv/versions/GQ9iNWkI/YungsBetterDesertTemples-1.21.1-NeoForge-4.1.5.jar";
       outputHashAlgo = "sha512";
@@ -766,6 +847,7 @@
   # YUNG's Better Dungeons
   "yungs-better-dungeons" = {
     side = "both";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/o1C1Dkj5/versions/D6aZn0Em/YungsBetterDungeons-1.21.1-NeoForge-5.1.4.jar";
       outputHashAlgo = "sha512";
@@ -777,6 +859,7 @@
   # YUNG's Better Mineshafts
   "yungs-better-mineshafts" = {
     side = "both";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/HjmxVlSr/versions/Go3nbneL/YungsBetterMineshafts-1.21.1-NeoForge-5.1.1.jar";
       outputHashAlgo = "sha512";
@@ -788,6 +871,7 @@
   # YUNG's Better Strongholds
   "yungs-better-strongholds" = {
     side = "both";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/kidLKymU/versions/8U0dIfSM/YungsBetterStrongholds-1.21.1-NeoForge-5.1.3.jar";
       outputHashAlgo = "sha512";
@@ -799,11 +883,24 @@
   # YUNG's Extras
   "yungs-extras" = {
     side = "both";
+    dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/ZYgyPyfq/versions/N2EpMhR7/YungsExtras-1.21.1-NeoForge-5.1.1.jar";
       outputHashAlgo = "sha512";
       outputHash = "d4ef831a034977abdcaec40a7662adbc37c32cf141c68245250da501f6ada2ce193c5351166fbcf2ffb1c452b60bfca8ac578963332aa4a1b523e43912b8cb8c";
       name = "YungsExtras-1.21.1-NeoForge-5.1.1.jar";
+    };
+  };
+
+  # BSL Shaders
+  "bsl-shaders" = {
+    side = "client";
+    dest = "shaderpacks";
+    jar = pkgs.fetchurl {
+      url = "https://cdn.modrinth.com/data/Q1vvjJYV/versions/hIibTfxn/BSL_v10.1.3.zip";
+      outputHashAlgo = "sha512";
+      outputHash = "3e68c8038e38b0860cf1258e5fc84bcd98007a70fb7ba49e306186be6e905187527b630b77cb9e8cc8ee80865606c0fb398c419a22f0076b2ed5c7d73748a9ba";
+      name = "BSL_v10.1.3.zip";
     };
   };
 

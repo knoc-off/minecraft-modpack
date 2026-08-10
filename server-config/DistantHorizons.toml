@@ -1,0 +1,4 @@
+[server]
+	maxGenerationRequestDistance = 1024
+	generationRequestRateLimit = 10
+	realTimeUpdateDistanceRadiusInChunks = 96

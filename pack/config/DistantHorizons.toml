@@ -1,0 +1,15 @@
+[client.advanced.graphics.quality]
+	lodChunkRenderDistanceRadius = 64
+	horizontalQuality = "LOW"
+	maxHorizontalResolution = "TWO_BLOCKS"
+	verticalQuality = "LOW"
+	lodBiomeBlending = 1
+
+[client.advanced.graphics]
+	enableSsao = false
+
+[client.advanced.graphics.culling]
+	overdrawPrevention = 0.4
+
+[common.multiThreading]
+	threadRunTimeRatio = 0.25

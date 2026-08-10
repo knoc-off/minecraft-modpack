@@ -44,11 +44,17 @@
     serverPackage = pkgs.neoforgeServers."neoforge-${mcVersionUnderscore}";
 
     # ── Mods ───────────────────────────────────────────────────
-    # Each entry is { side = "both"|"client"|"server"; jar = <drv>; }.
-    # Modrinth-hosted mods only -- see the local mods note below.
+    # Each entry is { side = "both"|"client"|"server"; dest = "mods"|
+    # "shaderpacks"|...; jar = <drv>; }. Modrinth-hosted only -- see the local
+    # mods note below.
     # Regenerate after packwiz changes:
     #   gen-nix-from-packwiz   (in `nix develop`)
     mods = import ./nix/mods.nix { inherit pkgs; };
+
+    # Directories packwiz sorts downloads into, by Modrinth project type.
+    # Must match RESOURCE_DIRS in scripts/gen_nix_from_packwiz.py.
+    resourceDirs = [ "mods" "shaderpacks" "resourcepacks" ];
+
 
     # ── Local mods (asset-shelf, paint-craft, structure-stash) ──
     # The committed jars in ./local-mods are the single source of truth. They
@@ -71,13 +77,13 @@
              (builtins.attrNames (builtins.readDir localModsPath)))
       else [];
 
-    # mods whose `side` is in the given list → list of jar derivations
-    jarsForSides = sides:
+    # entries whose `side` is in the given list and whose `dest` matches
+    # → list of jar derivations
+    jarsFor = sides: dest:
       lib.mapAttrsToList (_: m: m.jar)
-        (lib.filterAttrs (_: m: builtins.elem m.side sides) mods);
+        (lib.filterAttrs (_: m: m.dest == dest && builtins.elem m.side sides) mods);
 
-    allModJars    = jarsForSides [ "both" "client" "server" ];
-    serverModJars = jarsForSides [ "both" "server" ];
+    serverModJars = jarsFor [ "both" "server" ] "mods";
 
     localModJars =
       map (f: pkgs.runCommand f {} ''
@@ -85,13 +91,26 @@
       '')
       localModJarFiles;
 
-    # Full set (client / singleplayer) and server-safe subset.
-    modsDir       = pkgs.linkFarmFromDrvs "mods" (allModJars ++ localModJars);
+    # Tree shaped like .minecraft/: mods/, shaderpacks/, ... A flat farm would
+    # do for jars alone, but a shaderpack only loads from shaderpacks/.
+    # Local mods are mods, so they are only ever added to that dir.
+    clientResourcesDir = pkgs.linkFarm "client-resources" (
+      lib.concatMap (dest:
+        map (jar: { name = "${dest}/${jar.name}"; path = jar; })
+          (jarsFor [ "both" "client" "server" ] dest
+            ++ lib.optionals (dest == "mods") localModJars)
+      ) resourceDirs
+    );
+
+    # Flat: nix-minecraft symlinks this straight in as the server's mods/.
     serverModsDir = pkgs.linkFarmFromDrvs "server-mods" (serverModJars ++ localModJars);
 
-    # ── Configs (optional) ─────────────────────────────────────
-    configsPath = ./configs;
-    hasConfigs = builtins.pathExists configsPath;
+    # ── Pack overlay files ─────────────────────────────────────
+    # Plain files packwiz indexes out of pack/ and installs into .minecraft/:
+    # config/ defaults and the multiplayer server list. Marked `preserve` in
+    # pack/index.toml, so packwiz-installer writes them only when absent and
+    # never overwrites a player's edits.
+    packOverlayPaths = [ "config" "servers.dat" ];
 
     # ── Server properties ──────────────────────────────────────
     prodServerProperties = {
@@ -179,27 +198,30 @@
 
           # Repoint every download at this host. Only the url line changes --
           # the hashes still describe the same bytes, so they stay valid.
-          python3 - "$work" <<'PYEOF'
+          python3 - "$work" ${lib.escapeShellArgs resourceDirs} <<'PYEOF'
           import os, re, sys
           out = sys.argv[1]
           base = "${base}"
-          moddir = os.path.join(out, "mods")
-          for name in sorted(os.listdir(moddir)):
-              if not name.endswith(".pw.toml"):
+          for dest in sys.argv[2:]:
+              destdir = os.path.join(out, dest)
+              if not os.path.isdir(destdir):
                   continue
-              path = os.path.join(moddir, name)
-              src = open(path).read()
-              fn = re.search(r'^filename\s*=\s*"([^"]+)"', src, re.M)
-              if not fn:
-                  raise SystemExit(f"{name}: no filename field")
-              jar = fn.group(1)
-              new, n = re.subn(
-                  r'^(\s*)url\s*=\s*"[^"]*"',
-                  lambda m: f'{m.group(1)}url = "{base}/jars/{jar}"',
-                  src, count=1, flags=re.M)
-              if n != 1:
-                  raise SystemExit(f"{name}: no url field to rewrite")
-              open(path, "w").write(new)
+              for name in sorted(os.listdir(destdir)):
+                  if not name.endswith(".pw.toml"):
+                      continue
+                  path = os.path.join(destdir, name)
+                  src = open(path).read()
+                  fn = re.search(r'^filename\s*=\s*"([^"]+)"', src, re.M)
+                  if not fn:
+                      raise SystemExit(f"{dest}/{name}: no filename field")
+                  jar = fn.group(1)
+                  new, n = re.subn(
+                      r'^(\s*)url\s*=\s*"[^"]*"',
+                      lambda m: f'{m.group(1)}url = "{base}/jars/{jar}"',
+                      src, count=1, flags=re.M)
+                  if n != 1:
+                      raise SystemExit(f"{dest}/{name}: no url field to rewrite")
+                  open(path, "w").write(new)
           PYEOF
 
           # Rebuild index.toml + pack.toml's index hash: the metafiles above
@@ -209,28 +231,32 @@
           mkdir -p $out/jars
           cp -r "$work"/. $out/
 
-          # Every jar the pack references, served from one place. Filenames
-          # already carry versions, so a flat directory cannot collide.
-          for jar in ${modsDir}/*; do
-            cp -L "$jar" "$out/jars/"
+          # Everything the pack references -- mod jars and shaderpack zips
+          # alike -- served from one flat directory. Filenames already carry
+          # versions, so a flat directory cannot collide.
+          for f in ${clientResourcesDir}/*/*; do
+            cp -L "$f" "$out/jars/"
           done
 
-          # Fail loudly rather than serve a pack whose metafiles point at jars
+          # Fail loudly rather than serve a pack whose metafiles point at files
           # that aren't here -- a client would only find out mid-install.
-          python3 - "$out" <<'PYEOF'
+          python3 - "$out" ${lib.escapeShellArgs resourceDirs} <<'PYEOF'
           import os, re, sys
           out = sys.argv[1]
-          moddir = os.path.join(out, "mods")
           missing = []
-          for name in sorted(os.listdir(moddir)):
-              if not name.endswith(".pw.toml"):
+          for dest in sys.argv[2:]:
+              destdir = os.path.join(out, dest)
+              if not os.path.isdir(destdir):
                   continue
-              src = open(os.path.join(moddir, name)).read()
-              jar = re.search(r'^filename\s*=\s*"([^"]+)"', src, re.M).group(1)
-              if not os.path.exists(os.path.join(out, "jars", jar)):
-                  missing.append(jar)
+              for name in sorted(os.listdir(destdir)):
+                  if not name.endswith(".pw.toml"):
+                      continue
+                  src = open(os.path.join(destdir, name)).read()
+                  jar = re.search(r'^filename\s*=\s*"([^"]+)"', src, re.M).group(1)
+                  if not os.path.exists(os.path.join(out, "jars", jar)):
+                      missing.append(f"{dest}/{jar}")
           if missing:
-              raise SystemExit("jars referenced but not served: " + ", ".join(missing))
+              raise SystemExit("files referenced but not served: " + ", ".join(missing))
           PYEOF
 
           cp ${packwizInstallerBootstrap} $out/packwiz-installer-bootstrap.jar
@@ -304,21 +330,26 @@
       }}
       MMCEOF
 
-      for jar in ${modsDir}/*; do
+      for jar in ${clientResourcesDir}/mods/*; do
         ln -s "$jar" "$INST/.minecraft/mods/"
       done
 
-      ${lib.optionalString hasConfigs ''
-        cp -r ${configsPath}/* "$INST/.minecraft/config/"
-      ''}
+      ${lib.concatMapStringsSep "\n" (dest: ''
+        if [ -d ${clientResourcesDir}/${dest} ]; then
+          mkdir -p "$INST/.minecraft/${dest}"
+          ln -s ${clientResourcesDir}/${dest}/* "$INST/.minecraft/${dest}/"
+        fi
+      '') (lib.remove "mods" resourceDirs)}
+
+      ${lib.concatMapStringsSep "\n" (p: ''
+        cp -r ${./pack}/${p} "$INST/.minecraft/"
+      '') packOverlayPaths}
     '';
 
-    # ── Client mods (flat dir of real JARs) ────────────────────
-    clientMods = pkgs.runCommand "client-mods" {} ''
+    # ── Client resources (real files, shaped like .minecraft/) ─
+    clientResources = pkgs.runCommand "client-resources" {} ''
       mkdir -p $out
-      for jar in ${modsDir}/*; do
-        cp -L "$jar" "$out/"
-      done
+      cp -rL ${clientResourcesDir}/. $out/
     '';
 
     # ── Install to Prism Launcher ──────────────────────────────
@@ -328,17 +359,29 @@
       DEST="$PRISM_DIR/${packMeta.name}"
 
       if [ -d "$DEST" ]; then
-        echo "Instance exists at $DEST — updating mods..."
+        echo "Instance exists at $DEST -- updating mods..."
+        # mods/ is replaced wholesale: a leftover jar from a previous revision
+        # is a hard NeoForge load failure, so nothing may survive here.
         rm -rf "$DEST/.minecraft/mods"
         mkdir -p "$DEST/.minecraft/mods"
-        cp -L ${modsDir}/* "$DEST/.minecraft/mods/"
+        cp -L ${clientResourcesDir}/mods/* "$DEST/.minecraft/mods/"
         chmod -R u+w "$DEST/.minecraft/mods"
+
+        # shaderpacks/ and resourcepacks/ are merged instead: players put
+        # their own there and losing them on every update would be rude.
+        ${lib.concatMapStringsSep "\n" (dest: ''
+          if [ -d ${clientResourcesDir}/${dest} ]; then
+            mkdir -p "$DEST/.minecraft/${dest}"
+            cp -L ${clientResourcesDir}/${dest}/* "$DEST/.minecraft/${dest}/"
+            chmod -R u+w "$DEST/.minecraft/${dest}"
+          fi
+        '') (lib.remove "mods" resourceDirs)}
       else
         echo "Creating new instance at $DEST"
         cp -rL --no-preserve=mode,ownership ${prismInstance}/${packMeta.name} "$DEST"
         chmod -R u+w "$DEST"
       fi
-      echo "Done — $(ls "$DEST/.minecraft/mods/" | wc -l) mods installed."
+      echo "Done -- $(ls "$DEST/.minecraft/mods/" | wc -l) mods installed."
     '';
 
     # ── Full export bundle (client/singleplayer) ───────────────
@@ -346,15 +389,14 @@
       nativeBuildInputs = [ pkgs.gnutar pkgs.gzip ];
     } ''
       ROOT="$out/${packMeta.name}"
-      mkdir -p "$ROOT"/{mods,config}
+      mkdir -p "$ROOT"
 
-      for jar in ${modsDir}/*; do
-        cp "$jar" "$ROOT/mods/"
-      done
+      cp -rL ${clientResourcesDir}/. "$ROOT/"
 
-      ${lib.optionalString hasConfigs ''
-        cp -r ${configsPath}/* "$ROOT/config/"
-      ''}
+      ${lib.concatMapStringsSep "\n" (p: ''
+        cp -r ${./pack}/${p} "$ROOT/"
+      '') packOverlayPaths}
+      chmod -R u+w "$ROOT"
 
       cd "$out" && tar czf "${packMeta.name}.tar.gz" "${packMeta.name}/"
     '';
@@ -362,8 +404,8 @@
   in {
     # ── Packages ───────────────────────────────────────────────
     packages.${system} = {
-      inherit prismInstance prismInstanceThin clientMods installPrism export packSite;
-      default = clientMods;
+      inherit prismInstance prismInstanceThin clientResources installPrism export packSite;
+      default = clientResources;
     };
 
     # Build a pack site for a different host:
@@ -385,8 +427,14 @@
 
           symlinks = {
             "mods" = serverModsDir;
-          } // lib.optionalAttrs hasConfigs {
-            "config" = configsPath;
+          };
+
+          # `files`, not `symlinks`: these mods rewrite their own config on
+          # startup, which a read-only store symlink cannot absorb. Copies are
+          # re-applied on every service start, so the file here stays
+          # authoritative and a hand-edit on the box is transient.
+          files = {
+            "config/DistantHorizons.toml" = ./server-config/DistantHorizons.toml;
           };
 
           serverProperties = prodServerProperties;
