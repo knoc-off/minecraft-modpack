@@ -1,0 +1,56 @@
+# NOTICE
+
+Copyright (c) 2026 knoff <selby@niko.ink>
+
+The contents of this repository are licensed under the **PolyForm
+Noncommercial License 1.0.0** (see `LICENSE`), except where noted below.
+
+In short: you may use, modify, and share this work freely for any
+noncommercial purpose. Redistributing it for commercial gain — selling it,
+bundling it into a paid product or paid modpack, or otherwise monetising it —
+requires a separate commercial license. Contact <selby@niko.ink>.
+
+## What this license covers
+
+- `packages/paint-craft/`, `packages/asset-shelf/`, `packages/structure-stash/`
+  — original mod source code
+- `local-mods/*.jar` — compiled builds of the above mods
+- `scripts/`, `nix/`, `flake.nix`, `flake.lock` — build and packaging tooling
+- `pack/*.pw.toml`, `server-config/`, `assets/` — modpack configuration and
+  original assets
+- `README.md` and other documentation
+
+## What this license does NOT cover
+
+This license applies only to work authored by the copyright holder. It grants
+no rights over third-party material referenced by this repository:
+
+- **Third-party mods.** The `pack/` directory contains
+  [packwiz](https://packwiz.infra.link/) manifests. These are *pointers*
+  (name, version, URL, checksum) to mods distributed by their own authors.
+  No third-party mod binaries or source are contained in this repository.
+  Each referenced mod remains subject to its own license.
+- **`nix/mods.nix`.** A generated index of third-party mod download URLs and
+  hashes, derived from the `pack/` manifests. Same terms as above.
+- **`flywheel/`.** A git submodule reference to
+  [Flywheel](https://github.com/Jozufozu/Flywheel), which is licensed under
+  the MIT License by its own authors. Its contents are not part of this
+  repository.
+- **Minecraft, NeoForge, and their APIs.** This project builds against
+  Minecraft and NeoForge but redistributes neither. Minecraft is the property
+  of Mojang Studios and is governed by the
+  [Minecraft EULA](https://www.minecraft.net/eula). NeoForge is licensed under
+  LGPL-2.1-only by the NeoForged project.
+
+Building this project downloads Minecraft and NeoForge artifacts from their
+official sources. You must hold a valid Minecraft license to use them.
+
+## Relicensing history
+
+Releases up to and including `paintcraft-0.1.6`, `assetshelf-0.1.4`, and
+`structurestash-0.1.5` declared `GPL-3.0-only` in their jar metadata. That
+grant cannot be retroactively revoked and remains valid for those specific
+builds.
+
+Starting with `paintcraft-0.1.7`, `assetshelf-0.1.5`, and `structurestash-0.1.6`,
+all releases are licensed under the PolyForm Noncommercial License 1.0.0.

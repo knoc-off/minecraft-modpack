@@ -66,6 +66,13 @@ tasks.withType(ProcessResources).configureEach {
     }
 }
 
+// PolyForm Noncommercial 1.0.0 "Notices" requires that anyone who receives a
+// copy of this jar also receives the license terms and the Required Notice lines.
+tasks.named('jar', Jar) {
+    from("${projectDir}/../../LICENSE") { into 'META-INF' }
+    from("${projectDir}/../../NOTICE") { into 'META-INF' }
+}
+
 tasks.register('install', Copy) {
     dependsOn 'jar'
     from jar.archiveFile

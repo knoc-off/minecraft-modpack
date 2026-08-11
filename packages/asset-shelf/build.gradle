@@ -68,6 +68,13 @@ tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
 }
 
+// PolyForm Noncommercial 1.0.0 "Notices" requires that anyone who receives a
+// copy of this jar also receives the license terms and the Required Notice lines.
+tasks.named('jar', Jar) {
+    from("${projectDir}/../../LICENSE") { into 'META-INF' }
+    from("${projectDir}/../../NOTICE") { into 'META-INF' }
+}
+
 var jarTask = tasks.named('jar')
 tasks.register('install', Copy) {
     dependsOn jarTask

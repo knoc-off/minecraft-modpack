@@ -25,3 +25,16 @@ gen-nix-from-packwiz                 # regenerate nix/mods.nix
 scripts/build-mods.sh paint-craft
 <remove old and commit new>
 ```
+
+## License
+
+Licensed under the [PolyForm Noncommercial License 1.0.0](LICENSE).
+
+You may use, modify, and share this work freely for any noncommercial purpose.
+Redistributing it for commercial gain — selling it, bundling it into a paid
+product or paid modpack, or otherwise monetising it — requires a separate
+commercial license. Contact <selby@niko.ink>.
+
+This covers the mods and tooling authored here. It grants no rights over
+third-party mods referenced by `pack/`, over Flywheel, or over Minecraft and
+NeoForge themselves. See [NOTICE](NOTICE) for the full scope.
