@@ -241,4 +241,50 @@ class OrientationTest {
             }
         }
     }
+
+    /**
+     * Independent physical derivation of what appears at the top of the screen, from first-person
+     * camera pitch — deliberately not sharing any code with {@link FaceFrame}. A standard FPS
+     * camera has forward = facing at pitch 0° and sweeps forward/up together about the horizontal
+     * right axis as pitch changes; the right axis itself is invariant under that rotation.
+     *
+     * <p>Looking at the floor is pitch -90° (forward tips down to -worldUp); looking at the
+     * ceiling is pitch +90° (forward tips up to +worldUp). This is the oracle that would have
+     * caught the regression: {@code displayFrameFor} used {@code viewerFacing} as ceiling screen-up
+     * unconditionally, which is only true for the floor. At +90° "up" rotates past vertical to
+     * -facing (what's behind the viewer), not +facing.
+     */
+    private static Direction cameraScreenUp(Direction face, Direction facing) {
+        double theta = Math.toRadians(face == Direction.UP ? -90 : 90);
+        double fx = facing.getStepX(), fz = facing.getStepZ();
+        double sx = -Math.sin(theta) * fx;
+        double sy = Math.cos(theta);
+        double sz = -Math.sin(theta) * fz;
+        return Direction.getNearest(sx, sy, sz);
+    }
+
+    /** The right axis of a horizontal-facing FPS camera, invariant under pitch. */
+    private static Direction cameraScreenRight(Direction facing) {
+        return facing.getClockWise(Direction.Axis.Y);
+    }
+
+    @Test
+    void displayFrameForMatchesCameraGeometry() {
+        for (Direction face : List.of(Direction.UP, Direction.DOWN)) {
+            for (Direction facing : Direction.Plane.HORIZONTAL) {
+                FaceFrame frame = FaceFrame.displayFrameFor(face, facing);
+
+                assertEquals(cameraScreenUp(face, facing), frame.up(),
+                    face + " facing " + facing + ": screen-up");
+
+                // frame.right() only matches the true screen-right when needsHFlip is false —
+                // that boolean exists precisely to record when it doesn't, so the pixel data
+                // gets flipped to compensate. Confirm the two facts agree.
+                Direction screenRight = cameraScreenRight(facing);
+                Direction claimedRight = frame.needsHFlip() ? frame.right().getOpposite() : frame.right();
+                assertEquals(screenRight, claimedRight,
+                    face + " facing " + facing + ": screen-right (needsHFlip=" + frame.needsHFlip() + ")");
+            }
+        }
+    }
 }

@@ -122,8 +122,13 @@ public record FaceFrame(Direction normal, Direction up) {
      * The single editor-display policy: which frame a decal is presented in to a viewer.
      *
      * <ul>
-     *   <li><b>Floor/ceiling</b> (vertical normal): oriented to the viewer, so the image reads
-     *       upright from where the player currently stands.</li>
+     *   <li><b>Floor</b> ({@code UP} normal, looking down): screen-up is the direction the
+     *       viewer is facing — content ahead of them projects to the top of the screen.</li>
+     *   <li><b>Ceiling</b> ({@code DOWN} normal, looking up): screen-up is the
+     *       <em>opposite</em> of the direction the viewer is facing. Pitching up rotates the
+     *       camera about its right axis past vertical, which flips forward-vs-behind on screen —
+     *       content ahead of the viewer projects to the <em>bottom</em>, and what's directly
+     *       behind them ends up at the top.</li>
      *   <li><b>Wall</b> (horizontal normal): oriented to world-UP, so the canvas top is always
      *       gravity-up regardless of how the decal was rolled (e.g. by a Create contraption).</li>
      * </ul>
@@ -135,6 +140,7 @@ public record FaceFrame(Direction normal, Direction up) {
      * {@link DisplayTransform#between}, so no caller needs to special-case face types.
      */
     public static FaceFrame displayFrameFor(Direction normal, Direction viewerFacing) {
+        if (normal == Direction.DOWN) return new FaceFrame(normal, viewerFacing.getOpposite());
         return normal.getAxis().isVertical()
             ? new FaceFrame(normal, viewerFacing)
             : new FaceFrame(normal, Direction.UP);
@@ -142,11 +148,16 @@ public record FaceFrame(Direction normal, Direction up) {
 
     /**
      * The frame this one presents as in the editor and on a stamp: walls normalise to world UP
-     * (de-rolling contraption-rotated decals), floors and ceilings keep their own up — their
-     * display orientation is defined by the viewer, not by the world, so there is nothing
-     * world-relative to normalise away.
+     * (de-rolling contraption-rotated decals); floors and ceilings keep their own up exactly as
+     * is — a frame's {@code up} on a vertical face already <em>is</em> a display orientation
+     * (see {@link #displayFrameFor}), there's nothing further to derive from a viewer.
+     *
+     * <p>Must not delegate to {@code displayFrameFor(normal, up)}: that method's second
+     * parameter means "the direction the viewer is facing", not "an up already chosen for
+     * display" — feeding this frame's own {@code up} through it would reapply the ceiling's
+     * facing→opposite flip a second time and silently rotate the result 180°.
      */
     public FaceFrame displayReference() {
-        return displayFrameFor(normal, up);
+        return normal.getAxis().isVertical() ? this : new FaceFrame(normal, Direction.UP);
     }
 }

@@ -55,7 +55,11 @@ public final class StampPreviewRenderer {
         Direction face = hit.getDirection();
         if (mc.level.getBlockState(pos).isAir()) return;
 
-        Direction up = face.getAxis().isVertical() ? mc.player.getDirection() : Direction.UP;
+        // Match placeStamp: derive the display frame from the player's facing directly, so a
+        // ceiling target flips to viewerFacing.getOpposite() the same way placement does — an
+        // inline isVertical() ? playerFacing : UP check here would disagree on the ceiling.
+        FaceFrame frame = FaceFrame.displayFrameFor(face, mc.player.getDirection());
+        Direction up = frame.up();
 
         // Rebuild preview if target changed
         if (!pos.equals(lastPos) || face != lastFace || up != lastUp) {
@@ -73,10 +77,10 @@ public final class StampPreviewRenderer {
         VertexConsumer consumer = bufferSource.getBuffer(renderType);
 
         BlockAndTintGetter level = mc.level;
-        FaceFrame frame = previewDecal.frame();
+        FaceFrame previewFrame = previewDecal.frame();
 
         for (SurfaceFragment frag : previewResolved.fragments()) {
-            renderGhostFragment(consumer, matrix, previewDecal, frag, level, frame.right(), frame.up());
+            renderGhostFragment(consumer, matrix, previewDecal, frag, level, previewFrame.right(), previewFrame.up());
         }
 
         poseStack.popPose();
@@ -95,7 +99,7 @@ public final class StampPreviewRenderer {
 
         // Match placeStamp: stamp pixels are in display orientation, so re-derive them for this
         // face's stored frame — otherwise the ghost disagrees with what actually gets placed.
-        PixelGrid stored = data.toStoredFor(FaceFrame.displayFrameFor(face, up));
+        PixelGrid stored = data.toStoredFor(new FaceFrame(face, up));
 
         // Build a temporary decal for resolving
         previewDecal = new Decal(
