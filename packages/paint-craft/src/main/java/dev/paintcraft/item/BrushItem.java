@@ -63,7 +63,7 @@ public class BrushItem extends Item {
 
         if (overlapping.isEmpty()) {
             // New 1x1: send blank editor signal
-            FaceFrame frame = FaceFrame.forFace(face, player.getDirection());
+            FaceFrame frame = FaceFrame.displayFrameFor(face, player.getDirection());
             Direction up = frame.up();
             OpenEditorPayload payload = OpenEditorPayload.blank(
                 UUID.randomUUID(), pos, face, up,

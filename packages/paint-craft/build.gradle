@@ -63,6 +63,23 @@ dependencies {
     compileOnly files("${projectDir}/libs/create-1.21.1-6.0.10.jar")
     compileOnly files("${projectDir}/libs/flywheel-neoforge-1.21.1-1.0.6.jar")
     compileOnly files("${projectDir}/libs/ponder-neoforge-1.0.82+mc1.21.1.jar")
+
+    // Orientation math (FaceFrame/DisplayTransform/PixelGrid) touches only Direction, a plain
+    // enum, so it unit-tests without a Minecraft bootstrap.
+    testImplementation platform('org.junit:junit-bom:5.10.2')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+repositories {
+    mavenCentral()
+}
+
+tasks.named('test', Test) {
+    useJUnitPlatform()
+    testLogging {
+        events 'passed', 'failed', 'skipped'
+    }
 }
 
 var generateModMetadata = tasks.register("generateModMetadata", ProcessResources) {

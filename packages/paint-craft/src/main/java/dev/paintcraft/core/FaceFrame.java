@@ -94,40 +94,32 @@ public record FaceFrame(Direction normal, Direction up) {
 
     // === Factories ===
 
-    /** Canonical frame for a face direction (walls=UP, floor/ceiling=NORTH). */
-    private static final FaceFrame[] CANONICAL = new FaceFrame[6];
+    /**
+     * World-locked frame for a face direction (walls=UP, floor/ceiling=NORTH), used as the
+     * shared coordinate space for the renderer's per-face atlas cells.
+     *
+     * <p><b>Viewer-independent by design — never use this to orient content a player looks at.</b>
+     * For vertical faces it pins "up" to world NORTH, whereas everything a player sees
+     * (editor canvas, stamps, library assets) is oriented to the viewer. Normalising
+     * viewer-facing pixels through this frame silently cancels the player's view rotation on
+     * floors and ceilings; use {@link #displayFrameFor} / {@link #displayReference} instead.
+     */
+    private static final FaceFrame[] CELL = new FaceFrame[6];
     static {
         for (Direction d : Direction.values()) {
-            CANONICAL[d.ordinal()] = d.getAxis().isVertical()
+            CELL[d.ordinal()] = d.getAxis().isVertical()
                 ? new FaceFrame(d, Direction.NORTH)
-                : wall(d);
+                : new FaceFrame(d, Direction.UP);
         }
     }
 
-    /** Returns the canonical frame for a face direction. Player-independent. */
-    public static FaceFrame canonical(Direction face) {
-        return CANONICAL[face.ordinal()];
-    }
-
-    /** Frame for a wall face (up is always world UP). */
-    public static FaceFrame wall(Direction normal) {
-        return new FaceFrame(normal, Direction.UP);
-    }
-
-    /** Frame for a floor/ceiling face with the given player-facing direction as up. */
-    public static FaceFrame horizontal(Direction normal, Direction playerFacing) {
-        return new FaceFrame(normal, playerFacing);
-    }
-
-    /** Convenience: picks wall() or horizontal() based on the face axis. */
-    public static FaceFrame forFace(Direction face, Direction playerFacing) {
-        return face.getAxis().isVertical()
-            ? horizontal(face, playerFacing)
-            : wall(face);
+    /** Returns the world-locked cell/atlas frame for a face direction. See {@link #CELL}. */
+    public static FaceFrame cellFrame(Direction face) {
+        return CELL[face.ordinal()];
     }
 
     /**
-     * The single editor-display policy: which frame the canvas should present a decal in.
+     * The single editor-display policy: which frame a decal is presented in to a viewer.
      *
      * <ul>
      *   <li><b>Floor/ceiling</b> (vertical normal): oriented to the viewer, so the image reads
@@ -136,12 +128,25 @@ public record FaceFrame(Direction normal, Direction up) {
      *       gravity-up regardless of how the decal was rolled (e.g. by a Create contraption).</li>
      * </ul>
      *
-     * The transform from the stored frame to this display frame is computed generically by
+     * <p>This is also the frame a decal is <em>created</em> in, so for any freshly authored or
+     * stamped decal the stored frame and the display frame of its author coincide.
+     *
+     * <p>The transform from the stored frame to this display frame is computed generically by
      * {@link DisplayTransform#between}, so no caller needs to special-case face types.
      */
     public static FaceFrame displayFrameFor(Direction normal, Direction viewerFacing) {
         return normal.getAxis().isVertical()
-            ? horizontal(normal, viewerFacing)
-            : wall(normal);
+            ? new FaceFrame(normal, viewerFacing)
+            : new FaceFrame(normal, Direction.UP);
+    }
+
+    /**
+     * The frame this one presents as in the editor and on a stamp: walls normalise to world UP
+     * (de-rolling contraption-rotated decals), floors and ceilings keep their own up — their
+     * display orientation is defined by the viewer, not by the world, so there is nothing
+     * world-relative to normalise away.
+     */
+    public FaceFrame displayReference() {
+        return displayFrameFor(normal, up);
     }
 }

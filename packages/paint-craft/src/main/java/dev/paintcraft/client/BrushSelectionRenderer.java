@@ -53,7 +53,7 @@ public final class BrushSelectionRenderer {
         renderBlockOutline(poseStack, lines, cam, corner, WHITE_R, WHITE_G, WHITE_B, WHITE_A);
 
         if (target != null) {
-            FaceFrame frame = FaceFrame.forFace(face, mc.player.getDirection());
+            FaceFrame frame = FaceFrame.displayFrameFor(face, mc.player.getDirection());
             Direction right = frame.right();
             Direction up = frame.up();
 

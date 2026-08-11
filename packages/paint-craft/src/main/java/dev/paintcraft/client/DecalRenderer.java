@@ -386,7 +386,7 @@ public final class DecalRenderer {
                 Direction face = cell.face();
                 int slotIndex = cell.slotIndex();
 
-                FaceFrame frame = FaceFrame.canonical(face);
+                FaceFrame frame = FaceFrame.cellFrame(face);
                 Direction right = frame.right();
                 Direction up = frame.up();
 
@@ -495,7 +495,7 @@ public final class DecalRenderer {
         Direction face = cell.face();
         int slot = cell.slotIndex();
 
-        FaceFrame frame = FaceFrame.canonical(face);
+        FaceFrame frame = FaceFrame.cellFrame(face);
         Direction right = frame.right();
         Direction up = frame.up();
 

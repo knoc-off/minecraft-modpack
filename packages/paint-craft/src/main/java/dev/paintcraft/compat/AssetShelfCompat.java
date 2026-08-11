@@ -54,6 +54,7 @@ public final class AssetShelfCompat {
 
     /**
      * Serialize current canvas pixels into the asset format (StampData NBT bytes).
+     * Pixels must be in display orientation — the editor canvas as-is, not stored orientation.
      */
     public static byte[] serializeCanvas(int widthPx, int heightPx, int[] pixels) {
         StampData data = new StampData(widthPx, heightPx, pixels.clone());

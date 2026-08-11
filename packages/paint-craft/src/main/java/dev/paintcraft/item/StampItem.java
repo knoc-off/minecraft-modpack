@@ -65,12 +65,11 @@ public class StampItem extends Item {
         if (data == null) return;
 
         // Auto-orient: same logic as new decal creation
-        FaceFrame frame = FaceFrame.forFace(face, player.getDirection());
+        FaceFrame frame = FaceFrame.displayFrameFor(face, player.getDirection());
         Direction up = frame.up();
 
-        // Stamp pixels are canonical; re-derive them for this face's stored frame so the image
-        // reads the same way here as it did where it was copied. A rotation may swap the axes,
-        // so dimensions come from the transformed grid, not from the stamp.
+        // Stamp pixels are in display orientation; re-derive them for this face's stored frame so
+        // the image reads to this player exactly as it did to whoever copied it.
         PixelGrid stored = data.toStoredFor(frame);
         int widthPx = stored.width();
         int heightPx = stored.height();
@@ -116,7 +115,7 @@ public class StampItem extends Item {
         }
 
         Decal decal = existing.get();
-        StampData data = StampData.fromDecal(decal);
+        StampData data = StampData.fromDecal(decal, player.getDirection());
         if (stack.getCount() > 1) {
             ItemStack single = stack.split(1);
             setData(single, data);

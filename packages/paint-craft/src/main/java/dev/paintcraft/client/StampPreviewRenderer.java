@@ -93,9 +93,9 @@ public final class StampPreviewRenderer {
             return;
         }
 
-        // Match placeStamp: stamp pixels are canonical, so re-derive them for this face's
-        // stored frame — otherwise the ghost disagrees with what actually gets placed.
-        PixelGrid stored = data.toStoredFor(new FaceFrame(face, up));
+        // Match placeStamp: stamp pixels are in display orientation, so re-derive them for this
+        // face's stored frame — otherwise the ghost disagrees with what actually gets placed.
+        PixelGrid stored = data.toStoredFor(FaceFrame.displayFrameFor(face, up));
 
         // Build a temporary decal for resolving
         previewDecal = new Decal(

@@ -58,7 +58,7 @@ public final class ClientBrushHandler {
         }
 
         Direction playerDir = Minecraft.getInstance().player.getDirection();
-        FaceFrame frame = FaceFrame.forFace(face, playerDir);
+        FaceFrame frame = FaceFrame.displayFrameFor(face, playerDir);
         Direction right = frame.right();
         Direction up = frame.up();
 
@@ -105,7 +105,7 @@ public final class ClientBrushHandler {
 
     public static void openNewEditor(BlockPos pos, Direction face) {
         Direction playerDir = Minecraft.getInstance().player.getDirection();
-        FaceFrame frame = FaceFrame.forFace(face, playerDir);
+        FaceFrame frame = FaceFrame.displayFrameFor(face, playerDir);
 
         BackgroundCapture.Captured bg = BackgroundCapture.capture(
             Minecraft.getInstance().level, pos, face, frame.up(), 1, 1, maxDepth());

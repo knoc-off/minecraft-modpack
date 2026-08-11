@@ -1672,11 +1672,10 @@ public class PaintScreen extends Screen {
             }
             return;
         }
-        // Open save dialog with name input + preview
-        PixelGrid displayGrid = PixelGrid.wrap(canvasW, canvasH, canvas);
-        PixelGrid stored = transform.toStored(displayGrid);
+        // The library stores display-orientation pixels (same contract as StampData), so the
+        // canvas goes out as-is — no stored-orientation round-trip.
         dev.paintcraft.compat.SaveToLibraryScreen.open(
-            this, stored.width(), stored.height(), stored.data());
+            this, canvasW, canvasH, canvas.clone());
     }
 
     @Override

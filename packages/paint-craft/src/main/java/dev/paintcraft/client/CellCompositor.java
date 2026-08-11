@@ -382,7 +382,7 @@ public final class CellCompositor {
             return;
         }
 
-        FaceFrame canonFrame = FaceFrame.canonical(face);
+        FaceFrame cellFrame = FaceFrame.cellFrame(face);
         int[] composite = new int[CELL_SIZE * CELL_SIZE]; // starts transparent (0)
         int opaquePixels = 0;
         int maxPixels = CELL_SIZE * CELL_SIZE;
@@ -410,8 +410,8 @@ public final class CellCompositor {
             Decal decal = entry.decal();
 
             FaceFrame decalFrame = decal.frame();
-            int stepsToCanon = decalFrame.clockwiseStepsTo(canonFrame);
-            int cwSteps = (4 - stepsToCanon) % 4;
+            int stepsToCell = decalFrame.clockwiseStepsTo(cellFrame);
+            int cwSteps = (4 - stepsToCell) % 4;
 
             if (decalCovered != null) Arrays.fill(decalCovered, false);
             for (SurfaceFragment frag : entry.surface().fragments()) {
