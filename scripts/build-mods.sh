@@ -1,72 +1,42 @@
 #!/usr/bin/env bash
 #
 # Build the local NeoForge mods (paint-craft, asset-shelf, structure-stash, ...)
-# and install them into the modpack, for fast local dev iteration.
-#
-#   1. gradle build (run inside `nix develop` so jdk21 + gradle are available)
-#   2. copy each jar into local-mods/
-#   3. nix run .#installPrism           (push into the live Prism Launcher instance)
+# and drop the jars into local-mods/.
 #
 # local-mods/ is committed and is the single source of truth for these mods --
-# there is no separate release step. To ship a change: run this, then commit
-# the new jar and `git rm` the superseded one in the same commit. Leaving two
-# versions of the same mod id behind is a hard NeoForge load failure.
+# there is no separate release step. Jars of a previous version of the same mod
+# id are removed here; leaving two versions behind is a hard NeoForge load
+# failure. Commit the result (the old jar shows as deleted, the new one as new).
 #
 # Usage:
-#   scripts/build-mods.sh                 build + install ALL local mods (full Prism sync)
-#   scripts/build-mods.sh paint-craft     build + install only the given mod(s)
-#   scripts/build-mods.sh --no-install …  skip the Prism install step
-#
-# Naming specific mods does a *targeted* install: only those jars are copied into
-# the Prism instance, so every other mod — including ones you've disabled in Prism
-# for testing (foo.jar.disabled) — is left untouched. If the target jar is itself
-# currently disabled, its .disabled file is updated in place (it stays disabled).
-# A bare `build-mods.sh` (no mods named) still does the full `installPrism` sync,
-# which rebuilds the mods dir from scratch and re-enables everything.
+#   scripts/build-mods.sh                 build all local mods
+#   scripts/build-mods.sh paint-craft     build only the given mod(s)
 #
 set -euo pipefail
 
-REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-GRADLE_TASK="build"
-GRADLE_FLAGS="--offline"   # deps are cached; drop this if a clean fetch is needed
+# pwd -P: the repo is reachable via a symlink (~/nixos -> /etc/nixos); giving
+# gradle two paths to the same tree breaks its file watching and it then builds
+# from a stale view of gradle.properties.
+REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 
-DO_INSTALL=1
-SELECTED=()
-for arg in "$@"; do
-  case "$arg" in
-    --no-install) DO_INSTALL=0 ;;
-    -h|--help) sed -n '2,18p' "$0"; exit 0 ;;
-    *) SELECTED+=("$arg") ;;
-  esac
-done
-
-# Discover local mods = package dirs that contain a build.gradle.
-ALL_MODS=()
-for d in "$REPO"/packages/*/; do
-  [ -f "$d/build.gradle" ] && ALL_MODS+=("$(basename "$d")")
-done
-
-if [ "${#SELECTED[@]}" -gt 0 ]; then
-  MODS=("${SELECTED[@]}")
-else
-  MODS=("${ALL_MODS[@]}")
+MODS=("$@")
+if [ "${#MODS[@]}" -eq 0 ]; then
+  for d in "$REPO"/packages/*/; do
+    [ -f "$d/build.gradle" ] && MODS+=("$(basename "$d")")
+  done
 fi
 
 echo ">> Mods to build: ${MODS[*]}"
 
-# ── 1. Build (single nix develop invocation for all mods) ──────────────────────
 nix develop "$REPO" --command bash -c '
   set -euo pipefail
-  repo="$1"; task="$2"; flags="$3"; shift 3
+  repo="$1"; shift
   for m in "$@"; do
-    dir="$repo/packages/$m"
-    [ -d "$dir" ] || { echo "!! no such mod dir: $dir" >&2; exit 1; }
-    echo ">> Building $m ($task $flags)"
-    ( cd "$dir" && ./gradlew $flags "$task" )
+    echo ">> Building $m"
+    ( cd "$repo/packages/$m" && ./gradlew build )
   done
-' _ "$REPO" "$GRADLE_TASK" "$GRADLE_FLAGS" "${MODS[@]}"
+' _ "$REPO" "${MODS[@]}"
 
-# ── 2. Copy jars into local-mods/ ──────────────────────────────────────────────
 mkdir -p "$REPO/local-mods"
 for m in "${MODS[@]}"; do
   props="$REPO/packages/$m/gradle.properties"
@@ -77,46 +47,9 @@ for m in "${MODS[@]}"; do
     echo "!! expected jar not found: $jar" >&2
     exit 1
   fi
+  rm -f "$REPO/local-mods/${id}-"*.jar
   cp -f "$jar" "$REPO/local-mods/"
-  echo ">> Installed $(basename "$jar") -> local-mods/"
+  echo ">> ${id}-${ver}.jar -> local-mods/"
 done
 
-# ── 3. Push into the live Prism Launcher instance ──────────────────────────────
-if [ "$DO_INSTALL" -eq 1 ]; then
-  if [ "${#SELECTED[@]}" -gt 0 ]; then
-    # Targeted install: copy only the selected jars, leaving every other mod
-    # (including ones disabled in Prism for testing) untouched.
-    INSTANCE="$(sed -n 's/.*name = "\([^"]*\)".*/\1/p' "$REPO/flake.nix" | head -1)"
-    PRISM_DIR="${PRISM_INSTANCES:-${XDG_DATA_HOME:-$HOME/.local/share}/PrismLauncher/instances}"
-    MODS_DEST="$PRISM_DIR/$INSTANCE/.minecraft/mods"
-    if [ ! -d "$MODS_DEST" ]; then
-      echo "!! Prism mods dir not found: $MODS_DEST" >&2
-      echo "   Run a full 'scripts/build-mods.sh' once to create the instance first." >&2
-      exit 1
-    fi
-    echo ">> Targeted install into $MODS_DEST"
-    for m in "${MODS[@]}"; do
-      props="$REPO/packages/$m/gradle.properties"
-      id="$(sed -n 's/^mod_id=//p' "$props")"
-      ver="$(sed -n 's/^mod_version=//p' "$props")"
-      jar="${id}-${ver}.jar"
-      if [ -f "$MODS_DEST/$jar.disabled" ] && [ ! -f "$MODS_DEST/$jar" ]; then
-        cp -f "$REPO/local-mods/$jar" "$MODS_DEST/$jar.disabled"
-        chmod u+w "$MODS_DEST/$jar.disabled"
-        echo ">>   $jar  (kept disabled)"
-      else
-        cp -f "$REPO/local-mods/$jar" "$MODS_DEST/$jar"
-        chmod u+w "$MODS_DEST/$jar"
-        echo ">>   $jar"
-      fi
-    done
-    echo ">> Done — other mods left untouched."
-  else
-    echo ">> Updating Prism Launcher instance (nix run .#installPrism)"
-    nix run "$REPO#installPrism"
-    echo ">> Done."
-  fi
-else
-  echo ">> Skipping Prism install (--no-install). Jars are in local-mods/."
-  echo ">> Done."
-fi
+echo ">> Done."
