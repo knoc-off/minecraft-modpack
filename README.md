@@ -19,12 +19,10 @@ cd pack && packwiz mr add <slug>     # or: packwiz update --all
 gen-nix-from-packwiz                 # regenerate nix/mods.nix
 ```
 
-### Updating a local mod
+## note
 
-```
-scripts/build-mods.sh paint-craft
-<remove old and commit new>
-```
+I am open to re-licencing under a more permissive licence in the future.
+this was just done to get it over with for now.
 
 ## License
 
