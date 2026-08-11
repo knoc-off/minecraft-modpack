@@ -52,6 +52,10 @@ neoForge {
     }
 }
 
+// The orientation math (FaceFrame/DisplayTransform/PixelGrid) is pure and only needs Direction,
+// but that class still has to be on the test compile classpath.
+neoForge.addModdingDependenciesTo(sourceSets.test)
+
 configurations {
     runtimeClasspath.extendsFrom localRuntime
 }

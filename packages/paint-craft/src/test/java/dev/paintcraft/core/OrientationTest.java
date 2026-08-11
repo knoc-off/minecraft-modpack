@@ -111,8 +111,19 @@ class OrientationTest {
     }
 
     /**
-     * Placing on a floor or ceiling must actually depend on where the player is looking. The bug
-     * made these identical (world-locked to NORTH); this is the direct regression guard.
+     * How the renderer lays a decal's stored pixels into the world-locked atlas cell —
+     * mirrors {@code CellCompositor.compositeCell}.
+     */
+    private static PixelGrid inCellSpace(FaceFrame stored, PixelGrid pixels) {
+        int steps = stored.clockwiseStepsTo(FaceFrame.cellFrame(stored.normal()));
+        return pixels.rotateCW((4 - steps) % 4);
+    }
+
+    /**
+     * Placing on a floor or ceiling must actually land differently in the world depending on where
+     * the player was looking. The view rotation lives in the decal's frame rather than its pixel
+     * array, so this is asserted in world-locked cell space — the layer the bug was visible in,
+     * where it left every placement identical to a NORTH-facing one.
      */
     @Test
     void verticalFacePlacementRotatesWithTheViewer() {
@@ -120,11 +131,41 @@ class OrientationTest {
         StampData data = new StampData(stamp.width(), stamp.height(), stamp.data().clone());
 
         for (Direction face : List.of(Direction.UP, Direction.DOWN)) {
-            int[] north = data.toStoredFor(FaceFrame.displayFrameFor(face, Direction.NORTH)).data();
+            FaceFrame northFrame = FaceFrame.displayFrameFor(face, Direction.NORTH);
+            int[] north = inCellSpace(northFrame, data.toStoredFor(northFrame)).data();
+
             for (Direction facing : List.of(Direction.EAST, Direction.SOUTH, Direction.WEST)) {
-                int[] other = data.toStoredFor(FaceFrame.displayFrameFor(face, facing)).data();
+                FaceFrame frame = FaceFrame.displayFrameFor(face, facing);
+                int[] other = inCellSpace(frame, data.toStoredFor(frame)).data();
                 assertFalse(java.util.Arrays.equals(north, other),
-                    face + " stamp facing " + facing + " must differ from facing NORTH");
+                    face + " stamp placed facing " + facing
+                        + " must land differently than one placed facing NORTH");
+            }
+        }
+    }
+
+    /**
+     * End-to-end through the render path: stamp → stored pixels → world-locked atlas cell →
+     * back out to a viewer. Ties {@link StampData} to the mapping {@code CellCompositor} actually
+     * uses, so the two cannot drift apart.
+     */
+    @Test
+    void stampSurvivesTheRenderPathBackToTheViewer() {
+        PixelGrid stamp = sample();
+        StampData data = new StampData(stamp.width(), stamp.height(), stamp.data().clone());
+
+        for (Direction face : Direction.values()) {
+            for (Direction facing : Direction.Plane.HORIZONTAL) {
+                FaceFrame placed = FaceFrame.displayFrameFor(face, facing);
+                PixelGrid cell = inCellSpace(placed, data.toStoredFor(placed));
+
+                // Undo the cell rotation, then present to a viewer standing where the placer was.
+                FaceFrame cellFrame = FaceFrame.cellFrame(face);
+                PixelGrid seen = DisplayTransform
+                    .between(cellFrame, FaceFrame.displayFrameFor(face, facing))
+                    .toDisplay(cell);
+
+                assertGridEquals(stamp, seen, "render path on " + face + " facing " + facing);
             }
         }
     }
