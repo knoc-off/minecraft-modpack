@@ -13,3 +13,7 @@
 
 [common.multiThreading]
 	threadRunTimeRatio = 0.25
+
+[client.advanced.autoUpdater]
+	enableAutoUpdater = false
+	enableSilentUpdates = false

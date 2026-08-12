@@ -1,12 +1,12 @@
 name = "inkwell"
 author = "knoc-off"
-version = "0.1.5"
+version = "0.1.6"
 pack-format = "packwiz:1.1.0"
 
 [index]
 file = "index.toml"
 hash-format = "sha256"
-hash = "80d252dc27e1d1f677734c6db728a010e40d9e97dd860ce7ef2085e7c5576684"
+hash = "2d16dd0638e69b7c955c0afc788cf65bb79f4e8b864ece843f05046f5a4934ff"
 
 [versions]
 minecraft = "1.21.1"

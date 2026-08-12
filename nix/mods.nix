@@ -9,10 +9,10 @@
     side = "both";
     dest = "mods";
     jar = pkgs.fetchurl {
-      url = "https://cdn.modrinth.com/data/6iTJugQR/versions/8xf6Wpxs/amendments-1.21-2.0.15-neoforge.jar";
+      url = "https://cdn.modrinth.com/data/6iTJugQR/versions/BoGvkmKs/amendments-neoforge-1.21-2.1.7.jar";
       outputHashAlgo = "sha512";
-      outputHash = "a9ea5029cb4788e9e1dae8ed94f05e9111754e064d41fcd6bf7e570c28106dc1e680d2f2e82324b87a0a154a3d714bbdf2425124a62cba4765c41c1097d1609a";
-      name = "amendments-1.21-2.0.15-neoforge.jar";
+      outputHash = "ffa9d60ad4c024e5f0ad9b1c9f0e2cbc5eea0666d3370aeec3754f7f1568ce87fc50f1a8ce9017bda7063a1c9a62eff4b901c660631f1a8e5adaf89cf9320c59";
+      name = "amendments-neoforge-1.21-2.1.7.jar";
     };
   };
 
@@ -33,10 +33,10 @@
     side = "both";
     dest = "mods";
     jar = pkgs.fetchurl {
-      url = "https://cdn.modrinth.com/data/lhGA9TYQ/versions/ZxYGwlk0/architectury-13.0.8-neoforge.jar";
+      url = "https://cdn.modrinth.com/data/lhGA9TYQ/versions/1IiqEQGl/architectury-13.0.11-neoforge.jar";
       outputHashAlgo = "sha512";
-      outputHash = "65e3664953385d880320dd6bb818bcb96d361c07c53e2a7f65e64c6a47720ee26b233224ae9cad465ef0b2bbaefdaf30fb0175a983cecd91de058817d6fcf57e";
-      name = "architectury-13.0.8-neoforge.jar";
+      outputHash = "d9f7c3bb8162577dfb461ffdf04bd6a3563c7586934a0e2a744c14421beffb8286f0d88d4c758317003f20f99fe8072a39b9d675af061e036970d36db36027f0";
+      name = "architectury-13.0.11-neoforge.jar";
     };
   };
 
@@ -57,10 +57,10 @@
     side = "client";
     dest = "mods";
     jar = pkgs.fetchurl {
-      url = "https://cdn.modrinth.com/data/5srFLIaK/versions/bfurRkm7/better-clouds-1.13.5-beta%2B1.21.1-neoforge.rev.a60dfa0.jar";
+      url = "https://cdn.modrinth.com/data/5srFLIaK/versions/XK8POrWQ/better-clouds-1.13.6%2B1.21.1-neoforge.jar";
       outputHashAlgo = "sha512";
-      outputHash = "28431a57db449054e302745494c32352c0e250a0cd7b0513956c875284bbe67039cc230d56c3ff82d02f454711d8cecd2fea06c5c481807c19237ae0b13a64c6";
-      name = "better-clouds-1.13.5-beta+1.21.1-neoforge.rev.a60dfa0.jar";
+      outputHash = "c81cb2520940ca91161b4b73fcb44c81ef30a33030b0a04d26eaa291763bcc02b8cfed88c20132a9e266f58896d1bfc8248c93ba13874690029a66c855b4608d";
+      name = "better-clouds-1.13.6+1.21.1-neoforge.jar";
     };
   };
 
@@ -129,10 +129,10 @@
     side = "both";
     dest = "mods";
     jar = pkgs.fetchurl {
-      url = "https://cdn.modrinth.com/data/e0M1UDsY/versions/BV3sMDFA/collective-1.21.1-8.23.jar";
+      url = "https://cdn.modrinth.com/data/e0M1UDsY/versions/4XRlrKGN/collective-1.21.1-8.39.jar";
       outputHashAlgo = "sha512";
-      outputHash = "dc33c0b5dbbd129bed878321072958422e91891367dabbc53e6920a5062540e978cf2608c70ceb1df36722f945b53007a3614d84f545a933f289f3728d7117b9";
-      name = "collective-1.21.1-8.23.jar";
+      outputHash = "5e8d257650b2ace041df4743172797dfa86faeaa3fa2db13890482f433b189bad037c4f5399b5b5b0e3e65fab0c0887ef65e5c5c24eba6c09da8f95ed3435b02";
+      name = "collective-1.21.1-8.39.jar";
     };
   };
 
@@ -189,10 +189,10 @@
     side = "both";
     dest = "mods";
     jar = pkgs.fetchurl {
-      url = "https://cdn.modrinth.com/data/Vg5TIO6d/versions/tSy3IGxT/create_connected-1.2.0-mc1.21.1.jar";
+      url = "https://cdn.modrinth.com/data/Vg5TIO6d/versions/klOWKza5/create_connected-1.3.2-mc1.21.1.jar";
       outputHashAlgo = "sha512";
-      outputHash = "c1666d531d4535e94a950f8b85dc31ebe1b9b4be0be12b18eeae8e3a4de5163416f898f21ce939f6cbbf8439749aaa7e270697fe6295c0e207f8a831999f3eea";
-      name = "create_connected-1.2.0-mc1.21.1.jar";
+      outputHash = "b07bfbc5ebf0ad63b1db5f7215f0e11490f0263623e344b09a63116d84199a49c7f916610410262ddb640e60017d08e89f3363ada38a6219ac6a5b2fc19322e0";
+      name = "create_connected-1.3.2-mc1.21.1.jar";
     };
   };
 
@@ -213,10 +213,10 @@
     side = "both";
     dest = "mods";
     jar = pkgs.fetchurl {
-      url = "https://cdn.modrinth.com/data/dzb1a5WV/versions/V011gYLr/CreateDragonsPlus-1.11.1b.jar";
+      url = "https://cdn.modrinth.com/data/dzb1a5WV/versions/K9JHrhSG/CreateDragonsPlus-1.11.7b.jar";
       outputHashAlgo = "sha512";
-      outputHash = "de909f9829ffa592212965da4c2b42ca0c2872c9563ff42aeb81990c52a93df08a5adae20025c76330fb86cec82298af975e4526632ae89836fed18773156485";
-      name = "CreateDragonsPlus-1.11.1b.jar";
+      outputHash = "4b86f50641b95532d8662e333b1805f0938bf49d1fd9ee7bd4920dca7a4c3707e11f95d44d6a6ce250acc0d534f08ffd2a7891308d587c4d63ce63be3377ae83";
+      name = "CreateDragonsPlus-1.11.7b.jar";
     };
   };
 
@@ -225,10 +225,10 @@
     side = "both";
     dest = "mods";
     jar = pkgs.fetchurl {
-      url = "https://cdn.modrinth.com/data/JWGBpFUP/versions/QclZk1u6/create-enchantment-industry-2.4.1.jar";
+      url = "https://cdn.modrinth.com/data/JWGBpFUP/versions/wYGhrJPO/create-enchantment-industry-2.5.1b.jar";
       outputHashAlgo = "sha512";
-      outputHash = "52b4d41157dee2620694db2cf83c0eb6cb80d86d225ac7c924ff6b87cd0ef5a878d9b1c405b41f2d721bc86889af0e1ef9099263f6e53b6d11a86254bf47dd44";
-      name = "create-enchantment-industry-2.4.1.jar";
+      outputHash = "010431497ce27989ada2be773bbbac1dc880db0b06f82c890fecf2b6ce291cc6fe6a65b0790e797040f4d37b57daebee50a2c4ae7dc3e2aaa463ac51d422cce9";
+      name = "create-enchantment-industry-2.5.1b.jar";
     };
   };
 
@@ -261,10 +261,10 @@
     side = "both";
     dest = "mods";
     jar = pkgs.fetchurl {
-      url = "https://cdn.modrinth.com/data/cl223EMc/versions/GlBkE8Zq/cristellib-neoforge-1.21.1-3.1.6.jar";
+      url = "https://cdn.modrinth.com/data/cl223EMc/versions/Sduz0AWP/cristellib-neoforge-1.21.1-3.1.7.jar";
       outputHashAlgo = "sha512";
-      outputHash = "75be7ed73633e40cf5cb03b8e737803ef55e18814bf46466df8920dee6f0bea760652db328d2f0be19cf6fee965f7525a7440b22199ed4f79a268dc7aec9e59a";
-      name = "cristellib-neoforge-1.21.1-3.1.6.jar";
+      outputHash = "6d21ceb6cd91e63a248251ded3812208ed5ea4f36abb11e8c6e16aa119a95b0e714f59ec7689ae1b1248c9831e5e3e63aa681aa7dfa9b220d93741118466cbd6";
+      name = "cristellib-neoforge-1.21.1-3.1.7.jar";
     };
   };
 
@@ -297,10 +297,10 @@
     side = "both";
     dest = "mods";
     jar = pkgs.fetchurl {
-      url = "https://cdn.modrinth.com/data/uCdwusMi/versions/g68FsgfE/DistantHorizons-3.1.2-b-1.21.1-fabric-neoforge.jar";
+      url = "https://cdn.modrinth.com/data/uCdwusMi/versions/ZpKb4kZp/DistantHorizons-3.2.0-b-1.21.1-fabric-neoforge.jar";
       outputHashAlgo = "sha512";
-      outputHash = "e184723c273aba04b2658f20196755f445860d4dfe929575a1aff006bf53c0d45004acdeaa455d3516b88f7c21f564e0e640315627e3a4080478fe0986a46732";
-      name = "DistantHorizons-3.1.2-b-1.21.1-fabric-neoforge.jar";
+      outputHash = "d4199f92f992fbd2c75a3b0e4e81c8a98bee889013f7347f2149ffa62c86748bde22135e9b2c82a10875db94fa576571c661c5ee16d2f567bd8a93d6f255fd22";
+      name = "DistantHorizons-3.2.0-b-1.21.1-fabric-neoforge.jar";
     };
   };
 
@@ -333,10 +333,10 @@
     side = "client";
     dest = "mods";
     jar = pkgs.fetchurl {
-      url = "https://cdn.modrinth.com/data/NNAgCjsB/versions/2tOn8XA2/entityculling-neoforge-1.10.2-mc1.21.1.jar";
+      url = "https://cdn.modrinth.com/data/NNAgCjsB/versions/5zRIon6w/entityculling-neoforge-1.10.5-mc1.21.1.jar";
       outputHashAlgo = "sha512";
-      outputHash = "237b9cb0df379341d27e22d20f9c87d1ec5bab571131df5d481da7f19450e0dd9eb42c0a5d6cccc913975f72ff4acf2af356765ff07383b20f3357b07db4bb2d";
-      name = "entityculling-neoforge-1.10.2-mc1.21.1.jar";
+      outputHash = "0c22502b84b13d8ac6daffe14ac77e7306b5b7a48f5cd9b3950d9e1d60b3786104aa035fbfdb208b1c9a75ad0e356301a774da32edc3f71cb3a53e2d28fd39e6";
+      name = "entityculling-neoforge-1.10.5-mc1.21.1.jar";
     };
   };
 
@@ -369,10 +369,10 @@
     side = "both";
     dest = "mods";
     jar = pkgs.fetchurl {
-      url = "https://cdn.modrinth.com/data/wbgfS34j/versions/1lKlr9Uf/FramedBlocks-10.6.0.jar";
+      url = "https://cdn.modrinth.com/data/wbgfS34j/versions/FBXGqSP5/FramedBlocks-10.6.1.jar";
       outputHashAlgo = "sha512";
-      outputHash = "57f03ab2df6ec0ed67adc2bc1513f91f7a7fbc6a36f6ebd3eea6f87278756a9ae577619a902f46f09b9efd4f0a7280d1b00e879c48c978dde184ce3c772712d1";
-      name = "FramedBlocks-10.6.0.jar";
+      outputHash = "051d07cb372bfafd746ff658ef2ad3485606328e445099c17b499b14df6844a0c75e8c6decaff1267934fbd6dfaa0eb1938906b0dbeaa20500c1789b4175e3b6";
+      name = "FramedBlocks-10.6.1.jar";
     };
   };
 
@@ -393,10 +393,10 @@
     side = "client";
     dest = "mods";
     jar = pkgs.fetchurl {
-      url = "https://cdn.modrinth.com/data/p19vrgc2/versions/FQbOs0Y6/fusion-1.3.4-neoforge-mc1.21.1.jar";
+      url = "https://cdn.modrinth.com/data/p19vrgc2/versions/6Oxgpgr9/fusion-1.3.12-neoforge-mc1.21.1.jar";
       outputHashAlgo = "sha512";
-      outputHash = "8e83823f4afb11183660399a5f7369072b1fd863e4b45c0b45cbb6e0891953206ae7a7f7eef5066d8d9f0853c15cfbb4763c91b6dc10536c155163f32581cc55";
-      name = "fusion-1.3.4-neoforge-mc1.21.1.jar";
+      outputHash = "a13d2a654988f021106f8a455134da1b515872e9122cf70bda064e663749f1c11aeddc3def23a621e236f2ffeefb6f56b15c2c63eeb2bca5f9833c5a2dc23a93";
+      name = "fusion-1.3.12-neoforge-mc1.21.1.jar";
     };
   };
 
@@ -477,10 +477,10 @@
     side = "both";
     dest = "mods";
     jar = pkgs.fetchurl {
-      url = "https://cdn.modrinth.com/data/nvQzSEkH/versions/yd8FKCmx/Jade-1.21.1-NeoForge-15.10.5.jar";
+      url = "https://cdn.modrinth.com/data/nvQzSEkH/versions/eYz2YBGT/Jade-1.21.1-NeoForge-15.10.6.jar";
       outputHashAlgo = "sha512";
-      outputHash = "678b998677a3d73f98f82dac4093893bfc8a3c2335ec627b4147811c381a040475decdb8db31cc3cbe600abb5a7a6dedcd356eed0ba471af0becdcf49bf5b137";
-      name = "Jade-1.21.1-NeoForge-15.10.5.jar";
+      outputHash = "dad9755dce8d85d914fc4df2baa0211f13e5839a71c1925fdd01f69081a95e30a2934e6273f8b01f0169adebe7a9dae57a8d904de0c4cb36dc17369bb474f0f2";
+      name = "Jade-1.21.1-NeoForge-15.10.6.jar";
     };
   };
 
@@ -489,10 +489,10 @@
     side = "both";
     dest = "mods";
     jar = pkgs.fetchurl {
-      url = "https://cdn.modrinth.com/data/u6dRKJwZ/versions/YAcQ6elZ/jei-1.21.1-neoforge-19.27.0.340.jar";
+      url = "https://cdn.modrinth.com/data/u6dRKJwZ/versions/Tbomhybz/jei-1.21.1-neoforge-19.44.0.401.jar";
       outputHashAlgo = "sha512";
-      outputHash = "8bad8eb3c8e974f867e23e4d74598f603c5fbf03eb5356a386dd37cb9fa23e08ad1f58be6b7be50d2fbf9d3fbfaeac8584c70ced736df4b8f82c7c75be242998";
-      name = "jei-1.21.1-neoforge-19.27.0.340.jar";
+      outputHash = "d52ec5a54ec4f1df6addf6b1f4ce660770c003d6ea45b3f330879d984d33600050e7390e0aa025b067898771ae969d79ef3c7fcd907751317fd170091b453173";
+      name = "jei-1.21.1-neoforge-19.44.0.401.jar";
     };
   };
 
@@ -513,10 +513,10 @@
     side = "client";
     dest = "mods";
     jar = pkgs.fetchurl {
-      url = "https://cdn.modrinth.com/data/yBW8D80W/versions/IQcvNDtF/lambdynamiclights-4.8.8%2B1.21.1.jar";
+      url = "https://cdn.modrinth.com/data/yBW8D80W/versions/DZDOX6ps/lambdynamiclights-4.8.10%2B1.21.1.jar";
       outputHashAlgo = "sha512";
-      outputHash = "34c279e7f4edf3ff68ad8d33a8cac49a75402630b95a9bfda20880880c2a425fc64c61f63d5406a0243be5b6d5df24eb745c2c5799871fc4a6e5cac4ae2f9426";
-      name = "lambdynamiclights-4.8.8+1.21.1.jar";
+      outputHash = "2a8ca94cd56e9e5ed046126f4b03edba2965c8fe76210ebc5ca53bb075832274dce1cb438082fbc2aea268f93986ad17b6231afad7c100359a9185bba517c4f9";
+      name = "lambdynamiclights-4.8.10+1.21.1.jar";
     };
   };
 
@@ -525,10 +525,10 @@
     side = "both";
     dest = "mods";
     jar = pkgs.fetchurl {
-      url = "https://cdn.modrinth.com/data/XaDC71GB/versions/wiffJSbz/lithostitched-1.7.9-neoforge-21.1.jar";
+      url = "https://cdn.modrinth.com/data/XaDC71GB/versions/qPASucBM/lithostitched-1.7.13-neoforge-21.1.jar";
       outputHashAlgo = "sha512";
-      outputHash = "5e760a733b9ebb01d9292676924f7778bee72774a2dc83fa566f22630782aa5048ad47ce440bf2a053c999104f6a1d5d755e3fcd71db8aed8a03dd65551acf73";
-      name = "lithostitched-1.7.9-neoforge-21.1.jar";
+      outputHash = "04409013edce65678d02489a7b830ba7d5e18e7c705243c8208f52661da62e7e337a09fe2797c85d7a00bc66cb50949b157b267afd216e7b900ddde9849dff32";
+      name = "lithostitched-1.7.13-neoforge-21.1.jar";
     };
   };
 
@@ -537,10 +537,10 @@
     side = "both";
     dest = "mods";
     jar = pkgs.fetchurl {
-      url = "https://cdn.modrinth.com/data/nmDcB62a/versions/nWk1yGgV/modernfix-neoforge-5.27.11%2Bmc1.21.1.jar";
+      url = "https://cdn.modrinth.com/data/nmDcB62a/versions/VsJnrw8k/modernfix-neoforge-5.27.20%2Bmc1.21.1.jar";
       outputHashAlgo = "sha512";
-      outputHash = "427abecd8cc5836744c5b62eb44d31205c99f4a48b7aed65f6d725692387d362ae0d6a99605e08983fcca70a5aaa28c6587cf1efa175cf75d6eed3ee4b5fc6c4";
-      name = "modernfix-neoforge-5.27.11+mc1.21.1.jar";
+      outputHash = "b1f0d3ac5ada811b8204bc82adc1cab8ff71752da8e97ae381f21be5f778c199ae59108850febc87d1c46757b27ccbb2669f3fc6340c837db450a205ca2d8c9c";
+      name = "modernfix-neoforge-5.27.20+mc1.21.1.jar";
     };
   };
 
@@ -549,10 +549,10 @@
     side = "both";
     dest = "mods";
     jar = pkgs.fetchurl {
-      url = "https://cdn.modrinth.com/data/twkfQtEc/versions/GIPutI3U/moonlight-neoforge-1.21.1-3.0.20.jar";
+      url = "https://cdn.modrinth.com/data/twkfQtEc/versions/Gh4IJiwq/moonlight-1.21.1-3.3.3-neoforge.jar";
       outputHashAlgo = "sha512";
-      outputHash = "bf887683af91f1c47c890c415e5d3b20327ca03a43a71c629afbbbb0c82f1bb281693bc99b322cc8bcc156e077e3168ce65cfd9cf0a526388b727d355037ce77";
-      name = "moonlight-neoforge-1.21.1-3.0.20.jar";
+      outputHash = "6882c178f302c31551ceb2dcf9f2b8fddac28a03ba171576a7525483129cf2ba2b853f36f200b17c5ea7a5c47147ba926f6d197be4ed38c39b4087ec63e648e5";
+      name = "moonlight-1.21.1-3.3.3-neoforge.jar";
     };
   };
 
@@ -585,10 +585,10 @@
     side = "both";
     dest = "mods";
     jar = pkgs.fetchurl {
-      url = "https://cdn.modrinth.com/data/QAGBst4M/versions/PRF4qcdp/PuzzlesLib-v21.1.51-1.21.1-NeoForge.jar";
+      url = "https://cdn.modrinth.com/data/QAGBst4M/versions/5A6wiMVf/PuzzlesLib-v21.1.52-1.21.1-NeoForge.jar";
       outputHashAlgo = "sha512";
-      outputHash = "ddfb1da782081266051d46e921818173d1267e534ecc734cec60f800066347412b2b9538c1a2d478bf74d8d844db251c5ec33b2e17438ba078ba1b08b98e1c2e";
-      name = "PuzzlesLib-v21.1.51-1.21.1-NeoForge.jar";
+      outputHash = "c195ebd7910dcb758cdc5bed1feb8b80fdb1a86e19b4521fd23a7a9d64838112c7b765cc8f5a6ea380fb0105ca1d09fc96956007bafa3edc423ec7ed0215324e";
+      name = "PuzzlesLib-v21.1.52-1.21.1-NeoForge.jar";
     };
   };
 
@@ -645,10 +645,10 @@
     side = "both";
     dest = "mods";
     jar = pkgs.fetchurl {
-      url = "https://cdn.modrinth.com/data/9eGKb6K1/versions/8xOu3Um5/voicechat-neoforge-1.21.1-2.6.20.jar";
+      url = "https://cdn.modrinth.com/data/9eGKb6K1/versions/2s7zUspF/voicechat-neoforge-1.21.1-2.6.22.jar";
       outputHashAlgo = "sha512";
-      outputHash = "934b2b5f474fa2b43ee052cbc7802a2d282a11c1f76ceb1ec434293e05614cf971f64e397c3cf03445d793617bf9e0c315cb434b5adeb110aa40eb0192e8c745";
-      name = "voicechat-neoforge-1.21.1-2.6.20.jar";
+      outputHash = "309e3b18e299b2bccf9128dbb05c2603a9860f7cd68858d23f8fdb8265ea85ec7fb1655c95b87c0a9522ae1fd6380b26e4a4c31207f9c7af80870fcc6207abad";
+      name = "voicechat-neoforge-1.21.1-2.6.22.jar";
     };
   };
 
@@ -657,10 +657,10 @@
     side = "client";
     dest = "mods";
     jar = pkgs.fetchurl {
-      url = "https://cdn.modrinth.com/data/AANobbMI/versions/7XOIgnrf/sodium-neoforge-0.8.12-beta.2%2Bmc1.21.1.jar";
+      url = "https://cdn.modrinth.com/data/AANobbMI/versions/jfHZ5pyN/sodium-neoforge-0.8.13-beta.2%2Bmc1.21.1.jar";
       outputHashAlgo = "sha512";
-      outputHash = "62242a3b7a8f1c564fd267e0dce71e587d8615083b8da69c3bb585eb93d0f6590d8df231104c4dca1c64c513e5d73b56661930af9c88d7ac869afe792996631f";
-      name = "sodium-neoforge-0.8.12-beta.2+mc1.21.1.jar";
+      outputHash = "6e9273862fb3397b5abea7ad37a65c3cd6d6bcb5cc06634d2b62b49999c00dac8972e4600e1d5b3c3936d0a92ccfad8ed4d04ed065595797d3c1e559f20aa08c";
+      name = "sodium-neoforge-0.8.13-beta.2+mc1.21.1.jar";
     };
   };
 
@@ -669,10 +669,10 @@
     side = "client";
     dest = "mods";
     jar = pkgs.fetchurl {
-      url = "https://cdn.modrinth.com/data/PtjYWJkn/versions/hXez7Tlk/sodium-extra-neoforge-0.8.7%2Bmc1.21.1.jar";
+      url = "https://cdn.modrinth.com/data/PtjYWJkn/versions/iJsZtWpc/sodium-extra-neoforge-0.9.3%2Bmc1.21.1.jar";
       outputHashAlgo = "sha512";
-      outputHash = "e70bfbc8b5595bb39371d3ba318ecc6292fa0acd6f3450f90a2fdd34e0cb80b4516287eedb7d0c08d0ae42938ac40c84b194e6315d085dc4a254221083819fff";
-      name = "sodium-extra-neoforge-0.8.7+mc1.21.1.jar";
+      outputHash = "36a7c237519c35e35300deadbdcfd1a270c507d49b9de10eea2cad1075c67567935e95d49ca9db470bd946de8e2ef7634361f912866f84570f3c367bf96d2b79";
+      name = "sodium-extra-neoforge-0.9.3+mc1.21.1.jar";
     };
   };
 
@@ -681,10 +681,10 @@
     side = "client";
     dest = "mods";
     jar = pkgs.fetchurl {
-      url = "https://cdn.modrinth.com/data/KS6Hbu9Z/versions/rljqrkhf/sound_physics_perfected-1.17.3%2B1.21.1-neoforge.jar";
+      url = "https://cdn.modrinth.com/data/KS6Hbu9Z/versions/ueESmGKc/sound_physics_perfected-1.17.5%2B1.21.1-neoforge.jar";
       outputHashAlgo = "sha512";
-      outputHash = "e144d069007c58a784c6ca488996d82c77fefc6e7d1749943d1c3f80f9f24fb3ef2ee53ffd48fe5ded1900f6417b87505bc20c5dbfd17e69ab6110fef19baf46";
-      name = "sound_physics_perfected-1.17.3+1.21.1-neoforge.jar";
+      outputHash = "e0817814578e803f5b461ca0f889e8d2ddcd5b889774047187427d072dc72395081af4404e20e3b5632908b919561890ca259b2a45425fdf29434efb294b88c2";
+      name = "sound_physics_perfected-1.17.5+1.21.1-neoforge.jar";
     };
   };
 
@@ -705,10 +705,10 @@
     side = "both";
     dest = "mods";
     jar = pkgs.fetchurl {
-      url = "https://cdn.modrinth.com/data/fJ183v3D/versions/ia8u5lk9/SSRD-1.8.1-1.21.1.jar";
+      url = "https://cdn.modrinth.com/data/fJ183v3D/versions/OSM1jkMg/SSRD-1.8.5-1.21.1.jar";
       outputHashAlgo = "sha512";
-      outputHash = "2ae36a7a8bf73a64e58a245b795a04fdeff9d87f4bfb94156400c2ef15a9ec2b0b2e7f1031efa197cea0270b7815335c99c50ab8b9d219188521fc14233850fd";
-      name = "SSRD-1.8.1-1.21.1.jar";
+      outputHash = "7f238068131477ffb628949d3528f8e933cde2ab05f2c20ff9786e9a0b538bb8e866a9b6dda7460899016fa41f23910013ee476cc876d1a4bbef0661436a1430";
+      name = "SSRD-1.8.5-1.21.1.jar";
     };
   };
 
@@ -717,10 +717,10 @@
     side = "both";
     dest = "mods";
     jar = pkgs.fetchurl {
-      url = "https://cdn.modrinth.com/data/fFEIiSDQ/versions/53oYzPfG/supplementaries-neoforge-1.21.1-3.7.4.jar";
+      url = "https://cdn.modrinth.com/data/fFEIiSDQ/versions/ZHJvgW8G/supplementaries-1.21.1-3.8.9-neoforge.jar";
       outputHashAlgo = "sha512";
-      outputHash = "d386c8d77cf6c3a0604aff7f33f7a79279ede305ace51cb67b6a9ee90ec6ac6e46790d7d881335cb05a7b344c510909b645ed294a6060d0c9a93bbc71a5ac47e";
-      name = "supplementaries-neoforge-1.21.1-3.7.4.jar";
+      outputHash = "c8d6c2aa5387e1ac49935b44895f3649d054cb7d3660c5fa5b363623d10f03974e75eb86ad426c81705a0453bf406b82e5d71118586b9dd8dc41cd60b81f44b4";
+      name = "supplementaries-1.21.1-3.8.9-neoforge.jar";
     };
   };
 
@@ -729,10 +729,10 @@
     side = "both";
     dest = "mods";
     jar = pkgs.fetchurl {
-      url = "https://cdn.modrinth.com/data/lWDHr9jE/versions/iCGkqnnx/tectonic-3.0.22-neoforge-21.1.jar";
+      url = "https://cdn.modrinth.com/data/lWDHr9jE/versions/vNrkxC3z/tectonic-3.0.26-neoforge-21.1.jar";
       outputHashAlgo = "sha512";
-      outputHash = "a02d3f2bfd8aa099512005df23b45ec723694c397b4224a69ffd47b41cd06bb3d56a0f10bbfd81e8159e0fc55f61d0729656f91231410a74ed55e6fc16fd18ec";
-      name = "tectonic-3.0.22-neoforge-21.1.jar";
+      outputHash = "7f91f69f6985cf5d0533dc0a645286f40b9625e0a67e405969d153497923a9b2e6b88e436b017eb969a1fbe28d02850d87152a06f2c01dc55779814912d770ef";
+      name = "tectonic-3.0.26-neoforge-21.1.jar";
     };
   };
 
@@ -777,10 +777,10 @@
     side = "both";
     dest = "mods";
     jar = pkgs.fetchurl {
-      url = "https://cdn.modrinth.com/data/1bokaNcj/versions/CklXEjmp/xaerominimap-neoforge-1.21.1-25.3.13.jar";
+      url = "https://cdn.modrinth.com/data/1bokaNcj/versions/JXvcT1hp/xaerominimap-neoforge-1.21.1-26.4.2.jar";
       outputHashAlgo = "sha512";
-      outputHash = "e6d12bcc860d81af59b8cb6d7e2306eb6c119b57f6bd0e7f9536e7800b82385b935b9b23b59e7935dd157724e2b02f32aa0e519dea033d45f7eae78362732c4b";
-      name = "xaerominimap-neoforge-1.21.1-25.3.13.jar";
+      outputHash = "7ece42b6665cb3a83d77bca1ae9ab31e9f418a7e0ee73f4be1839b62a8dde7e2727d554b6ed056ca4e7510c1aaa6603e5caaa62355bca9ff202171df73ac49ee";
+      name = "xaerominimap-neoforge-1.21.1-26.4.2.jar";
     };
   };
 
@@ -789,10 +789,10 @@
     side = "both";
     dest = "mods";
     jar = pkgs.fetchurl {
-      url = "https://cdn.modrinth.com/data/NcUtCpym/versions/XwL25au3/xaeroworldmap-neoforge-1.21.1-1.40.16.jar";
+      url = "https://cdn.modrinth.com/data/NcUtCpym/versions/55gtOc9Y/xaeroworldmap-neoforge-1.21.1-1.44.2.jar";
       outputHashAlgo = "sha512";
-      outputHash = "30fee010d813ce1cffe67a7b386d0ff6a8f9bd49026a38d0ba948a44a4670c50d434d30cc0797453b51a9c73587a050669a8ab58d97c659397b4696bc2592f2d";
-      name = "xaeroworldmap-neoforge-1.21.1-1.40.16.jar";
+      outputHash = "4a6b128ca0a07290ad62bab03e98c2ed5c7b37014bb3a3e8e74e7422429ca2cad225c045f9f8f9681662dfda29809dd9cdb2701ba4774a3a57e2fc84eb497fa8";
+      name = "xaeroworldmap-neoforge-1.21.1-1.44.2.jar";
     };
   };
 
