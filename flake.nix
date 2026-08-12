@@ -25,14 +25,22 @@
     };
     lib = pkgs.lib;
 
+    # pack/pack.toml is the single source of truth for name/versions -- both
+    # packwiz (which reads pack.toml directly) and this flake need to agree,
+    # and duplicating them here invited exactly the drift that broke JEI
+    # (pack.toml said 21.1.233, nix-minecraft's cached server was even
+    # further behind at 21.1.228).
+    packToml = builtins.fromTOML (builtins.readFile ./pack/pack.toml);
+
     packMeta = {
-      name = "inkwell";
-      mcVersion = "1.21.1";
+      name = packToml.name;
+      mcVersion = packToml.versions.minecraft;
       loader = "neoforge";
-      loaderVersion = "21.1.233";
+      loaderVersion = packToml.versions.neoforge;
     };
 
     mcVersionUnderscore = builtins.replaceStrings ["."] ["_"] packMeta.mcVersion;
+    loaderVersionUnderscore = builtins.replaceStrings ["."] ["_"] packMeta.loaderVersion;
 
     packIcon = ./assets/inkwell.png;
 
@@ -43,7 +51,11 @@
       magick ${packIcon} -resize 64x64! $out
     '';
 
-    serverPackage = pkgs.neoforgeServers."neoforge-${mcVersionUnderscore}";
+    # Pinned to the exact build, not the unversioned "neoforge-1_21_1" alias
+    # -- that alias tracks whatever nix-minecraft considers latest for the
+    # MC version, which silently drifted behind packMeta.loaderVersion
+    # before (server ran 21.1.228 while the client pack claimed 21.1.233).
+    serverPackage = pkgs.neoforgeServers."neoforge-${mcVersionUnderscore}-${loaderVersionUnderscore}";
 
     # Each mod entry: { side = "both"|"client"|"server"; dest = "mods"|
     # "shaderpacks"|...; jar = <drv>; }. Modrinth-hosted only -- local mods
@@ -343,6 +355,19 @@
 
       if [ -d "$DEST" ]; then
         echo "Instance exists at $DEST -- updating mods..."
+
+        # Replaced wholesale, same as mods/ below: this file is generated
+        # (loader + MC version only), so there's no user state to preserve
+        # -- Prism's own additions to it (LWJGL, cachedRequires, ...) are
+        # resolved data it regenerates on next launch. Without this, a
+        # loader bump never reaches an existing instance and surfaces later
+        # as an opaque mod-load crash: JEI 19.44.0.401 wants
+        # neoforge>=21.1.238 against an instance still pinned to 21.1.233.
+        # instance.cfg is deliberately left alone -- that one does hold user
+        # settings (window size, java args, pre-launch hook).
+        cp -L ${prismInstance}/${packMeta.name}/mmc-pack.json "$DEST/mmc-pack.json"
+        chmod u+w "$DEST/mmc-pack.json"
+
         # Replaced wholesale: a leftover jar from a previous revision is a
         # hard NeoForge load failure.
         rm -rf "$DEST/.minecraft/mods"
