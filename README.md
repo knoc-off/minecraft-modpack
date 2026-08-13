@@ -4,8 +4,8 @@ Minecraft 1.21.1, NeoForge 21.1.248.
 
 ## Playing (fastest way)
 
-1. Download <https://mc.niko.ink/pack/inkwell.zip>
-2. Prism Launcher: "Add Instance" -> "Import from zip" -> select the file.
+1. copy <https://mc.niko.ink/pack/inkwell.zip>
+2. Prism Launcher: "Add Instance" -> "Import" -> paste url
 3. Launch.
 
 Its pre-launch hook runs `packwiz-installer` against <https://mc.niko.ink/pack/pack.toml>, which pulls the mods

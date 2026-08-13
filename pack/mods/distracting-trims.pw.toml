@@ -1,0 +1,13 @@
+name = "Distracting Trims"
+filename = "distractingtrims-neoforge-1.21.1-21.1.1.jar"
+side = "both"
+
+[download]
+url = "https://cdn.modrinth.com/data/xQU6E1ee/versions/2KEQq349/distractingtrims-neoforge-1.21.1-21.1.1.jar"
+hash-format = "sha512"
+hash = "1b7a468985d6964a1f4c2054bb6ba988dd7791aac886b941b2debee11f790f06d8dd9f2d8717f3f0bed253cbd42e2bb15b8ff9892663a1340e008d644737c72a"
+
+[update]
+[update.modrinth]
+mod-id = "xQU6E1ee"
+version = "2KEQq349"

@@ -1,0 +1,13 @@
+name = "Seamless Sleep"
+filename = "seamlesssleep-neoforge-1.21-2.5.3.jar"
+side = "both"
+
+[download]
+url = "https://cdn.modrinth.com/data/IyHq05yB/versions/Lw02ZJke/seamlesssleep-neoforge-1.21-2.5.3.jar"
+hash-format = "sha512"
+hash = "5e0f9704dd5ca4dc4cb8bbab7b05bea934f9cfb7a9538950b505e38f8364c43a4e33bb3923d50f68ffb4b8339fcb7d82fae53f5a12ccf8118782d7db1d08057a"
+
+[update]
+[update.modrinth]
+mod-id = "IyHq05yB"
+version = "Lw02ZJke"

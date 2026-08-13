@@ -112,7 +112,14 @@
     # config/ defaults and the multiplayer server list, indexed by packwiz
     # out of pack/. Marked `preserve` in pack/index.toml so packwiz-installer
     # writes them only when absent, never overwriting a player's edits.
-    packOverlayPaths = [ "config" "servers.dat" ];
+    # options.txt ships only the resource pack selection -- Minecraft fills in
+    # every other key with its default on first launch and rewrites the file
+    # whole on exit. It is listed here (rather than shipped as a mod config)
+    # because enabling a resourcepack is a client *selection*, not mod state:
+    # dropping the zip into resourcepacks/ leaves it inactive until listed.
+    # Overlays land on fresh instances only -- installPrism's update branch
+    # deliberately skips them -- so an existing instance keeps its own options.
+    packOverlayPaths = [ "config" "servers.dat" "options.txt" ];
 
     prodServerProperties = {
       enable-rcon = true;

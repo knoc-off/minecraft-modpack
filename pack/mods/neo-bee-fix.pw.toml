@@ -1,0 +1,13 @@
+name = "Neo Bee Fix"
+filename = "neobeefix-1.21.1-2.0.1.jar"
+side = "both"
+
+[download]
+url = "https://cdn.modrinth.com/data/DzSY371i/versions/MUOGH4UT/neobeefix-1.21.1-2.0.1.jar"
+hash-format = "sha512"
+hash = "eb788217d3aa8a94fbb12c0cd6b258a7b3f59fa53d1227a890a6650251a03dc55fd0ce6ec1cd2c0200459a70c4dfa8f097c141bea59166dc9ea53839fa5f4f49"
+
+[update]
+[update.modrinth]
+mod-id = "DzSY371i"
+version = "MUOGH4UT"
