@@ -112,7 +112,7 @@ metafile = true
 
 [[files]]
 file = "mods/connector.pw.toml"
-hash = "c19c2e5a0b485648c801c4663ece3596d7e3bd1164f9065f27242346655066bf"
+hash = "3f4c6cada3345061b58ab4a1f54cb36b6f08efdc8aa33b4d786e4429bf47bf94"
 metafile = true
 
 [[files]]
@@ -282,7 +282,7 @@ metafile = true
 
 [[files]]
 file = "mods/forgified-fabric-api.pw.toml"
-hash = "4c9802167fa2e34721e597c3171c0cab8d3916f002562d14688c7cc0dd68b631"
+hash = "fea376aa7ebd1eab1307c3a7b911c01ec07d9fa39e0cc56852e9a226981cddc1"
 metafile = true
 
 [[files]]
@@ -507,7 +507,7 @@ metafile = true
 
 [[files]]
 file = "mods/surveyor.pw.toml"
-hash = "13848a9eb3c5fd091b52f78cfae4ace2c3cd0cb32a76d6f61c12435f47d82ed1"
+hash = "b660dcf14295110627985aa15bc671e1d7a64180a8a2d25a8ee617b66b99c251"
 metafile = true
 
 [[files]]
@@ -579,6 +579,10 @@ metafile = true
 file = "mods/zfastnoise.pw.toml"
 hash = "b24c213b8727e80ca559670e97971c735c4dc4be1d1a4bd637c41450e7654c1e"
 metafile = true
+
+[[files]]
+file = "options.txt"
+hash = "0784deaa3aa224a10b97d8bc65785a9f339cad1df77a64c7f286e16a77c973af"
 
 [[files]]
 file = "resourcepacks/mt-ct-d.pw.toml"
