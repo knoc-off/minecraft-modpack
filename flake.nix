@@ -130,7 +130,7 @@
       white-list = true;
       max-players = 20;
       difficulty = "normal";
-      gamemode = "creative";
+      gamemode = "survival";
       motd = "${packMeta.name} server";
     };
 

@@ -1,5 +1,5 @@
 # Auto-generated from packwiz -- do not edit manually.
-# 123 mods, 1 shaderpacks, 1 resourcepacks
+# 125 mods, 1 shaderpacks, 1 resourcepacks
 
 { pkgs }:
 
@@ -724,6 +724,18 @@
     };
   };
 
+  # Geckolib
+  "geckolib" = {
+    side = "both";
+    dest = "mods";
+    jar = pkgs.fetchurl {
+      url = "https://cdn.modrinth.com/data/8BmcQJ2H/versions/tPkJmim6/geckolib-neoforge-1.21.1-4.9.2.jar";
+      outputHashAlgo = "sha512";
+      outputHash = "c91012b16cc40c8f48f69b78cb8e2e5c006486ae2431fbd289dfc01be7a4217294becea22d83a155d6b32b3969450df871352a3695e1452168b84f41355f7b9e";
+      name = "geckolib-neoforge-1.21.1-4.9.2.jar";
+    };
+  };
+
   # Gnetum
   "gnetum" = {
     side = "client";
@@ -1225,6 +1237,18 @@
       outputHashAlgo = "sha512";
       outputHash = "7f91f69f6985cf5d0533dc0a645286f40b9625e0a67e405969d153497923a9b2e6b88e436b017eb969a1fbe28d02850d87152a06f2c01dc55779814912d770ef";
       name = "tectonic-3.0.26-neoforge-21.1.jar";
+    };
+  };
+
+  # TerraBlender
+  "terrablender" = {
+    side = "both";
+    dest = "mods";
+    jar = pkgs.fetchurl {
+      url = "https://cdn.modrinth.com/data/kkmrDlKT/versions/6e8GCrLb/TerraBlender-neoforge-1.21.1-4.1.0.8.jar";
+      outputHashAlgo = "sha512";
+      outputHash = "9d4b2a1be5139c0fb2fad92ed21805b17d9e83b6ea48e637e018bb14063c1823a206390755dbfe8d025c20fd62ac11cdd84db53ddb956dabaeda01bff57bac50";
+      name = "TerraBlender-neoforge-1.21.1-4.1.0.8.jar";
     };
   };
 

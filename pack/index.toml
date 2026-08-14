@@ -6,6 +6,11 @@ hash = "a1f0f39c1ecd937dacdaf4405100ab711cb7086bb45558bd58f75e237ec33ca1"
 preserve = true
 
 [[files]]
+file = "config/towns_and_towers/structure_enable_or_disable_new.json5"
+hash = "46ddd922669a61fe537f653819b05216384f9623f73d9d7e3f9e51e67187b967"
+preserve = true
+
+[[files]]
 file = "mods/aileron.pw.toml"
 hash = "a86b49f3eebe85445b5e7c8f9a7ef1e8cb84fa84939fe1f2b933dfb5feb92926"
 metafile = true
@@ -306,6 +311,11 @@ hash = "f9c118b7a66238a7f9e052705e82402e57c7a5b753d62d679b94701ede479752"
 metafile = true
 
 [[files]]
+file = "mods/geckolib.pw.toml"
+hash = "5a26489b734991c0511abfe43bf9143c935b8483d854a78fecd2e84993fb09cc"
+metafile = true
+
+[[files]]
 file = "mods/gnetum.pw.toml"
 hash = "3979402652cc5c5eb7e4b08cecd19e1745832923ebe6679b239bca8864578cb1"
 metafile = true
@@ -513,6 +523,11 @@ metafile = true
 [[files]]
 file = "mods/tectonic.pw.toml"
 hash = "fef2f8085bbdf6d398b02c87225ad9ccf9cc5d71edde13cd18e12a154764c84e"
+metafile = true
+
+[[files]]
+file = "mods/terrablender.pw.toml"
+hash = "15962183bec2468058c70e87aa32e902a08489b0f86741088cdc9aa958ba4931"
 metafile = true
 
 [[files]]
