@@ -1,5 +1,5 @@
 # Auto-generated from packwiz -- do not edit manually.
-# 115 mods, 1 shaderpacks, 1 resourcepacks
+# 123 mods, 1 shaderpacks, 1 resourcepacks
 
 { pkgs }:
 
@@ -1336,6 +1336,30 @@
     };
   };
 
+  # YUNG's Better End Island
+  "yungs-better-end-island" = {
+    side = "server";
+    dest = "mods";
+    jar = pkgs.fetchurl {
+      url = "https://cdn.modrinth.com/data/2BwBOmBQ/versions/I52NZ1qK/YungsBetterEndIsland-1.21.1-NeoForge-3.1.2.jar";
+      outputHashAlgo = "sha512";
+      outputHash = "02923a1a97eb81ec13d69bdc6b7e8b36dfb9e6f1a98adfcf103707ec3afde35831ccd4b210e9b3a9c7662541c38ea593a3d94c12171b4072ea7feafa75c95f96";
+      name = "YungsBetterEndIsland-1.21.1-NeoForge-3.1.2.jar";
+    };
+  };
+
+  # YUNG's Better Jungle Temples
+  "yungs-better-jungle-temples" = {
+    side = "server";
+    dest = "mods";
+    jar = pkgs.fetchurl {
+      url = "https://cdn.modrinth.com/data/z9Ve58Ih/versions/P00i2hJn/YungsBetterJungleTemples-1.21.1-NeoForge-3.1.2.jar";
+      outputHashAlgo = "sha512";
+      outputHash = "eca4233e874a55886c63d2111b8685d479771d3627bad2922582e65b78c51ba74733dc4624aabf91f2a2178a940a72d9209ae33eef74e34f84f07d62256709d9";
+      name = "YungsBetterJungleTemples-1.21.1-NeoForge-3.1.2.jar";
+    };
+  };
+
   # YUNG's Better Mineshafts
   "yungs-better-mineshafts" = {
     side = "both";
@@ -1345,6 +1369,30 @@
       outputHashAlgo = "sha512";
       outputHash = "8b01b386f53feeaa55f0c62697578b82e00501e45e428b2a68df6bda34efb6a4b3b4e3582abf13fe767ebcb61aef9368186f53c03999958bef38f31c41a7f8b2";
       name = "YungsBetterMineshafts-1.21.1-NeoForge-5.1.1.jar";
+    };
+  };
+
+  # YUNG's Better Nether Fortresses
+  "yungs-better-nether-fortresses" = {
+    side = "server";
+    dest = "mods";
+    jar = pkgs.fetchurl {
+      url = "https://cdn.modrinth.com/data/Z2mXHnxP/versions/iopJiJQp/YungsBetterNetherFortresses-1.21.1-NeoForge-3.1.5.jar";
+      outputHashAlgo = "sha512";
+      outputHash = "18b461298d3df1215fa3b4d2c0cb2ef1c7ed76701d8a0bb140277b21923e31abd939f0fd9b400c5bd676d739f1cda31c43b4dc753f9187251542223f3424d336";
+      name = "YungsBetterNetherFortresses-1.21.1-NeoForge-3.1.5.jar";
+    };
+  };
+
+  # YUNG's Better Ocean Monuments
+  "yungs-better-ocean-monuments" = {
+    side = "server";
+    dest = "mods";
+    jar = pkgs.fetchurl {
+      url = "https://cdn.modrinth.com/data/3dT9sgt4/versions/yFjEcj2g/YungsBetterOceanMonuments-1.21.1-NeoForge-4.1.2.jar";
+      outputHashAlgo = "sha512";
+      outputHash = "77c864da36f1d2173e6460dc335996893a804954b8a5c274173fc95dfdbf437e80d9dce32f6060306a662fc35322566eecf5dfe24e2d3fab79bf7e0ff9fa4db6";
+      name = "YungsBetterOceanMonuments-1.21.1-NeoForge-4.1.2.jar";
     };
   };
 
@@ -1360,6 +1408,42 @@
     };
   };
 
+  # YUNG's Better Witch Huts
+  "yungs-better-witch-huts" = {
+    side = "server";
+    dest = "mods";
+    jar = pkgs.fetchurl {
+      url = "https://cdn.modrinth.com/data/t5FRdP87/versions/AvedwcIe/YungsBetterWitchHuts-1.21.1-NeoForge-4.1.1.jar";
+      outputHashAlgo = "sha512";
+      outputHash = "9baa8a1f36a2a36efc3df58ab9347fd9f326b551ad78e3f600ed9d68862c619752ac0770804807efb15a46fcb4d9f6e2baf6a11f622d3ebb6c865662f6c7bcfd";
+      name = "YungsBetterWitchHuts-1.21.1-NeoForge-4.1.1.jar";
+    };
+  };
+
+  # YUNG's Bridges
+  "yungs-bridges" = {
+    side = "server";
+    dest = "mods";
+    jar = pkgs.fetchurl {
+      url = "https://cdn.modrinth.com/data/Ht4BfYp6/versions/urkCzBf6/YungsBridges-1.21.1-NeoForge-5.1.1.jar";
+      outputHashAlgo = "sha512";
+      outputHash = "20b07ae4c08974980f976bcae32f18ccb885745d6cd50d4a5d0156eb5c51c29e49f8b2bf7dc2ae160d39b62f2332513bd9850efc5cba13697e36a2ac2848bc3b";
+      name = "YungsBridges-1.21.1-NeoForge-5.1.1.jar";
+    };
+  };
+
+  # YUNG's Cave Biomes
+  "yungs-cave-biomes" = {
+    side = "both";
+    dest = "mods";
+    jar = pkgs.fetchurl {
+      url = "https://cdn.modrinth.com/data/cs7iGVq1/versions/HYGqXWqQ/YungsCaveBiomes-1.21.1-NeoForge-3.1.1.jar";
+      outputHashAlgo = "sha512";
+      outputHash = "9e88b5109e06c791f27c23df16ebd2c535b5b27cf9b748ee6a439dccf3e560d32110b81ace5ea7dcca2992394b439223c20e4f2688e80e263efa103e2b154024";
+      name = "YungsCaveBiomes-1.21.1-NeoForge-3.1.1.jar";
+    };
+  };
+
   # YUNG's Extras
   "yungs-extras" = {
     side = "both";
@@ -1369,6 +1453,18 @@
       outputHashAlgo = "sha512";
       outputHash = "d4ef831a034977abdcaec40a7662adbc37c32cf141c68245250da501f6ada2ce193c5351166fbcf2ffb1c452b60bfca8ac578963332aa4a1b523e43912b8cb8c";
       name = "YungsExtras-1.21.1-NeoForge-5.1.1.jar";
+    };
+  };
+
+  # YUNG's Menu Tweaks
+  "yungs-menu-tweaks" = {
+    side = "client";
+    dest = "mods";
+    jar = pkgs.fetchurl {
+      url = "https://cdn.modrinth.com/data/Hcy2DFKF/versions/OB9hQTpQ/YungsMenuTweaks-1.21.1-NeoForge-2.1.2.jar";
+      outputHashAlgo = "sha512";
+      outputHash = "509327f5f5542246e2b98811b36cf2f7e26fe81b7538f3443b958c0134029e0e1ae8483165adaf1f2c4ee5a531bf8b57a2628305f7caf6bf1301cf34ad46b5fb";
+      name = "YungsMenuTweaks-1.21.1-NeoForge-2.1.2.jar";
     };
   };
 
