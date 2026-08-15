@@ -6,6 +6,10 @@ hash = "a1f0f39c1ecd937dacdaf4405100ab711cb7086bb45558bd58f75e237ec33ca1"
 preserve = true
 
 [[files]]
+file = "config/freecam.json"
+hash = "ceefa20c8a8bb836cd8dcb2a046b426abdd17a4c7625db9c469adfb3ffb5b10d"
+
+[[files]]
 file = "config/towns_and_towers/structure_enable_or_disable_new.json5"
 hash = "46ddd922669a61fe537f653819b05216384f9623f73d9d7e3f9e51e67187b967"
 preserve = true
@@ -413,6 +417,11 @@ metafile = true
 [[files]]
 file = "mods/moonlight.pw.toml"
 hash = "14fc787461cc4464d476454c0d06b7ecbc988e5582d51d527a43a450be9de92d"
+metafile = true
+
+[[files]]
+file = "mods/mouse-tweaks.pw.toml"
+hash = "6bc414cc0f2d4c078fe83f384d786343f701f371d657c5279b5b0df1595804bd"
 metafile = true
 
 [[files]]

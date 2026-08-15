@@ -1,5 +1,5 @@
 # Auto-generated from packwiz -- do not edit manually.
-# 126 mods, 1 shaderpacks, 1 resourcepacks
+# 127 mods, 1 shaderpacks, 1 resourcepacks
 
 { pkgs }:
 
@@ -973,6 +973,18 @@
       outputHashAlgo = "sha512";
       outputHash = "6882c178f302c31551ceb2dcf9f2b8fddac28a03ba171576a7525483129cf2ba2b853f36f200b17c5ea7a5c47147ba926f6d197be4ed38c39b4087ec63e648e5";
       name = "moonlight-1.21.1-3.3.3-neoforge.jar";
+    };
+  };
+
+  # Mouse Tweaks
+  "mouse-tweaks" = {
+    side = "client";
+    dest = "mods";
+    jar = pkgs.fetchurl {
+      url = "https://cdn.modrinth.com/data/aC3cM3Vq/versions/9I21YYxf/MouseTweaks-neoforge-mc1.21-2.26.1.jar";
+      outputHashAlgo = "sha512";
+      outputHash = "f95c0cc881211ee0442434976775e07aae40b4a2ba4e3a85455bc57ca9d3c991e239cd98374a8abd442dc9c378dcd9001e2caa1bf69991d424b5652dd7f3483b";
+      name = "MouseTweaks-neoforge-mc1.21-2.26.1.jar";
     };
   };
 
