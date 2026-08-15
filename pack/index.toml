@@ -6,8 +6,8 @@ hash = "a1f0f39c1ecd937dacdaf4405100ab711cb7086bb45558bd58f75e237ec33ca1"
 preserve = true
 
 [[files]]
-file = "config/freecam.json"
-hash = "ceefa20c8a8bb836cd8dcb2a046b426abdd17a4c7625db9c469adfb3ffb5b10d"
+file = "config/freecam.json5"
+hash = "cbb75a86fd8f2137b80af9a91258a80f495c5a81fb83dca8850be03ca05c1317"
 
 [[files]]
 file = "config/towns_and_towers/structure_enable_or_disable_new.json5"
