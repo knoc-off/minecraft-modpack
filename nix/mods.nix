@@ -1,5 +1,5 @@
 # Auto-generated from packwiz -- do not edit manually.
-# 127 mods, 1 shaderpacks, 1 resourcepacks
+# 128 mods, 1 shaderpacks, 1 resourcepacks
 
 { pkgs }:
 
@@ -1069,6 +1069,18 @@
       outputHashAlgo = "sha512";
       outputHash = "c195ebd7910dcb758cdc5bed1feb8b80fdb1a86e19b4521fd23a7a9d64838112c7b765cc8f5a6ea380fb0105ca1d09fc96956007bafa3edc423ec7ed0215324e";
       name = "PuzzlesLib-v21.1.52-1.21.1-NeoForge.jar";
+    };
+  };
+
+  # Ready Player Fun
+  "ready-player-fun" = {
+    side = "server";
+    dest = "mods";
+    jar = pkgs.fetchurl {
+      url = "https://cdn.modrinth.com/data/AwiAYDUq/versions/aWP826oQ/readyplayerfun-1.21.1-neoforge-3.0.1.5-NEOFORGE.jar";
+      outputHashAlgo = "sha512";
+      outputHash = "de5eb83f11b0cda318ac65c36394cd3cb14540387a6a5bd33441617295dd890df061519e1baecc92ef92c06bed5578dbfbc1eb872fa726d7d8015dd9be92219c";
+      name = "readyplayerfun-1.21.1-neoforge-3.0.1.5-NEOFORGE.jar";
     };
   };
 

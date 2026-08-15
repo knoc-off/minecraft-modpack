@@ -1,0 +1,13 @@
+name = "Ready Player Fun"
+filename = "readyplayerfun-1.21.1-neoforge-3.0.1.5-NEOFORGE.jar"
+side = "server"
+
+[download]
+url = "https://cdn.modrinth.com/data/AwiAYDUq/versions/aWP826oQ/readyplayerfun-1.21.1-neoforge-3.0.1.5-NEOFORGE.jar"
+hash-format = "sha512"
+hash = "de5eb83f11b0cda318ac65c36394cd3cb14540387a6a5bd33441617295dd890df061519e1baecc92ef92c06bed5578dbfbc1eb872fa726d7d8015dd9be92219c"
+
+[update]
+[update.modrinth]
+mod-id = "AwiAYDUq"
+version = "aWP826oQ"
