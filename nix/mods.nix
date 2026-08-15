@@ -1,5 +1,5 @@
 # Auto-generated from packwiz -- do not edit manually.
-# 125 mods, 1 shaderpacks, 1 resourcepacks
+# 126 mods, 1 shaderpacks, 1 resourcepacks
 
 { pkgs }:
 
@@ -853,6 +853,18 @@
       outputHashAlgo = "sha512";
       outputHash = "dad9755dce8d85d914fc4df2baa0211f13e5839a71c1925fdd01f69081a95e30a2934e6273f8b01f0169adebe7a9dae57a8d904de0c4cb36dc17369bb474f0f2";
       name = "Jade-1.21.1-NeoForge-15.10.6.jar";
+    };
+  };
+
+  # Just Enough Items (JEI)
+  "jei" = {
+    side = "client";
+    dest = "mods";
+    jar = pkgs.fetchurl {
+      url = "https://cdn.modrinth.com/data/u6dRKJwZ/versions/Tbomhybz/jei-1.21.1-neoforge-19.44.0.401.jar";
+      outputHashAlgo = "sha512";
+      outputHash = "d52ec5a54ec4f1df6addf6b1f4ce660770c003d6ea45b3f330879d984d33600050e7390e0aa025b067898771ae969d79ef3c7fcd907751317fd170091b453173";
+      name = "jei-1.21.1-neoforge-19.44.0.401.jar";
     };
   };
 
