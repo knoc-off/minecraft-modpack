@@ -246,7 +246,7 @@
 
   # Sinytra Connector
   "connector" = {
-    side = "both";
+    side = "client";
     dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/u58R1TMW/versions/9Bz9VtV5/connector-2.0.0-beta.16%2B1.21.1-full.jar";
@@ -666,7 +666,7 @@
 
   # Forgified Fabric API
   "forgified-fabric-api" = {
-    side = "both";
+    side = "client";
     dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/Aqlf1Shp/versions/tLCRIkwt/forgified-fabric-api-0.116.15%2B2.3.2%2B1.21.1.jar";
@@ -954,7 +954,7 @@
 
   # McQoy
   "mcqoy" = {
-    side = "both";
+    side = "client";
     dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/tNmWwdI2/versions/nfqfeKsL/mcqoy-0.4.1%2Bneo-1.21.jar";
@@ -1290,7 +1290,7 @@
 
   # Surveyor Map Framework
   "surveyor" = {
-    side = "both";
+    side = "client";
     dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/4KjqhPc9/versions/egJBsDTn/surveyor-1.2.4%2B1.21.jar";

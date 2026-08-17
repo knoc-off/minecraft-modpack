@@ -121,7 +121,7 @@ metafile = true
 
 [[files]]
 file = "mods/connector.pw.toml"
-hash = "c19c2e5a0b485648c801c4663ece3596d7e3bd1164f9065f27242346655066bf"
+hash = "3f4c6cada3345061b58ab4a1f54cb36b6f08efdc8aa33b4d786e4429bf47bf94"
 metafile = true
 
 [[files]]
@@ -296,7 +296,7 @@ metafile = true
 
 [[files]]
 file = "mods/forgified-fabric-api.pw.toml"
-hash = "4c9802167fa2e34721e597c3171c0cab8d3916f002562d14688c7cc0dd68b631"
+hash = "fea376aa7ebd1eab1307c3a7b911c01ec07d9fa39e0cc56852e9a226981cddc1"
 metafile = true
 
 [[files]]
@@ -416,7 +416,7 @@ metafile = true
 
 [[files]]
 file = "mods/mcqoy.pw.toml"
-hash = "58829168a037a36be389f88b3392dd9d565e904862ad62fed40d50b8fce8b451"
+hash = "604b7674b96d10b2c9f03e47a91ec50b448e8193de56f36fca93b5ff0f3132f6"
 metafile = true
 
 [[files]]
@@ -556,7 +556,7 @@ metafile = true
 
 [[files]]
 file = "mods/surveyor.pw.toml"
-hash = "13848a9eb3c5fd091b52f78cfae4ace2c3cd0cb32a76d6f61c12435f47d82ed1"
+hash = "b660dcf14295110627985aa15bc671e1d7a64180a8a2d25a8ee617b66b99c251"
 metafile = true
 
 [[files]]
