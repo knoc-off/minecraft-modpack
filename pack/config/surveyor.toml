@@ -1,0 +1,5 @@
+[networking]
+# Default is true, which pools terrain exploration, waypoints and live player
+# positions across everyone on the server the moment they join. Opt-in instead:
+# players form sharing groups with /surveyor share and /surveyor unshare.
+globalSharing = false

@@ -1,0 +1,13 @@
+name = "Dead Reckoning"
+filename = "dead_reckoning-1.6.3+1.21.1.jar"
+side = "client"
+
+[download]
+url = "https://cdn.modrinth.com/data/F8LcMVkD/versions/6tHF0yCl/dead_reckoning-1.6.3%2B1.21.1.jar"
+hash-format = "sha512"
+hash = "563f1077e87f505909e6f7a7d1c50321367c11b0abf9fe6d9ba36b63cd4dc87dd38880836932617cd7672adfed4eb538ecb17741ab2166301f4c56e915ce58c1"
+
+[update]
+[update.modrinth]
+mod-id = "F8LcMVkD"
+version = "6tHF0yCl"

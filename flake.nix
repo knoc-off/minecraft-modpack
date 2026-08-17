@@ -454,6 +454,10 @@
               path = ./server-config/DistantHorizons.toml;
               name = "DistantHorizons.toml";
             };
+            "config/surveyor.toml" = builtins.path {
+              path = ./server-config/surveyor.toml;
+              name = "surveyor.toml";
+            };
           };
 
           serverProperties = prodServerProperties;

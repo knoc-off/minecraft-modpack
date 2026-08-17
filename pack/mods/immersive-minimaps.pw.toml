@@ -1,0 +1,13 @@
+name = "Immersive Minimaps"
+filename = "immersiveminimaps-1.2.4+1.21.1-fabric.jar"
+side = "client"
+
+[download]
+url = "https://cdn.modrinth.com/data/CbCN2Azx/versions/Khh4xFug/immersiveminimaps-1.2.4%2B1.21.1-fabric.jar"
+hash-format = "sha512"
+hash = "42a3b9e7ba7b36503f233bb13b287b5da077d8b82a6c487e9463b8c53bed9622460eab13f7788b1ed96fd8aafcbc9e4bbef5cdd6b84e4672bc269f8341494b23"
+
+[update]
+[update.modrinth]
+mod-id = "CbCN2Azx"
+version = "Khh4xFug"

@@ -1,6 +1,6 @@
 name = "McQoy"
 filename = "mcqoy-0.4.1+neo-1.21.jar"
-side = "client"
+side = "both"
 
 [download]
 url = "https://cdn.modrinth.com/data/tNmWwdI2/versions/nfqfeKsL/mcqoy-0.4.1%2Bneo-1.21.jar"

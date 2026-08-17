@@ -1,5 +1,5 @@
 # Auto-generated from packwiz -- do not edit manually.
-# 128 mods, 1 shaderpacks, 1 resourcepacks
+# 131 mods, 1 shaderpacks, 1 resourcepacks
 
 { pkgs }:
 
@@ -25,18 +25,6 @@
       outputHashAlgo = "sha512";
       outputHash = "ffa9d60ad4c024e5f0ad9b1c9f0e2cbc5eea0666d3370aeec3754f7f1568ce87fc50f1a8ce9017bda7063a1c9a62eff4b901c660631f1a8e5adaf89cf9320c59";
       name = "amendments-neoforge-1.21-2.1.7.jar";
-    };
-  };
-
-  # Antique Atlas 4
-  "antique-atlas-4" = {
-    side = "client";
-    dest = "mods";
-    jar = pkgs.fetchurl {
-      url = "https://cdn.modrinth.com/data/Y5Ve4Ui4/versions/2sDsTAId/antique-atlas-3.1.2%2B1.21.jar";
-      outputHashAlgo = "sha512";
-      outputHash = "e920516b107f009d8a671c4b07a65afc0060a11fe3d2918169eb8320408cb3a71b4bdfa7d58a59ff73d8161a545ba220f4e5d766434d46aa08de14e7fe6368cc";
-      name = "antique-atlas-3.1.2+1.21.jar";
     };
   };
 
@@ -258,7 +246,7 @@
 
   # Sinytra Connector
   "connector" = {
-    side = "client";
+    side = "both";
     dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/u58R1TMW/versions/9Bz9VtV5/connector-2.0.0-beta.16%2B1.21.1-full.jar";
@@ -457,6 +445,18 @@
       outputHashAlgo = "sha512";
       outputHash = "e6313fe2c2fb8b5131b39bf8ae105e5120630b78d713db5a573c6830a476868beee3f38aa4da7c29779214b7690af83ca0ce9036d1f757a54c2352e0748cd256";
       name = "CutThrough-v21.1.0-1.21.1-NeoForge.jar";
+    };
+  };
+
+  # Dead Reckoning
+  "dead-reckoning" = {
+    side = "client";
+    dest = "mods";
+    jar = pkgs.fetchurl {
+      url = "https://cdn.modrinth.com/data/F8LcMVkD/versions/6tHF0yCl/dead_reckoning-1.6.3%2B1.21.1.jar";
+      outputHashAlgo = "sha512";
+      outputHash = "563f1077e87f505909e6f7a7d1c50321367c11b0abf9fe6d9ba36b63cd4dc87dd38880836932617cd7672adfed4eb538ecb17741ab2166301f4c56e915ce58c1";
+      name = "dead_reckoning-1.6.3+1.21.1.jar";
     };
   };
 
@@ -666,7 +666,7 @@
 
   # Forgified Fabric API
   "forgified-fabric-api" = {
-    side = "client";
+    side = "both";
     dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/Aqlf1Shp/versions/tLCRIkwt/forgified-fabric-api-0.116.15%2B2.3.2%2B1.21.1.jar";
@@ -772,6 +772,18 @@
     };
   };
 
+  # Hoofprint
+  "hoofprint" = {
+    side = "client";
+    dest = "mods";
+    jar = pkgs.fetchurl {
+      url = "https://cdn.modrinth.com/data/8O6iJpuJ/versions/YQxLELnA/hoofprint-1.3.0%2B1.21.jar";
+      outputHashAlgo = "sha512";
+      outputHash = "68afc8c41407f2a421bf322e9b7bd71cf69285fa871f2dfd91a996f4822bac35ee20215d12d39ac91ddd6ab4d5e3a9ce6c735fd171b06edd71a817ed8bec5e17";
+      name = "hoofprint-1.3.0+1.21.jar";
+    };
+  };
+
   # Iceberg
   "iceberg" = {
     side = "both";
@@ -793,6 +805,18 @@
       outputHashAlgo = "sha512";
       outputHash = "9f6a8d2f90f076cccbb40b519dcb014c832c0fbc28c3995fb9cb5e69e016eb3b8c9bf74c64809374b7c417fcc07545b117238da924c6608e899a6608f1bf64c9";
       name = "ImmediatelyFast-NeoForge-1.6.11+1.21.1.jar";
+    };
+  };
+
+  # Immersive Minimaps
+  "immersive-minimaps" = {
+    side = "client";
+    dest = "mods";
+    jar = pkgs.fetchurl {
+      url = "https://cdn.modrinth.com/data/CbCN2Azx/versions/Khh4xFug/immersiveminimaps-1.2.4%2B1.21.1-fabric.jar";
+      outputHashAlgo = "sha512";
+      outputHash = "42a3b9e7ba7b36503f233bb13b287b5da077d8b82a6c487e9463b8c53bed9622460eab13f7788b1ed96fd8aafcbc9e4bbef5cdd6b84e4672bc269f8341494b23";
+      name = "immersiveminimaps-1.2.4+1.21.1-fabric.jar";
     };
   };
 
@@ -930,7 +954,7 @@
 
   # McQoy
   "mcqoy" = {
-    side = "client";
+    side = "both";
     dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/tNmWwdI2/versions/nfqfeKsL/mcqoy-0.4.1%2Bneo-1.21.jar";
@@ -985,6 +1009,18 @@
       outputHashAlgo = "sha512";
       outputHash = "f95c0cc881211ee0442434976775e07aae40b4a2ba4e3a85455bc57ca9d3c991e239cd98374a8abd442dc9c378dcd9001e2caa1bf69991d424b5652dd7f3483b";
       name = "MouseTweaks-neoforge-mc1.21-2.26.1.jar";
+    };
+  };
+
+  # MRU
+  "mru" = {
+    side = "client";
+    dest = "mods";
+    jar = pkgs.fetchurl {
+      url = "https://cdn.modrinth.com/data/SNVQ2c0g/versions/hKkYQw1y/mru-1.0.33%2B1.21.1-neoforge.jar";
+      outputHashAlgo = "sha512";
+      outputHash = "257c3ab9a0706d7ecd6362e291211f3b853e5133d4e60cce5aec88e97e9142a1136f712f26a8673fb97acfb77f34abba23e97858df39ca5a3de9b89473eb6c0d";
+      name = "mru-1.0.33+1.21.1-neoforge.jar";
     };
   };
 
@@ -1254,7 +1290,7 @@
 
   # Surveyor Map Framework
   "surveyor" = {
-    side = "client";
+    side = "both";
     dest = "mods";
     jar = pkgs.fetchurl {
       url = "https://cdn.modrinth.com/data/4KjqhPc9/versions/egJBsDTn/surveyor-1.2.4%2B1.21.jar";

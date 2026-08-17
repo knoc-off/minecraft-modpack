@@ -10,6 +10,11 @@ file = "config/freecam.json5"
 hash = "5a845c9eb962d8a186e1b62ec10e7e48f3887d026ec7c01698220079bc4f7b5c"
 
 [[files]]
+file = "config/surveyor.toml"
+hash = "33379cfbf71c03cbbe5fb1703ab50b50168b9e547a99cee18a5bbb4c407ec195"
+preserve = true
+
+[[files]]
 file = "config/towns_and_towers/structure_enable_or_disable_new.json5"
 hash = "46ddd922669a61fe537f653819b05216384f9623f73d9d7e3f9e51e67187b967"
 preserve = true
@@ -22,11 +27,6 @@ metafile = true
 [[files]]
 file = "mods/amendments.pw.toml"
 hash = "793e70a07961b1670ba13dcdfe2c1cfb1379df52485adc2d3ba5db128e9536a6"
-metafile = true
-
-[[files]]
-file = "mods/antique-atlas-4.pw.toml"
-hash = "72f9cf7ef1412b9384467782dd5444ec8adbd03b9f532d1238e5a166ffb25237"
 metafile = true
 
 [[files]]
@@ -121,7 +121,7 @@ metafile = true
 
 [[files]]
 file = "mods/connector.pw.toml"
-hash = "3f4c6cada3345061b58ab4a1f54cb36b6f08efdc8aa33b4d786e4429bf47bf94"
+hash = "c19c2e5a0b485648c801c4663ece3596d7e3bd1164f9065f27242346655066bf"
 metafile = true
 
 [[files]]
@@ -202,6 +202,11 @@ metafile = true
 [[files]]
 file = "mods/cut-through.pw.toml"
 hash = "4c16ee75d3b04443e96d854eec79344293963e9f4beaaf8e7215023e8ef53b88"
+metafile = true
+
+[[files]]
+file = "mods/dead-reckoning.pw.toml"
+hash = "47d31e68115e60b33c56a138a098b07af4602c89e84137cce727fa043dc366df"
 metafile = true
 
 [[files]]
@@ -291,7 +296,7 @@ metafile = true
 
 [[files]]
 file = "mods/forgified-fabric-api.pw.toml"
-hash = "fea376aa7ebd1eab1307c3a7b911c01ec07d9fa39e0cc56852e9a226981cddc1"
+hash = "4c9802167fa2e34721e597c3171c0cab8d3916f002562d14688c7cc0dd68b631"
 metafile = true
 
 [[files]]
@@ -335,6 +340,11 @@ hash = "0004feab868f7b873c12db05aae0d0dac6c87b497490b48bb66480e7c8d0f340"
 metafile = true
 
 [[files]]
+file = "mods/hoofprint.pw.toml"
+hash = "eef89b82a537cf8563d0e1b8691b3bdc69c52a01863cd35a289e2c827a605b30"
+metafile = true
+
+[[files]]
 file = "mods/iceberg.pw.toml"
 hash = "a2fbecad69fcbff54919864ea8b95e54d140a1a2c637d73307fb366e76066fe6"
 metafile = true
@@ -342,6 +352,11 @@ metafile = true
 [[files]]
 file = "mods/immediatelyfast.pw.toml"
 hash = "94af73eec28b59b314b2c6ef9dfb98f37d7bbcbcb482c278570cc15e44b6a559"
+metafile = true
+
+[[files]]
+file = "mods/immersive-minimaps.pw.toml"
+hash = "0847dab7834be6fff5edf2c6e0e9f9d0d97c29c0c2da5f2803e930b69f6d8a9e"
 metafile = true
 
 [[files]]
@@ -401,7 +416,7 @@ metafile = true
 
 [[files]]
 file = "mods/mcqoy.pw.toml"
-hash = "604b7674b96d10b2c9f03e47a91ec50b448e8193de56f36fca93b5ff0f3132f6"
+hash = "58829168a037a36be389f88b3392dd9d565e904862ad62fed40d50b8fce8b451"
 metafile = true
 
 [[files]]
@@ -422,6 +437,11 @@ metafile = true
 [[files]]
 file = "mods/mouse-tweaks.pw.toml"
 hash = "6bc414cc0f2d4c078fe83f384d786343f701f371d657c5279b5b0df1595804bd"
+metafile = true
+
+[[files]]
+file = "mods/mru.pw.toml"
+hash = "583e771c537b6f8744d451fd0d7c6f530bc60c74c0ca70bc0b79d26e47545a38"
 metafile = true
 
 [[files]]
@@ -536,7 +556,7 @@ metafile = true
 
 [[files]]
 file = "mods/surveyor.pw.toml"
-hash = "b660dcf14295110627985aa15bc671e1d7a64180a8a2d25a8ee617b66b99c251"
+hash = "13848a9eb3c5fd091b52f78cfae4ace2c3cd0cb32a76d6f61c12435f47d82ed1"
 metafile = true
 
 [[files]]
