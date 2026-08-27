@@ -1,5 +1,5 @@
 # Auto-generated from packwiz -- do not edit manually.
-# 131 mods, 1 shaderpacks, 1 resourcepacks
+# 140 mods, 1 shaderpacks, 1 resourcepacks
 
 { pkgs }:
 
@@ -340,6 +340,18 @@
     };
   };
 
+  # Create: Diesel Generators
+  "create-diesel-generators" = {
+    side = "both";
+    dest = "mods";
+    jar = pkgs.fetchurl {
+      url = "https://cdn.modrinth.com/data/ZM3tt6p1/versions/UoPH8lO1/createdieselgenerators-1.21.1-1.3.15.jar";
+      outputHashAlgo = "sha512";
+      outputHash = "1507ebcd07d3185aac3ae6ce768b4d6bab16cb6f39776d25a850c8133a4dc5826b8ddbeca112d76afc64deaa37ec177cac4237c6c34621c4b65e73d83f8ab43f";
+      name = "createdieselgenerators-1.21.1-1.3.15.jar";
+    };
+  };
+
   # Create: Dragons Plus
   "create-dragons-plus" = {
     side = "both";
@@ -361,6 +373,42 @@
       outputHashAlgo = "sha512";
       outputHash = "010431497ce27989ada2be773bbbac1dc880db0b06f82c890fecf2b6ce291cc6fe6a65b0790e797040f4d37b57daebee50a2c4ae7dc3e2aaa463ac51d422cce9";
       name = "create-enchantment-industry-2.5.1b.jar";
+    };
+  };
+
+  # Create: Fishery Industry
+  "create-fishery-industry" = {
+    side = "both";
+    dest = "mods";
+    jar = pkgs.fetchurl {
+      url = "https://edge.forgecdn.net/files/8458/890/createfisheryindustry-5.1.1.jar";
+      outputHashAlgo = "sha256";
+      outputHash = "0af09db8da495dc85db0e6fccb692fd68dd2f8b558b7a268827d491c6fba4088";
+      name = "createfisheryindustry-5.1.1.jar";
+    };
+  };
+
+  # Create: Food
+  "create-food" = {
+    side = "both";
+    dest = "mods";
+    jar = pkgs.fetchurl {
+      url = "https://cdn.modrinth.com/data/4HnO3el1/versions/CnuisYs3/createfood-neoforge-1.21.1-2.7.1.jar";
+      outputHashAlgo = "sha512";
+      outputHash = "9f4a544671b381a0cbf8e2428dcde1578772cc5233fb3074d8a93cd987a0640e79552a2ffae8af0c8f908ed57376eb3c29b32744b4f257c3f001101e77a18420";
+      name = "createfood-neoforge-1.21.1-2.7.1.jar";
+    };
+  };
+
+  # Create Goggles
+  "create-goggles" = {
+    side = "both";
+    dest = "mods";
+    jar = pkgs.fetchurl {
+      url = "https://cdn.modrinth.com/data/L1RT5SJc/versions/Co24W2FL/creategoggles-1.21.1-6.1.1-%5BNEOFORGE%5D.jar";
+      outputHashAlgo = "sha512";
+      outputHash = "bf2c4167fdee64c3f43298c6fd2d9e347951d2fb8fc12e2c2bbafc486e8d690cd7ebfd536507d13a6b4c287236713f8d796c048df2356feda36542cf5b484afc";
+      name = "creategoggles-1.21.1-6.1.1-[NEOFORGE].jar";
     };
   };
 
@@ -409,6 +457,42 @@
       outputHashAlgo = "sha512";
       outputHash = "def5c767467bf7863e2efc1a8cc3bf3442e1090ee1504e447c4120b9ff4ff6780de93d2a7d1bf696cd19407010d465b99f00bbf780776b0a9648804fa1b45f75";
       name = "railways-0.3.0-beta.2+neoforge-mc1.21.1.jar";
+    };
+  };
+
+  # Create: The Factory Must Grow
+  "create-tfmg" = {
+    side = "both";
+    dest = "mods";
+    jar = pkgs.fetchurl {
+      url = "https://cdn.modrinth.com/data/USgVjXsk/versions/uDi14nbt/tfmg-1.2.0.jar";
+      outputHashAlgo = "sha512";
+      outputHash = "03f2ad28c78ef565ef203c5650280acb0b846d6105dc5c84b2e31187f501be5c59733ef3adb623fbaa32c3233d113d608905259128661ffab06b26b270b1b38c";
+      name = "tfmg-1.2.0.jar";
+    };
+  };
+
+  # Create: Transmission!
+  "create-transmission!" = {
+    side = "both";
+    dest = "mods";
+    jar = pkgs.fetchurl {
+      url = "https://cdn.modrinth.com/data/QFCkBuIh/versions/dOsq88jX/createtransmission-1.2.2%2Bneoforge-create6-1.21.1.jar";
+      outputHashAlgo = "sha512";
+      outputHash = "ed90c19f6e265a3862a2c96d95e9b204cb3b3be8b781d8364d0a2aea4d70877f5fe66056354da0fed2eb35fde22c6e4c2801b0cf31d8d7157e4933f1d8913233";
+      name = "createtransmission-1.2.2+neoforge-create6-1.21.1.jar";
+    };
+  };
+
+  # Create: Ultimate Factory
+  "create-ultimate-factory" = {
+    side = "both";
+    dest = "mods";
+    jar = pkgs.fetchurl {
+      url = "https://cdn.modrinth.com/data/N9QToVpw/versions/AEMRNsNS/create_ultimate_factory-2.2.4-neoforge-1.21.1.jar";
+      outputHashAlgo = "sha512";
+      outputHash = "2a1d1e6e27aa0744d131ad12dcc4e3bcae2d5d10c620cc566cb0300c63a66bced1c55be0b636998f3773e3a7b384e74ef06395ec7ee6a90649f7702c9a893b0d";
+      name = "create_ultimate_factory-2.2.4-neoforge-1.21.1.jar";
     };
   };
 
@@ -784,6 +868,18 @@
     };
   };
 
+  # Create: Hypertubes
+  "hypertube" = {
+    side = "both";
+    dest = "mods";
+    jar = pkgs.fetchurl {
+      url = "https://cdn.modrinth.com/data/ATDdrG1y/versions/qYjOyvgW/create_hypertube-0.6.0-NEOFORGE.jar";
+      outputHashAlgo = "sha512";
+      outputHash = "8405fb7f8bf7fff5811c29e8ed14acdea45ddc9487caec2c24ed5e7db4141b60e41b7a937645330180c74226bbb6b30359130e23929d53db1367be75c00585a9";
+      name = "create_hypertube-0.6.0-NEOFORGE.jar";
+    };
+  };
+
   # Iceberg
   "iceberg" = {
     side = "both";
@@ -829,6 +925,18 @@
       outputHashAlgo = "sha512";
       outputHash = "68b0d915e41fb0ce9d12a8c580d688a604770ded2b21e963058aa6d80cbc5661c481416d051a541395b5c79f461edcb658046e53cfcfb405179a450662ed01b5";
       name = "interiors-1.21.1-neoforge-0.6.1.jar";
+    };
+  };
+
+  # Inventory Tabs
+  "inventory-tabs" = {
+    side = "client";
+    dest = "mods";
+    jar = pkgs.fetchurl {
+      url = "https://cdn.modrinth.com/data/VD1aynYU/versions/kH13neOQ/inventory-tabs-1.4.4%2B1.21.jar";
+      outputHashAlgo = "sha512";
+      outputHash = "c858bac0f7fbd16670ed23c0c1dfd55aaa741d8508c61037d1960832976aba6dcaf7ccbaca487417760b319d0517bc14c5891646a366843e0c1bf35be5b399ce";
+      name = "inventory-tabs-1.4.4+1.21.jar";
     };
   };
 

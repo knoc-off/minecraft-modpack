@@ -191,10 +191,25 @@
 
           # Repoint every download URL at this host; hashes stay valid since
           # the bytes don't change.
+          #
+          # `filename` is rewritten alongside it. The jars below are copied
+          # out of the store, so they carry store-path basenames, and Nix
+          # replaces every character outside [a-zA-Z0-9+._?=-] with a dash
+          # when it builds those -- Create Goggles ships as
+          # `creategoggles-...-[NEOFORGE].jar` and lands as
+          # `...--NEOFORGE-.jar`. Leaving the metafile on the upstream name
+          # would point clients at a file this host does not serve. The
+          # saved name is arbitrary to NeoForge, so matching the store's
+          # spelling is the cheap direction to reconcile.
           python3 - "$work" ${lib.escapeShellArgs resourceDirs} <<'PYEOF'
           import os, re, sys
           out = sys.argv[1]
           base = "${base}"
+
+          def store_name(fn):
+              """lib.strings.sanitizeDerivationName, for jar filenames."""
+              return re.sub(r'[^a-zA-Z0-9+._?=-]+', '-', fn)
+
           for dest in sys.argv[2:]:
               destdir = os.path.join(out, dest)
               if not os.path.isdir(destdir):
@@ -207,11 +222,17 @@
                   fn = re.search(r'^filename\s*=\s*"([^"]+)"', src, re.M)
                   if not fn:
                       raise SystemExit(f"{dest}/{name}: no filename field")
-                  jar = fn.group(1)
+                  jar = store_name(fn.group(1))
+                  new, n = re.subn(
+                      r'^(\s*)filename\s*=\s*"[^"]*"',
+                      lambda m: f'{m.group(1)}filename = "{jar}"',
+                      src, count=1, flags=re.M)
+                  if n != 1:
+                      raise SystemExit(f"{dest}/{name}: no filename field to rewrite")
                   new, n = re.subn(
                       r'^(\s*)url\s*=\s*"[^"]*"',
                       lambda m: f'{m.group(1)}url = "{base}/jars/{jar}"',
-                      src, count=1, flags=re.M)
+                      new, count=1, flags=re.M)
                   if n != 1:
                       raise SystemExit(f"{dest}/{name}: no url field to rewrite")
                   open(path, "w").write(new)
