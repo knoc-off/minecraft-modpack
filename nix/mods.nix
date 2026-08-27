@@ -1,5 +1,5 @@
 # Auto-generated from packwiz -- do not edit manually.
-# 140 mods, 1 shaderpacks, 1 resourcepacks
+# 141 mods, 1 shaderpacks, 1 resourcepacks
 
 { pkgs }:
 
@@ -193,6 +193,18 @@
       outputHashAlgo = "sha512";
       outputHash = "2db769dd723f243a21e1881e7c9f825e9c193da6f2bed454b70cb6fa9e51c57f63fdcf017c0657bbd26f7bba30815413e27c74d3c7be0783390a96ee9baa4bf7";
       name = "Chunky-NeoForge-1.4.23.jar";
+    };
+  };
+
+  # Client Sort
+  "clientsort" = {
+    side = "client";
+    dest = "mods";
+    jar = pkgs.fetchurl {
+      url = "https://cdn.modrinth.com/data/K0AkAin6/versions/kcEfphTi/clientsort-neoforge-3.89.0-beta.2%2B1.21.1.jar";
+      outputHashAlgo = "sha512";
+      outputHash = "c6b641525d2f37a2d2016bfcd134e27e299043ba5511a557dd8f416aa2982209da8c7992b77877edfd110089842983c57c61e9736f688b2033bb68d509a54e59";
+      name = "clientsort-neoforge-3.89.0-beta.2+1.21.1.jar";
     };
   };
 

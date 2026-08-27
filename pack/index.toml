@@ -10,6 +10,11 @@ file = "config/freecam.json5"
 hash = "5a845c9eb962d8a186e1b62ec10e7e48f3887d026ec7c01698220079bc4f7b5c"
 
 [[files]]
+file = "config/inventory_tabs.toml"
+hash = "b029ce339972583280c233b056abd9b0e662c19b2305cb588500c0207b7b6b83"
+preserve = true
+
+[[files]]
 file = "config/surveyor.toml"
 hash = "33379cfbf71c03cbbe5fb1703ab50b50168b9e547a99cee18a5bbb4c407ec195"
 preserve = true
@@ -97,6 +102,11 @@ metafile = true
 [[files]]
 file = "mods/chunky.pw.toml"
 hash = "1d5cc2b6dcfd1fc3adba4566b1c29b57ff1175316678c1f22e63cbc3e28a5ba0"
+metafile = true
+
+[[files]]
+file = "mods/clientsort.pw.toml"
+hash = "37d8cdfae7e9b4521b58163a824de7f155c90fc465aa020b29a83bf6b22d1705"
 metafile = true
 
 [[files]]

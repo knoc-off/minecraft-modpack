@@ -1,0 +1,113 @@
+# Inventory Tabs -- tab providers, tuned for this pack.
+#
+# The default `block_simple` provider matches every BlockWithEntity minus a
+# 25-entry vanilla blacklist, so in a pack this size it tabs hundreds of
+# blocks that have no player-facing inventory at all. Upstream ships it on
+# deliberately, as a discovery aid, not as a good end state -- see the
+# author's own pack config:
+# https://github.com/sisby-folk/tinkerers-quilt/blob/1.20_modded/config/inventory_tabs.toml
+#
+# Strategy here mirrors that config: disable `block_simple`'s automatic
+# matching wholesale, then re-enable it per block for the ones that really
+# do open a screen worth tabbing to. Chest/barrel/shulker/ender-chest and
+# the vanilla workstation providers use whitelists already, so they stay on
+# and keep working untouched.
+#
+# FramedBlocks is the single worst offender and the reason this file exists:
+# it stores camo data in a BlockEntity, so all 236 of its purely decorative
+# variants qualify for `block_simple`. Only 7 of them open anything.
+
+holdTabCooldown = 3
+ignoreWalls = true
+rotatePlayer = false
+consistentContainers = true
+
+# 6-row containers otherwise overflow at the GUI scales this pack targets
+# (EMI is on the left and eats horizontal room).
+compactLargeContainers = true
+
+# Upstream defaults this to true, which prints every registered screen
+# handler and every provider's full block list on each world join. That is
+# the right setting while tuning the lists below and pure log spam
+# afterwards. Flip it back on if you need to find a new bad tab.
+configLogging = false
+configLoggingVanilla = false
+allowScreensByDefault = true
+
+# Manually set the Tab Provider for a given block or tag.
+#   block_shulker_box    | shulker blocked-state check
+#   block_ender_chest    | unique, chest blocked-state check
+#   block_chest          | L/R multiblock, chest blocked-state check
+#   block_simple_storage | sorted alongside other chest-like tabs
+#   block_simple         | no special logic
+#   ""                   | no tab at all
+[blockProviderOverrides]
+	# 236 camo variants, 7 real inventories. The wildcard has to come first;
+	# later, more specific keys win.
+	"framedblocks:*" = ""
+	"framedblocks:framed_chest" = "inventory_tabs:block_chest"
+	"framedblocks:framed_hopper" = "inventory_tabs:block_simple"
+	"framedblocks:framed_secret_storage" = "inventory_tabs:block_simple_storage"
+
+	# Create: nearly every machine is a BlockEntity, but almost none of them
+	# open a screen you would want to tab back to -- and kinetic blocks in
+	# particular are everywhere in a built base. Keep the actual containers
+	# and the two schematic screens.
+	"create:*" = ""
+	"#create:toolboxes" = "inventory_tabs:block_simple_storage"
+	"create:item_vault" = "inventory_tabs:block_simple_storage"
+	"create:adjustable_crate" = "inventory_tabs:block_simple_storage"
+	"create:creative_crate" = "inventory_tabs:block_simple_storage"
+	"create:schematicannon" = "inventory_tabs:block_simple"
+	"create:schematic_table" = "inventory_tabs:block_simple"
+	"create:stockpile_switch" = "inventory_tabs:block_simple"
+	"create:display_link" = "inventory_tabs:block_simple"
+
+	# Create addons -- same reasoning, and these are the newly added ones.
+	# TFMG alone ships 92 block entity classes (tanks, pipes, machine
+	# frames); Steam 'n' Rails 48; Create Connected 41.
+	"tfmg:*" = ""
+	"createdieselgenerators:*" = ""
+	"createfisheryindustry:*" = ""
+	"createfood:*" = ""
+	"create_connected:*" = ""
+	"createaddition:*" = ""
+	"railways:*" = ""
+	"create_hypertube:*" = ""
+	"createtransmission:*" = ""
+	"create_ultimate_factory:*" = ""
+	"copycats:*" = ""
+
+	# Decorative mods whose block entities exist for rendering, not storage.
+	"dramaticdoors:*" = ""
+	"amendments:*" = ""
+	"supplementaries:*" = ""
+
+	# Handcrafted is mostly furniture, but its shelves/cabinets are real
+	# storage and are genuinely handy to tab to.
+	"handcrafted:*" = ""
+	"handcrafted:*_shelf" = "inventory_tabs:block_simple_storage"
+	"handcrafted:*_cabinet" = "inventory_tabs:block_simple_storage"
+
+	# Farmer's Delight: cabinets are storage, the cooking pot has a real
+	# screen; cutting board / skillet / stove are interact-only surfaces.
+	"farmersdelight:*_cabinet" = "inventory_tabs:block_simple_storage"
+	"farmersdelight:cooking_pot" = "inventory_tabs:block_simple"
+	"farmersdelight:cutting_board" = ""
+	"farmersdelight:skillet" = ""
+	"farmersdelight:stove" = ""
+	"sliceanddice:*" = ""
+
+	# Vanilla: no inventory, just a recipe-book screen.
+	"minecraft:fletching_table" = ""
+
+[entityProviderOverrides]
+	"minecraft:chest_minecart" = "inventory_tabs:entity_simple"
+
+[itemProviderOverrides]
+
+# Enable or disable the default added logic for each tab provider.
+# Everything above re-enables `block_simple` case by case; this turns off
+# its blanket "any BlockWithEntity" matching, which is the actual fix.
+[registryProviderDefaults]
+	"inventory_tabs:block_simple" = false
