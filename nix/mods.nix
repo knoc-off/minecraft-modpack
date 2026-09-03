@@ -1,5 +1,5 @@
 # Auto-generated from packwiz -- do not edit manually.
-# 141 mods, 1 shaderpacks, 1 resourcepacks
+# 140 mods, 1 shaderpacks, 1 resourcepacks
 
 { pkgs }:
 
@@ -1309,18 +1309,6 @@
       outputHashAlgo = "sha512";
       outputHash = "805e4566c63d240d9ec01fa0b785e1b6d5be323db9476a041b96cb026e19496f00d5a14d3a94ce999884e44bc5cd7e725ece6f13f7d5952acc274ffb1fc183ab";
       name = "shulkerboxtooltip-neoforge-5.1.9+1.21.1.jar";
-    };
-  };
-
-  # Simple Voice Chat
-  "simple-voice-chat" = {
-    side = "both";
-    dest = "mods";
-    jar = pkgs.fetchurl {
-      url = "https://cdn.modrinth.com/data/9eGKb6K1/versions/2s7zUspF/voicechat-neoforge-1.21.1-2.6.22.jar";
-      outputHashAlgo = "sha512";
-      outputHash = "309e3b18e299b2bccf9128dbb05c2603a9860f7cd68858d23f8fdb8265ea85ec7fb1655c95b87c0a9522ae1fd6380b26e4a4c31207f9c7af80870fcc6207abad";
-      name = "voicechat-neoforge-1.21.1-2.6.22.jar";
     };
   };
 

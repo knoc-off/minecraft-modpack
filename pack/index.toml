@@ -11,8 +11,7 @@ hash = "5a845c9eb962d8a186e1b62ec10e7e48f3887d026ec7c01698220079bc4f7b5c"
 
 [[files]]
 file = "config/inventory_tabs.toml"
-hash = "b029ce339972583280c233b056abd9b0e662c19b2305cb588500c0207b7b6b83"
-preserve = true
+hash = "2a8ca610474201c4bb3894ecce0a02935db26015e4a9dc7e9c2ff22097733e8d"
 
 [[files]]
 file = "config/surveyor.toml"
@@ -567,11 +566,6 @@ metafile = true
 [[files]]
 file = "mods/shulkerboxtooltip.pw.toml"
 hash = "0bef7b3dd4758a661d3e6827bd390c12ff8a3ede4a66bb2e01e3c760f02bd509"
-metafile = true
-
-[[files]]
-file = "mods/simple-voice-chat.pw.toml"
-hash = "8eae737eb20a0488e9b57b6a59f0681d142732bcb22fc896ad4e5ff924ec5683"
 metafile = true
 
 [[files]]

@@ -110,8 +110,11 @@
     serverModsDir = pkgs.linkFarmFromDrvs "server-mods" (serverModJars ++ localModJars);
 
     # config/ defaults and the multiplayer server list, indexed by packwiz
-    # out of pack/. Marked `preserve` in pack/index.toml so packwiz-installer
-    # writes them only when absent, never overwriting a player's edits.
+    # out of pack/. Mostly marked `preserve` in pack/index.toml so
+    # packwiz-installer writes them only when absent, never overwriting a
+    # player's edits. config/inventory_tabs.toml is the exception: it is
+    # pack-owned tuning, not player state, so it is left unpreserved and gets
+    # pushed over the client's copy whenever its hash changes.
     # options.txt ships only the resource pack selection -- Minecraft fills in
     # every other key with its default on first launch and rewrites the file
     # whole on exit. It is listed here (rather than shipped as a mod config)

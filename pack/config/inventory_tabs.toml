@@ -55,7 +55,6 @@ allowScreensByDefault = true
 	# and the two schematic screens.
 	"create:*" = ""
 	"#create:toolboxes" = "inventory_tabs:block_simple_storage"
-	"create:item_vault" = "inventory_tabs:block_simple_storage"
 	"create:adjustable_crate" = "inventory_tabs:block_simple_storage"
 	"create:creative_crate" = "inventory_tabs:block_simple_storage"
 	"create:schematicannon" = "inventory_tabs:block_simple"
