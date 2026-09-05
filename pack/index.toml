@@ -14,6 +14,10 @@ file = "config/inventory_tabs.toml"
 hash = "2a8ca610474201c4bb3894ecce0a02935db26015e4a9dc7e9c2ff22097733e8d"
 
 [[files]]
+file = "config/supplementaries-common.toml"
+hash = "3493a1dd83ff074960ee40c935ba2c5c916665a057dc1b5faa51aad1c38486f1"
+
+[[files]]
 file = "config/surveyor.toml"
 hash = "33379cfbf71c03cbbe5fb1703ab50b50168b9e547a99cee18a5bbb4c407ec195"
 preserve = true
@@ -91,6 +95,11 @@ metafile = true
 [[files]]
 file = "mods/cerulean-advancements.pw.toml"
 hash = "a2947350bef0483c5ea9f059fc609d0d61ea5ec61c2cebccfd2ef05e95d51178"
+metafile = true
+
+[[files]]
+file = "mods/chest-tracker.pw.toml"
+hash = "fee0250fe6953809dfc61bee342bdf8622e5d683125a917b348fd6812a9d1f18"
 metafile = true
 
 [[files]]

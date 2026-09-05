@@ -1,0 +1,122 @@
+plugins {
+    id 'net.neoforged.moddev' version '2.0.141'
+}
+
+version = project.mod_version
+group = project.mod_group_id
+
+base {
+    archivesName = project.mod_id
+}
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+
+neoForge {
+    version = project.neo_version
+
+    parchment {
+        minecraftVersion = project.parchment_minecraft_version
+        mappingsVersion = project.parchment_mappings_version
+    }
+
+    runs {
+        client {
+            client()
+            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+        }
+        server {
+            server()
+            programArgument '--nogui'
+            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+        }
+    }
+
+    mods {
+        "${mod_id}" {
+            sourceSet sourceSets.main
+        }
+    }
+}
+
+sourceSets.main.resources { srcDir 'src/main/templates' }
+
+repositories {
+    mavenLocal()
+}
+
+dependencies {
+    // EMI and Inventory Tabs (via Sinytra Connector) are optional integrations --
+    // compile-only, gated at runtime by ModList.isLoaded(). Chest Tracker is NOT
+    // compiled against: it runs as a Fabric mod through Connector, which remaps its
+    // classes to official mappings only at classload time, so there's no matching
+    // jar on disk to compile against. See ChestTrackerCompat/ChestTrackerRedirect,
+    // which bridge to it via reflection instead.
+    compileOnly files("${projectDir}/libs/emi-1.1.24+1.21.1+neoforge.jar")
+    compileOnly files("${projectDir}/libs/inventory-tabs-1.4.4+1.21.jar")
+}
+
+tasks.withType(ProcessResources).configureEach {
+    var replaceProperties = [
+        minecraft_version   : minecraft_version,
+        minecraft_version_range: minecraft_version_range,
+        neo_version         : neo_version,
+        loader_version_range: loader_version_range,
+        mod_id              : mod_id,
+        mod_name            : mod_name,
+        mod_license         : mod_license,
+        mod_version         : mod_version,
+        mod_group_id        : mod_group_id,
+    ]
+    inputs.properties replaceProperties
+    filesMatching(['META-INF/neoforge.mods.toml']) {
+        expand replaceProperties
+    }
+}
+
+// PolyForm Noncommercial 1.0.0 "Notices" requires that anyone who receives a
+// copy of this jar also receives the license terms and the Required Notice lines.
+tasks.named('jar', Jar) {
+    from("${projectDir}/../../LICENSE") { into 'META-INF' }
+    from("${projectDir}/../../NOTICE") { into 'META-INF' }
+}
+
+tasks.register('install', Copy) {
+    dependsOn 'jar'
+    from jar.archiveFile
+    into "${projectDir}/../../local-mods"
+}
+
+// Verifies the Inventory Tabs mixin's @Inject handlers use a descriptor Mixin will
+// actually accept. This exact mistake (declaring Object-typed params for a target's
+// real types) silently broke tabsearch's Chest Tracker fix three separate times,
+// each only discoverable by launching the game and reading the log. Catch it at
+// build time instead: both handlers must take just (CallbackInfo) -- Mixin's "simple"
+// descriptor form -- since the target class (folk.sisby.inventory_tabs.TabManager)
+// isn't on our compile classpath and its real parameter types can't be spelled here.
+tasks.register('verifyMixins') {
+    dependsOn 'jar'
+    def itJarPath = "${projectDir}/libs/inventory-tabs-1.4.4+1.21.jar"
+    def modJarProvider = jar.archiveFile
+    doLast {
+        def javap = "${System.getProperty('java.home')}/bin/javap"
+        def modJar = modJarProvider.get().asFile.absolutePath
+
+        def itOutput = ["${javap}", "-p", "-s", "-classpath", itJarPath, "folk.sisby.inventory_tabs.TabManager"].execute().text
+        ["openTab(", "openTabImmediate("].each { sig ->
+            if (!itOutput.contains(" ${sig}")) {
+                throw new GradleException("verifyMixins: Inventory Tabs jar no longer declares ${sig.replace('(', '()')} -- TabSwitchTracker's mixin target changed")
+            }
+        }
+
+        def handlerDescriptor = "descriptor: (Lorg/spongepowered/asm/mixin/injection/callback/CallbackInfo;)V"
+        def handlerOutput = ["${javap}", "-p", "-s", "-classpath", modJar, "dev.tabsearch.mixin.TabSwitchTracker"].execute().text
+        def lines = handlerOutput.readLines()
+        ["tabsearch\$stashCandidate", "tabsearch\$commitCandidate"].each { name ->
+            def sigLine = lines.findIndexOf { it.contains(name) }
+            if (sigLine < 0 || lines[sigLine + 1].trim() != handlerDescriptor.trim()) {
+                throw new GradleException("verifyMixins: ${name} no longer has the (CallbackInfo)-only descriptor Mixin requires for a @Pseudo target -- see TabSwitchTracker.java javadoc")
+            }
+        }
+    }
+}
+tasks.named('build') { dependsOn 'verifyMixins' }

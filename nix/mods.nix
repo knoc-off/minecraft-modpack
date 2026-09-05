@@ -1,5 +1,5 @@
 # Auto-generated from packwiz -- do not edit manually.
-# 140 mods, 1 shaderpacks, 1 resourcepacks
+# 141 mods, 1 shaderpacks, 1 resourcepacks
 
 { pkgs }:
 
@@ -169,6 +169,18 @@
       outputHashAlgo = "sha512";
       outputHash = "f9808b360746f691765d422b1df512c7d627ef58a1c03ad75bd12f8d847c1f506e164390090fe9fd8d5eaa14f85bb274510db63d1ce27baca4624a1dc2aa3ba7";
       name = "cerulean-neoforge-1.0.0-1.21.1.jar";
+    };
+  };
+
+  # Chest Tracker
+  "chest-tracker" = {
+    side = "client";
+    dest = "mods";
+    jar = pkgs.fetchurl {
+      url = "https://cdn.modrinth.com/data/ni4SrKmq/versions/3MLcSYh8/chesttracker-2.6.7%2B1.21.1.jar";
+      outputHashAlgo = "sha512";
+      outputHash = "f5f32f99d40f7f62d18b190f1b61ee4a1a0a24e0dc807b46eb53ed40d456cc18dab37f67290eff0741cfebdeb2294888f1dd69b1e884868cf7f91e556f6077f0";
+      name = "chesttracker-2.6.7+1.21.1.jar";
     };
   };
 

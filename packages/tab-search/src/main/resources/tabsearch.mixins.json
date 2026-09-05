@@ -1,0 +1,17 @@
+{
+  "required": false,
+  "package": "dev.tabsearch.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "TabManagerMixin",
+    "TabSwitchTracker",
+    "accessor.WidgetPositionAccessor",
+    "accessor.ItemTabAccessor",
+    "accessor.BlockTabAccessor"
+  ],
+  "mixins": [],
+  "injectors": {
+    "defaultRequire": 0
+  },
+  "minVersion": "0.8"
+}

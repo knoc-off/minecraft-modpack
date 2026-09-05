@@ -478,6 +478,16 @@
               path = ./server-config/DistantHorizons.toml;
               name = "DistantHorizons.toml";
             };
+
+            # sus_recipes = false. Needed server-side, not just in the client
+            # pack: this is a COMMON_SYNCED config and the `supplementaries:flag`
+            # condition on sus_sand.json is evaluated where the datapack loads,
+            # so a server left at the default would keep serving the recipe that
+            # shadows create:sand_paper. Same file as pack/config/.
+            "config/supplementaries-common.toml" = builtins.path {
+              path = ./server-config/supplementaries-common.toml;
+              name = "supplementaries-common.toml";
+            };
           };
 
           serverProperties = prodServerProperties;

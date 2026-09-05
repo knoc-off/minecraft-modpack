@@ -1,0 +1,22 @@
+# Supplementaries -- disable the suspicious sand/gravel crafting recipes.
+#
+# `sus_crafting` is not a normal recipe: SusRecipe.matches() accepts its
+# ingredient (sand or gravel) plus *any* other single item, then embeds that
+# item into the resulting brushable block. That wildcard second slot collides
+# with every real 2-item recipe using sand, and because a CustomRecipe wins
+# ties against a plain shapeless one, sand + paper produces
+# minecraft:suspicious_sand instead of create:sand_paper.
+#
+# Sandpaper is required for Create's polishing chain, so the collision is not
+# cosmetic. Embedding loot into sand by hand is a novelty; keeping sandpaper
+# craftable matters more, hence the flag is off rather than working around it.
+#
+# Only the changed key is listed. NeoForge's config spec fills in every other
+# option with its default on first load and rewrites the file whole, so
+# pinning the full ~750-line file here would only freeze defaults and cause
+# drift on the next Supplementaries update.
+
+[tweaks]
+
+  [tweaks.extra_crafting]
+    sus_recipes = false
