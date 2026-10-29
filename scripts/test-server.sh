@@ -15,6 +15,13 @@
 # plus summary.txt and spark/<spot>.sparkprofile. Compare two runs with
 # scripts/test-diff.sh. Open a .sparkprofile by dropping it on
 # https://spark.lucko.me -- the viewer parses it in the browser.
+#
+# Reading a diff: identical runs move ~0.5 ms/tick per spot, so only treat
+# shifts of several ms, or ones across every spot, as real. The counts above
+# the tps section should match exactly; any new error source is worth a look.
+#
+# Runs are ~5 GiB each (reflinked, so nearly free on btrfs until the server
+# writes); delete old ones from runs/ when done.
 set -euo pipefail
 # The devshell has no locale archive, so grep's binary detection and sort's
 # order would otherwise depend on whatever the caller exported. C keeps both
