@@ -20,8 +20,9 @@
 # shifts of several ms, or ones across every spot, as real. The counts above
 # the tps section should match exactly; any new error source is worth a look.
 #
-# Runs are ~5 GiB each (reflinked, so nearly free on btrfs until the server
-# writes); delete old ones from runs/ when done.
+# Runs are ~5 GiB each once the server has rewritten chunks, so only the
+# newest KEEP_RUNS (default 3) are kept; summaries worth keeping belong in
+# test/baseline/ anyway.
 set -euo pipefail
 # The devshell has no locale archive, so grep's binary detection and sort's
 # order would otherwise depend on whatever the caller exported. C keeps both
@@ -67,6 +68,10 @@ clientDeps=$(python3 "$REPO/scripts/check_deps.py" "$clientMods" || true)
 
 run="$(cd "$src/.." && pwd)/runs/$(date +%Y%m%dT%H%M%S)"
 mkdir -p "$(dirname "$run")"
+# Timestamped names sort chronologically; drop all but the newest few before
+# adding another, so a long iteration session can't fill the disk.
+ls -d "$(dirname "$run")"/*/ 2>/dev/null | sort | head -n -$(( ${KEEP_RUNS:-3} - 1 )) \
+  | while read -r old; do echo ">> pruning old run $old"; rm -rf "$old"; done || true
 echo ">> copying $src -> $run"
 # Reflink makes this instant on btrfs; plain cp is the slow fallback.
 cp -a --reflink=auto "$src" "$run"
