@@ -1,5 +1,6 @@
 booted: 1 (48s)
 mods: 100
+client-deps: 385 required deps checked, 0 problems
 crash-reports: 6 total, new: 0
 errors: 317
 warns: 193
@@ -20,24 +21,24 @@ chunk-load-problems: 0
       1 /ERROR] [Moonlight/]
 
 # tps per spot (neoforge tps, after settling)
-idle Overworld: 20.000 TPS (2.343 ms/tick) The Nether: 20.000 TPS (0.500 ms/tick) Overall: 20.000 TPS (3.416 ms/tick) 
-spot-overworld-64-448 Overworld: 20.000 TPS (8.671 ms/tick) The Nether: 20.000 TPS (1.027 ms/tick) Overall: 20.000 TPS (9.935 ms/tick)  items=180 others=117
-spot-overworld-576-64 Overworld: 20.000 TPS (10.233 ms/tick) The Nether: 20.000 TPS (0.955 ms/tick) Overall: 20.000 TPS (11.432 ms/tick)  items=187 others=251
-spot-overworld-64-64 Overworld: 20.000 TPS (8.296 ms/tick) The Nether: 20.000 TPS (0.816 ms/tick) Overall: 20.000 TPS (9.337 ms/tick)  items=187 others=131
-spot-overworld--192-320 Overworld: 20.000 TPS (7.403 ms/tick) The Nether: 20.000 TPS (0.966 ms/tick) Overall: 20.000 TPS (8.607 ms/tick)  items=187 others=116
-spot-overworld-320-64 Overworld: 20.000 TPS (8.501 ms/tick) The Nether: 20.000 TPS (0.879 ms/tick) Overall: 20.000 TPS (9.526 ms/tick)  items=187 others=155
-spot-the_nether-64-64 Overworld: 20.000 TPS (7.674 ms/tick) The Nether: 20.000 TPS (4.090 ms/tick) Overall: 20.000 TPS (11.932 ms/tick)  items=179 others=159
+idle Overworld: 20.000 TPS (2.340 ms/tick) The Nether: 20.000 TPS (0.343 ms/tick) Overall: 20.000 TPS (3.365 ms/tick) 
+spot-overworld-64-448 Overworld: 20.000 TPS (8.902 ms/tick) The Nether: 20.000 TPS (1.009 ms/tick) Overall: 20.000 TPS (10.269 ms/tick)  items=182 others=117
+spot-overworld-576-64 Overworld: 20.000 TPS (10.490 ms/tick) The Nether: 20.000 TPS (0.973 ms/tick) Overall: 20.000 TPS (11.814 ms/tick)  items=194 others=250
+spot-overworld-64-64 Overworld: 20.000 TPS (8.112 ms/tick) The Nether: 20.000 TPS (0.759 ms/tick) Overall: 20.000 TPS (9.134 ms/tick)  items=188 others=130
+spot-overworld--192-320 Overworld: 20.000 TPS (7.244 ms/tick) The Nether: 20.000 TPS (0.891 ms/tick) Overall: 20.000 TPS (8.356 ms/tick)  items=189 others=115
+spot-overworld-320-64 Overworld: 20.000 TPS (8.229 ms/tick) The Nether: 20.000 TPS (0.658 ms/tick) Overall: 20.000 TPS (9.118 ms/tick)  items=194 others=150
+spot-the_nether-64-64 Overworld: 20.000 TPS (7.856 ms/tick) The Nether: 20.000 TPS (4.109 ms/tick) Overall: 20.000 TPS (12.175 ms/tick)  items=176 others=154
 
 # server-thread cost per spot (scripts/spark_top.py)
-spot-overworld--192-320: create 38%, minecraft 33%, sable_rapier 6%, lithium 6%, c2me_base 4%
-  by phase: entities 41%, block-entities 19%, other 18%, chunks 17%, scheduled-ticks 4%
-spot-overworld-320-64: minecraft 37%, create 36%, c2me_base 7%, lithium 6%, sable_rapier 4%
-  by phase: entities 46%, chunks 20%, block-entities 19%, other 12%, scheduled-ticks 3%
-spot-overworld-576-64: create 39%, minecraft 36%, lithium 6%, sable 4%, sable_rapier 4%
-  by phase: entities 48%, block-entities 22%, chunks 14%, other 13%, scheduled-ticks 2%
-spot-overworld-64-448: create 38%, minecraft 34%, lithium 6%, sable 5%, sable_rapier 5%
-  by phase: entities 44%, block-entities 22%, other 16%, chunks 14%, scheduled-ticks 4%
-spot-overworld-64-64: create 38%, minecraft 33%, lithium 7%, sable_rapier 6%, c2me_base 4%
-  by phase: entities 46%, block-entities 20%, other 16%, chunks 15%, scheduled-ticks 4%
-spot-the_nether-64-64: minecraft 43%, create 33%, lithium 7%, sable_rapier 4%, sable 3%
-  by phase: entities 56%, block-entities 18%, chunks 13%, other 11%, scheduled-ticks 2%
+spot-overworld--192-320: create 42%, minecraft 33%, lithium 6%, c2me_base 5%, sable_rapier 4%
+  by phase: entities 47%, block-entities 22%, chunks 15%, other 12%, scheduled-ticks 5%
+spot-overworld-320-64: create 38%, minecraft 36%, lithium 7%, sable_rapier 5%, c2me_base 4%
+  by phase: entities 46%, block-entities 21%, other 15%, chunks 13%, scheduled-ticks 4%
+spot-overworld-576-64: create 37%, minecraft 37%, lithium 6%, sable 4%, sable_rapier 4%
+  by phase: entities 44%, block-entities 25%, other 15%, chunks 11%, scheduled-ticks 5%
+spot-overworld-64-448: create 37%, minecraft 36%, lithium 6%, sable 5%, sable_rapier 4%
+  by phase: entities 43%, block-entities 26%, other 15%, chunks 11%, scheduled-ticks 5%
+spot-overworld-64-64: minecraft 35%, create 35%, lithium 8%, sable_rapier 6%, sable 4%
+  by phase: entities 46%, block-entities 21%, other 17%, chunks 12%, scheduled-ticks 4%
+spot-the_nether-64-64: minecraft 45%, create 28%, lithium 8%, sable_rapier 5%, sable 4%
+  by phase: entities 57%, other 14%, block-entities 13%, chunks 11%, scheduled-ticks 5%

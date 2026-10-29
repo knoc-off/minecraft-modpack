@@ -51,6 +51,12 @@ avail_kb=$(awk '/MemAvailable/ {print $2}' /proc/meminfo)
 echo ">> building server + mods"
 server=$(nix build --no-link --print-out-paths "$REPO#server")
 mods=$(nix build --no-link --print-out-paths "$REPO#serverMods")
+clientMods="$(nix build --no-link --print-out-paths "$REPO#clientResources")/mods"
+
+# The client-only half of the pack never loads headless; a static dependency
+# check is the part of a client launch that can be done here.
+echo ">> checking client mod dependencies"
+clientDeps=$(python3 "$REPO/scripts/check_deps.py" "$clientMods" || true)
 
 run="$(cd "$src/.." && pwd)/runs/$(date +%Y%m%dT%H%M%S)"
 mkdir -p "$(dirname "$run")"
@@ -174,6 +180,8 @@ count() { grep -acE "$1" "$log" 2>/dev/null || true; }
 {
   echo "booted: $booted (${boot_s}s)"
   echo "mods: $(ls mods | wc -l)"
+  echo "client-deps: $(echo "$clientDeps" | tail -1)"
+  echo "$clientDeps" | grep -E '^(MISSING|VERSION)' || true
   echo "crash-reports: $(ls crash-reports 2>/dev/null | wc -l || true) total, new: $(find crash-reports -newer eula.txt -type f 2>/dev/null | wc -l || true)"
   echo "errors: $(count '/ERROR\]')"
   echo "warns: $(count '/WARN\]')"
