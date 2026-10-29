@@ -11,7 +11,8 @@ Reads META-INF/neoforge.mods.toml (NeoForge) and fabric.mod.json (Fabric,
 for Connector) from every jar and from jars nested under META-INF/jarjar or
 META-INF/jars, since libraries are routinely bundled that way.
 
-Usage: check_deps.py <mods dir>      exit 1 if anything is missing
+Usage: check_deps.py <mods dir> [<packwiz pack dir>]   exit 1 if anything is missing
+       (with a pack dir, also checks Modrinth's declared required deps)
 """
 
 import io
@@ -92,6 +93,38 @@ def in_range(version, rng):
     return False
 
 
+def modrinth_missing(pack):
+    """Required deps that Modrinth declares but the jar's own metadata does not.
+
+    GPU Booster 1.3.2 calls into ToadLib yet its neoforge.mods.toml lists only
+    neoforge/minecraft; only the Modrinth version record says so, and packwiz
+    update never adds new dependencies. One bulk API call covers every pin."""
+    import urllib.parse
+    import urllib.request
+    # Declared on Modrinth but satisfied otherwise here: fabric-api comes from
+    # Connector's bundled Forgified Fabric API; mezzconfig is a Fabric/Forge
+    # dep of JEI that its NeoForge build does not load.
+    ignore = {"P7dR8mSH", "7tEfOcA7"}
+    pins = {}
+    for f in sorted(os.listdir(os.path.join(pack, "mods"))):
+        if f.endswith(".pw.toml"):
+            with open(os.path.join(pack, "mods", f), "rb") as fh:
+                m = tomllib.load(fh).get("update", {}).get("modrinth")
+            if m:
+                pins[m["version"]] = (f, m["mod-id"])
+    have = {mid for _, mid in pins.values()} | ignore
+    url = "https://api.modrinth.com/v2/versions?ids=" + urllib.parse.quote(json.dumps(list(pins)))
+    req = urllib.request.Request(url, headers={"User-Agent": "inkwell-pack/check_deps"})
+    with urllib.request.urlopen(req, timeout=30) as r:
+        versions = json.load(r)
+    out = []
+    for v in versions:
+        for d in v.get("dependencies", []):
+            if d.get("dependency_type") == "required" and d.get("project_id") and d["project_id"] not in have:
+                out.append(f"MISSING  {pins[v['id']][0]}: Modrinth requires project {d['project_id']}")
+    return out
+
+
 def main():
     mods = sys.argv[1]
     provides, needs = {}, []
@@ -100,6 +133,13 @@ def main():
             with open(os.path.join(mods, f), "rb") as fh:
                 read_jar(fh.read(), f, provides, needs)
     bad = 0
+    if len(sys.argv) > 2:
+        try:
+            for line in modrinth_missing(sys.argv[2]):
+                print(line)
+                bad += 1
+        except OSError as e:
+            print(f"(modrinth check skipped: {e})")
     for jar, owner, dep, rng in needs:
         if dep in BUILTIN or dep.startswith("fabric-") or not dep:
             continue

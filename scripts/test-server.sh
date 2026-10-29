@@ -64,7 +64,7 @@ clientMods="$(nix build --no-link --print-out-paths "$REPO#clientResources")/mod
 # The client-only half of the pack never loads headless; a static dependency
 # check is the part of a client launch that can be done here.
 echo ">> checking client mod dependencies"
-clientDeps=$(python3 "$REPO/scripts/check_deps.py" "$clientMods" || true)
+clientDeps=$(python3 -B "$REPO/scripts/check_deps.py" "$clientMods" "$REPO/pack" || true)
 
 run="$(cd "$src/.." && pwd)/runs/$(date +%Y%m%dT%H%M%S)"
 mkdir -p "$(dirname "$run")"

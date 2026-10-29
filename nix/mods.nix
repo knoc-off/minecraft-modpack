@@ -1,5 +1,5 @@
 # Auto-generated from packwiz -- do not edit manually.
-# 141 mods, 1 shaderpacks, 1 resourcepacks
+# 142 mods, 1 shaderpacks, 1 resourcepacks
 
 { pkgs }:
 
@@ -1453,6 +1453,18 @@
       outputHashAlgo = "sha512";
       outputHash = "f862ed5435ce4c11a97d2ea5c40eee9f817c908f3223b5fd3e3fff0562a55111d7429dc73a2f1ca0b1af7b1ff6fa0470ed6efebb5de13336c40bb70fb357dd60";
       name = "Terralith_1.21.x_v2.5.8.jar";
+    };
+  };
+
+  # ToadLib
+  "toadlib" = {
+    side = "client";
+    dest = "mods";
+    jar = pkgs.fetchurl {
+      url = "https://cdn.modrinth.com/data/CYQ7VYrM/versions/Ljldqqcx/Toadlib-1.3.2-1.21-1.21.1.jar";
+      outputHashAlgo = "sha512";
+      outputHash = "d5fe1eb3c493974cad7ac320fb6e481221d9a15ae2b7c4732989e955681cb8422eb95cc85766a84df1087914c10c14887af8ca5e6648fe316487b5fe4c149c89";
+      name = "Toadlib-1.3.2-1.21-1.21.1.jar";
     };
   };
 

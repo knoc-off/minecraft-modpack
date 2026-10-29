@@ -633,6 +633,11 @@ hash = "da7ee99189ad35aac094919fe33cac647d98533b23c228f10d4811f08989e2b8"
 metafile = true
 
 [[files]]
+file = "mods/toadlib.pw.toml"
+hash = "4042909c9fed9e74c3637db92a58e253debb1e93a6ea79a6ac3e20fbf6f8f1a8"
+metafile = true
+
+[[files]]
 file = "mods/towns-and-towers.pw.toml"
 hash = "a9afe82b3d1b4975dd9f8b3272898450aeb29365678b3779059977301f88c101"
 metafile = true
