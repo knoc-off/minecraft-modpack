@@ -1017,10 +1017,10 @@
     side = "client";
     dest = "mods";
     jar = pkgs.fetchurl {
-      url = "https://cdn.modrinth.com/data/u6dRKJwZ/versions/4SbkkJ5m/jei-1.21.1-neoforge-19.70.0.467.jar";
+      url = "https://cdn.modrinth.com/data/u6dRKJwZ/versions/Tbomhybz/jei-1.21.1-neoforge-19.44.0.401.jar";
       outputHashAlgo = "sha512";
-      outputHash = "d5552e0dbc342f710a102bc691f24c2276cfa74d9342b278b898f9af813302bf561dc4d7a63ebecdb5b43730470fd737821a5db8e3087d480f653f07175885ff";
-      name = "jei-1.21.1-neoforge-19.70.0.467.jar";
+      outputHash = "d52ec5a54ec4f1df6addf6b1f4ce660770c003d6ea45b3f330879d984d33600050e7390e0aa025b067898771ae969d79ef3c7fcd907751317fd170091b453173";
+      name = "jei-1.21.1-neoforge-19.44.0.401.jar";
     };
   };
 
