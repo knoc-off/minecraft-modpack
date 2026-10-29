@@ -1,25 +1,43 @@
-booted: 1 (36s)
+booted: 1 (48s)
 mods: 100
 crash-reports: 6 total, new: 0
-errors: 322
-warns: 197
+errors: 317
+warns: 193
 mixin-failures: 0
 missing-deps: 0
 missing-registry: 0
 cant-keep-up: 0
+chunk-load-problems: 0
 
 # error sources (logger -> count)
     293 /ERROR] [net.minecraft.world.level.storage.loot.LootDataType/]
-     14 /ERROR] [net.neoforged.fml.common.asm.RuntimeDistCleaner/DISTXFORM]
      13 /ERROR] [net.minecraft.world.item.crafting.RecipeManager/]
+      5 /ERROR] [dev.ryanhcode.sable.Sable/]
+      2 /ERROR] [net.neoforged.fml.common.asm.RuntimeDistCleaner/DISTXFORM]
+      1 /ERROR] [net.neoforged.bus.EventBus/EVENTBUS]
       1 /ERROR] [net.minecraft.server.packs.AbstractPackResources/]
+      1 /ERROR] [com.ishland.c2me.rewrites.chunksystem.common.fapi.LifecycleEventInvoker/]
       1 /ERROR] [Moonlight/]
 
 # tps per spot (neoforge tps, after settling)
-idle Overworld: 20.000 TPS (2.361 ms/tick) The Nether: 20.000 TPS (0.340 ms/tick) Overall: 20.000 TPS (3.354 ms/tick) 
-spot-overworld-64-448 Overworld: 20.000 TPS (8.428 ms/tick) The Nether: 20.000 TPS (0.796 ms/tick) Overall: 20.000 TPS (9.530 ms/tick) 
-spot-overworld-576-64 Overworld: 20.000 TPS (9.638 ms/tick) The Nether: 20.000 TPS (0.750 ms/tick) Overall: 20.000 TPS (10.670 ms/tick) 
-spot-overworld-64-64 Overworld: 20.000 TPS (7.980 ms/tick) The Nether: 20.000 TPS (0.730 ms/tick) Overall: 20.000 TPS (8.964 ms/tick) 
-spot-overworld--192-320 Overworld: 20.000 TPS (5.588 ms/tick) The Nether: 20.000 TPS (0.837 ms/tick) Overall: 20.000 TPS (6.599 ms/tick) 
-spot-overworld-320-64 Overworld: 20.000 TPS (6.722 ms/tick) The Nether: 20.000 TPS (0.634 ms/tick) Overall: 20.000 TPS (7.540 ms/tick) 
-spot-the_nether-64-64 Overworld: 20.000 TPS (6.422 ms/tick) The Nether: 20.000 TPS (3.571 ms/tick) Overall: 20.000 TPS (10.176 ms/tick) 
+idle Overworld: 20.000 TPS (2.343 ms/tick) The Nether: 20.000 TPS (0.500 ms/tick) Overall: 20.000 TPS (3.416 ms/tick) 
+spot-overworld-64-448 Overworld: 20.000 TPS (8.671 ms/tick) The Nether: 20.000 TPS (1.027 ms/tick) Overall: 20.000 TPS (9.935 ms/tick)  items=180 others=117
+spot-overworld-576-64 Overworld: 20.000 TPS (10.233 ms/tick) The Nether: 20.000 TPS (0.955 ms/tick) Overall: 20.000 TPS (11.432 ms/tick)  items=187 others=251
+spot-overworld-64-64 Overworld: 20.000 TPS (8.296 ms/tick) The Nether: 20.000 TPS (0.816 ms/tick) Overall: 20.000 TPS (9.337 ms/tick)  items=187 others=131
+spot-overworld--192-320 Overworld: 20.000 TPS (7.403 ms/tick) The Nether: 20.000 TPS (0.966 ms/tick) Overall: 20.000 TPS (8.607 ms/tick)  items=187 others=116
+spot-overworld-320-64 Overworld: 20.000 TPS (8.501 ms/tick) The Nether: 20.000 TPS (0.879 ms/tick) Overall: 20.000 TPS (9.526 ms/tick)  items=187 others=155
+spot-the_nether-64-64 Overworld: 20.000 TPS (7.674 ms/tick) The Nether: 20.000 TPS (4.090 ms/tick) Overall: 20.000 TPS (11.932 ms/tick)  items=179 others=159
+
+# server-thread cost per spot (scripts/spark_top.py)
+spot-overworld--192-320: create 38%, minecraft 33%, sable_rapier 6%, lithium 6%, c2me_base 4%
+  by phase: entities 41%, block-entities 19%, other 18%, chunks 17%, scheduled-ticks 4%
+spot-overworld-320-64: minecraft 37%, create 36%, c2me_base 7%, lithium 6%, sable_rapier 4%
+  by phase: entities 46%, chunks 20%, block-entities 19%, other 12%, scheduled-ticks 3%
+spot-overworld-576-64: create 39%, minecraft 36%, lithium 6%, sable 4%, sable_rapier 4%
+  by phase: entities 48%, block-entities 22%, chunks 14%, other 13%, scheduled-ticks 2%
+spot-overworld-64-448: create 38%, minecraft 34%, lithium 6%, sable 5%, sable_rapier 5%
+  by phase: entities 44%, block-entities 22%, other 16%, chunks 14%, scheduled-ticks 4%
+spot-overworld-64-64: create 38%, minecraft 33%, lithium 7%, sable_rapier 6%, c2me_base 4%
+  by phase: entities 46%, block-entities 20%, other 16%, chunks 15%, scheduled-ticks 4%
+spot-the_nether-64-64: minecraft 43%, create 33%, lithium 7%, sable_rapier 4%, sable 3%
+  by phase: entities 56%, block-entities 18%, chunks 13%, other 11%, scheduled-ticks 2%

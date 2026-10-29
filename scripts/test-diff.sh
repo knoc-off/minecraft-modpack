@@ -19,7 +19,7 @@ echo "${changes:-(identical)}"
 
 echo
 echo "# overall ms/tick per spot: A -> B"
-ms() { sed -n '/^# tps/,$p' "$1" | grep -v '^#' \
+ms() { sed -n '/^# tps/,/^# server-thread/p' "$1" | grep 'Overall:' \
   | sed -E 's/^([^ ]+) .*Overall: [0-9.]+ TPS \(([0-9.]+) ms\/tick\).*/\1 \2/'; }
 join <(ms "$a" | sort) <(ms "$b" | sort) \
   | awk '{ d = $3 - $2; printf "%-28s %7.2f -> %7.2f  (%+.2f)\n", $1, $2, $3, d }'

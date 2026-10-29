@@ -128,7 +128,12 @@ if [ $booted = 1 ]; then
     sleep 10
     if [ $profile = 1 ]; then rc spark profiler start --thread '*' --interval 2 >/dev/null; fi
     sleep "$seconds"
-    echo "$label $(tps)" >> spots.out
+    # Entity counts explain most per-spot differences (mob farms, item
+    # piles), and `execute if entity` answers synchronously over RCON. Counted
+    # world-wide: the previous spot has been unloaded, so this is spawn plus
+    # this spot.
+    ents() { rc execute if entity "@e[$1]" | grep -oE 'count: [0-9]+' | grep -oE '[0-9]+' || echo 0; }
+    echo "$label $(tps) items=$(ents type=minecraft:item) others=$(ents type=!minecraft:item)" >> spots.out
     if [ $profile = 1 ]; then
       # Marker rather than counting files: spark picks its own filename, and
       # an unmatched glob under pipefail would abort the whole run.
@@ -176,12 +181,23 @@ count() { grep -acE "$1" "$log" 2>/dev/null || true; }
   echo "missing-deps: $(count 'Missing or unsupported mandatory dependencies')"
   echo "missing-registry: $(count 'Missing registr|Unidentified mapping|missing mapping')"
   echo "cant-keep-up: $(count "Can't keep up")"
+  # What force-loading the spots is for: block entities or entities whose
+  # data the new jars can't read. These are silently dropped from the world
+  # on the next save, so they must be zero (or understood) before deploying.
+  echo "chunk-load-problems: $(count 'Skipping BlockEntity|Tried to load a DUMMY block entity|Failed to (load|read) chunk|Couldn.t load chunk|Exception loading (block )?entit|Failed to create block entity|is in the wrong location')"
   echo
   echo "# error sources (logger -> count)"
   grep -aoE '/ERROR\] \[[^]]+\]' "$log" 2>/dev/null | sort | uniq -c | sort -rn | head -15 || true
   echo
   echo "# tps per spot (neoforge tps, after settling)"
   cat spots.out
+  if [ $profile = 1 ] && [ -n "$(find spark -name '*.sparkprofile' | head -1)" ]; then
+    echo
+    # Below the tps section on purpose: test-diff.sh compares only what is
+    # above it exactly, and these shares move a few percent run to run.
+    echo "# server-thread cost per spot (scripts/spark_top.py)"
+    python3 "$REPO/scripts/spark_top.py" --top 5 spark/*.sparkprofile || true
+  fi
 } > summary.txt
 
 echo
