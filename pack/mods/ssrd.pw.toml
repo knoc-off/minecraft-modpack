@@ -1,13 +1,13 @@
 name = "Separate Sable Render Distance"
-filename = "SSRD-1.8.5-1.21.1.jar"
+filename = "SSRD-1.8.7-1.21.1.jar"
 side = "both"
 
 [download]
-url = "https://cdn.modrinth.com/data/fJ183v3D/versions/OSM1jkMg/SSRD-1.8.5-1.21.1.jar"
+url = "https://cdn.modrinth.com/data/fJ183v3D/versions/iZflRKdV/SSRD-1.8.7-1.21.1.jar"
 hash-format = "sha512"
-hash = "7f238068131477ffb628949d3528f8e933cde2ab05f2c20ff9786e9a0b538bb8e866a9b6dda7460899016fa41f23910013ee476cc876d1a4bbef0661436a1430"
+hash = "fb09bb6799f2f9d8b051bc87920a49ee68319c358d0d23be5beaea444542be8336a52f71b57f81e8871df274fe2e1310121b90a3aded615421e84bcd6dfbae47"
 
 [update]
 [update.modrinth]
 mod-id = "fJ183v3D"
-version = "OSM1jkMg"
+version = "iZflRKdV"

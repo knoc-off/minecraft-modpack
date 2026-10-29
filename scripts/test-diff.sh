@@ -11,8 +11,11 @@ sum() { [ -d "$1" ] && echo "$1/summary.txt" || echo "$1"; }
 a=$(sum "$1"); b=$(sum "$2")
 
 echo "# counts and error sources (- A, + B)"
-diff <(sed '/^# tps/,$d' "$a") <(sed '/^# tps/,$d' "$b") | grep -E '^[<>]' \
-  | sed 's/^</-/; s/^>/+/' || echo "(identical)"
+# diff exits 1 whenever there is a difference, which pipefail would turn into
+# the "identical" branch.
+changes=$(diff <(sed '/^# tps/,$d' "$a") <(sed '/^# tps/,$d' "$b") | grep -E '^[<>]' \
+  | sed 's/^</-/; s/^>/+/' || true)
+echo "${changes:-(identical)}"
 
 echo
 echo "# overall ms/tick per spot: A -> B"
