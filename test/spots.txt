@@ -1,0 +1,6 @@
+minecraft:overworld 64 448 4 spot-overworld-64-448  # 9557 player-chunk-hours
+minecraft:overworld 576 64 4 spot-overworld-576-64  # 2229 player-chunk-hours
+minecraft:overworld 64 64 4 spot-overworld-64-64  # 2025 player-chunk-hours
+minecraft:overworld -192 320 4 spot-overworld--192-320  # 489 player-chunk-hours
+minecraft:overworld 320 64 4 spot-overworld-320-64  # 298 player-chunk-hours
+minecraft:the_nether 64 64 4 spot-the_nether-64-64  # 273 player-chunk-hours

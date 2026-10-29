@@ -443,6 +443,11 @@
     packages.${system} = {
       inherit prismInstance prismInstanceThin clientResources installPrism export packSite;
       default = clientResources;
+
+      # For scripts/test-server.sh: the exact mods dir and server launcher
+      # the nixosModule deploys, so a test run exercises what prod would.
+      serverMods = serverModsDir;
+      server = serverPackage;
     };
 
     # Build a pack site for a different host:
@@ -503,6 +508,7 @@
         pkgs.gradle
         pkgs.jq
         pkgs.curl
+        pkgs.rcon-cli
         (pkgs.writeShellScriptBin "gen-nix-from-packwiz" ''
           exec ${pkgs.python3}/bin/python3 ${./scripts/gen_nix_from_packwiz.py} "$@"
         '')

@@ -1,0 +1,25 @@
+booted: 1 (36s)
+mods: 100
+crash-reports: 6 total, new: 0
+errors: 322
+warns: 197
+mixin-failures: 0
+missing-deps: 0
+missing-registry: 0
+cant-keep-up: 0
+
+# error sources (logger -> count)
+    293 /ERROR] [net.minecraft.world.level.storage.loot.LootDataType/]
+     14 /ERROR] [net.neoforged.fml.common.asm.RuntimeDistCleaner/DISTXFORM]
+     13 /ERROR] [net.minecraft.world.item.crafting.RecipeManager/]
+      1 /ERROR] [net.minecraft.server.packs.AbstractPackResources/]
+      1 /ERROR] [Moonlight/]
+
+# tps per spot (neoforge tps, after settling)
+idle Overworld: 20.000 TPS (2.361 ms/tick) The Nether: 20.000 TPS (0.340 ms/tick) Overall: 20.000 TPS (3.354 ms/tick) 
+spot-overworld-64-448 Overworld: 20.000 TPS (8.428 ms/tick) The Nether: 20.000 TPS (0.796 ms/tick) Overall: 20.000 TPS (9.530 ms/tick) 
+spot-overworld-576-64 Overworld: 20.000 TPS (9.638 ms/tick) The Nether: 20.000 TPS (0.750 ms/tick) Overall: 20.000 TPS (10.670 ms/tick) 
+spot-overworld-64-64 Overworld: 20.000 TPS (7.980 ms/tick) The Nether: 20.000 TPS (0.730 ms/tick) Overall: 20.000 TPS (8.964 ms/tick) 
+spot-overworld--192-320 Overworld: 20.000 TPS (5.588 ms/tick) The Nether: 20.000 TPS (0.837 ms/tick) Overall: 20.000 TPS (6.599 ms/tick) 
+spot-overworld-320-64 Overworld: 20.000 TPS (6.722 ms/tick) The Nether: 20.000 TPS (0.634 ms/tick) Overall: 20.000 TPS (7.540 ms/tick) 
+spot-the_nether-64-64 Overworld: 20.000 TPS (6.422 ms/tick) The Nether: 20.000 TPS (3.571 ms/tick) Overall: 20.000 TPS (10.176 ms/tick) 
