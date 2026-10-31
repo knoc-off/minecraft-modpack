@@ -1,24 +1,38 @@
 #!/usr/bin/env bash
 #
-# Run scripts/test.sh or scripts/boots.sh on a bigger machine, detached, so
-# a laptop lid or a dropped ssh doesn't kill a 40-minute loop.
+# Run scripts/test.sh / scripts/boots.sh on a bigger machine, detached, so a
+# laptop lid or a dropped ssh doesn't kill an hour-long loop.
 #
 # Usage (from this repo, on any host with ssh to <host>):
-#   scripts/remote.sh <host> start <script> [args...]   e.g. boots.sh @snap 20 --empty-world
-#   scripts/remote.sh <host> sync                       copy the tree (and build) without running
-#   scripts/remote.sh <host> log                        follow the running job
-#   scripts/remote.sh <host> snap                       fresh live-world copy -> <host>:mcwork/inkwell
+#   scripts/remote.sh <host> sync                    copy the tree and build, no run
+#   scripts/remote.sh <host> start <script> [args]   queue a job, e.g. boots.sh @snap 20 --empty-world
+#   scripts/remote.sh <host> status                  jobs done/running/queued, one line each
+#   scripts/remote.sh <host> log                     follow the running job's full output
+#   scripts/remote.sh <host> snap                    fresh live-world copy -> <host>:mcwork/inkwell
 #
-#   REF=main scripts/remote.sh ...   test that commit's pack instead of the
-#                                    working tree (scripts/ always come from
-#                                    the working tree, so old refs get the
-#                                    current harness)
+#   REF=main ...      test that commit's pack instead of the working tree
+#                     (scripts/ always come from the working tree, so old refs
+#                     get the current harness)
+#   ENV="K=V ..."     environment for the job (e.g. SKIP=..., FML_THREADS=1)
 #
-# "@snap" in the args is replaced by the host's mcwork/inkwell. Runs land in
-# <host>:mcwork/runs/ (test.sh keeps failed ones).
+# Jobs run one at a time in the order queued. "@snap" in the args is the
+# host's mcwork/inkwell. Each job logs to <host>:mcwork/jobs/<n>.log; runs
+# land in mcwork/runs/ (test.sh keeps failed ones).
 set -euo pipefail
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
-host="${1:?usage: $0 <host> start|sync|log|snap ...}"; cmd="${2:?start|sync|log|snap}"; shift 2
+host="${1:?usage: $0 <host> sync|start|status|log|snap ...}"; cmd="${2:?sync|start|status|log|snap}"; shift 2
+# The remote login shell may not be bash (desktop's is fish).
+rsh() { ssh "$host" "bash -c $(printf %q "$1")"; }
+
+# Remote worker: runs queued jobs in order until the queue is empty.
+WORKER='
+cd ~/mcwork/jobs
+exec 9>worker.lock; flock -n 9 || exit 0
+while j=$(ls *.job 2>/dev/null | sort -n | head -1); [ -n "$j" ]; do
+  n=${j%.job}; mv "$j" "$n.running"
+  { echo ">> $(head -1 "$n.running") ($(date))"; bash "$n.running"; echo ">> exit $? ($(date))"; } > "$n.log" 2>&1
+  mv "$n.running" "$n.done"
+done'
 
 case "$cmd" in
   snap)
@@ -26,10 +40,23 @@ case "$cmd" in
     echo ">> $snap -> $host:mcwork/inkwell"
     # Streamed through here: the two hosts don't trust each other's keys.
     ssh root@optiplex "tar -C $snap -cf - inkwell | zstd -T0 -3" \
-      | ssh "$host" 'mkdir -p mcwork && cd mcwork && rm -rf inkwell.new && mkdir inkwell.new && zstd -d | tar -x -C inkwell.new --strip-components=1 && rm -rf inkwell && mv inkwell.new inkwell'
+      | rsh 'mkdir -p mcwork && cd mcwork && rm -rf inkwell.new && mkdir inkwell.new && zstd -d | tar -x -C inkwell.new --strip-components=1 && rm -rf inkwell && mv inkwell.new inkwell'
     ;;
   log)
-    ssh "$host" 'tail -n 50 -F mcwork/job.log'
+    rsh 'cd mcwork/jobs && tail -n 40 -F "$(ls -t *.log | head -1)"'
+    ;;
+  status)
+    ssh "$host" bash -s <<'EOF'
+cd ~/mcwork/jobs 2>/dev/null || { echo "no jobs"; exit; }
+for f in $(ls *.done *.running *.job 2>/dev/null | sort -n); do
+  n=${f%.*}; st=${f##*.}; desc=$(head -1 "$f" | sed 's/^# //')
+  tally=$(grep -aE '^(tally|PASS$|FAIL:)' "$n.log" 2>/dev/null | tail -1)
+  prog=$(grep -acE '^(boot [0-9]|>> player .*: (PASS|FAIL))' "$n.log" 2>/dev/null)
+  bad=$(grep -acE '^(boot [0-9].* CRASH|>> player .*: FAIL)' "$n.log" 2>/dev/null)
+  case $st in running) tally="${tally:-$prog done, $bad bad so far}" ;; esac
+  printf '%-3s %-8s %-60s %s\n' "$n" "$st" "${desc:0:60}" "$tally"
+done
+EOF
     ;;
   start|sync)
     label=${REF:-work}
@@ -39,19 +66,22 @@ case "$cmd" in
       git -C "$REPO" archive "$REF" | tar -x -C "$src"
       cp -r "$REPO/scripts/." "$src/scripts/"
     fi
-    [ "$cmd" = sync ] || ! ssh "$host" 'pgrep -f "scripts/(test|boots).sh" >/dev/null' \
-      || { echo "!! a job is already running on $host ($0 $host log)"; exit 1; }
     # No .git: the remote copy is a path flake, so uncommitted changes count.
     # .gitignore'd files stay home: the gradle builds alone are ~400 MiB.
-    rsync -a --delete --delete-excluded --exclude .git/ --filter=':- .gitignore' \
-      "$src/" "$host:mcwork/repo-$label/"
+    # A queued job reads its copy only when it starts, so one copy per job.
+    n=$(rsh 'mkdir -p mcwork/jobs && cd mcwork/jobs && echo $(( $(ls | grep -oE "^[0-9]+" | sort -n | tail -1) + 1 ))')
+    dir="mcwork/repo-$n-$label"
+    rsync -a --delete --delete-excluded --exclude .git/ --filter=':- .gitignore' "$src/" "$host:$dir/"
     if [ "$cmd" = sync ]; then
-      ssh "$host" "cd mcwork/repo-$label && nix build --no-link .#server .#serverMods .#clientResources && nix develop -c true"
+      rsh "cd $dir && nix build --no-link .#server .#serverMods .#clientResources && nix develop -c true"
       exit
     fi
     args=$(printf '%q ' "$@"); args=${args//@snap/\$HOME/mcwork/inkwell}
-    ssh "$host" "cd mcwork/repo-$label && echo '>> $label: $* ($(date))' > ../job.log && nohup setsid nix develop -c bash -c 'scripts/$args' >> ../job.log 2>&1 < /dev/null &"
-    echo ">> started on $host; follow with: $0 $host log"
+    printf '# %s %s %s\ncd ~/%s && %s nix develop -c bash -c %q\n' \
+      "$label" "${ENV:-}" "$*" "$dir" "${ENV:+env $ENV}" "scripts/$args" \
+      | rsh "cat > mcwork/jobs/$n.job"
+    rsh "nohup setsid bash -c $(printf %q "$WORKER") >/dev/null 2>&1 < /dev/null &"
+    echo ">> queued job $n on $host ($label: ${ENV:+$ENV }$*); $0 $host status"
     ;;
   *) echo "unknown command $cmd" >&2; exit 2 ;;
 esac

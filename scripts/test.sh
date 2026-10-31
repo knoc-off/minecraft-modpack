@@ -19,6 +19,8 @@
 #                      SEL: active[:DAYS] (default 30, counted back from the
 #                      newest playerdata) | all | Name1,Name2
 #   --hold S           seconds each player must stay connected (default 30)
+#   --joins N          launch the client N times per selected player (each a
+#                      fresh JVM): for failures in some client boots only
 #   --crash            last: kill -9 the server mid-save, reboot, re-read
 #                      every spot and player file; reports corruption
 #   --predeploy        = --spots --sprint 24000 --players active
@@ -29,6 +31,8 @@
 #
 #   SKIP="glob ..."    jars to leave out of mods/, for bisecting a bad mod
 #   SPOTS=file         spot list other than test/spots.txt
+#   FML_THREADS=N      FML's parallel mod-loading threads (fml.toml
+#                      maxThreads) on server and client; 1 = serial
 #   scripts/boots.sh   repeats a run N times, for failures that come and go
 #
 # Exit 0 only if: booted, no new crash reports, zero mixin failures / missing
@@ -60,7 +64,7 @@ die() { echo "!! $*" >&2; exit 2; }
 src="${1:-}"; shift || true
 [ -d "$src/world" ] || die "usage: $0 <datadir with world/> [--spots] [--profile] [--sprint TICKS] [--players SEL] [--crash] [--predeploy] [--fresh-nether] [--empty-world]"
 src="$(cd "$src" && pwd)"
-spots=0; profile=0; seconds=30; sprint=0; players=; hold=30; crash=0; freshNether=0; emptyWorld=0
+spots=0; profile=0; seconds=30; sprint=0; players=; hold=30; joins=1; crash=0; freshNether=0; emptyWorld=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --fresh-nether) freshNether=1 ;;
@@ -71,6 +75,7 @@ while [ $# -gt 0 ]; do
     --sprint) sprint="$2"; shift ;;
     --players) players="$2"; shift ;;
     --hold) hold="$2"; shift ;;
+    --joins) joins="$2"; shift ;;
     --crash) crash=1 ;;
     --predeploy) spots=1; sprint=24000; players=active ;;
     *) die "unknown arg $1" ;;
@@ -160,6 +165,17 @@ if [ -n "$noTurtles" ]; then
   cp -r --no-preserve=mode "$noTurtles" world/datapacks/no-turtles
 fi
 [ $freshNether = 1 ] && rm -rf world/DIM-1
+# Some boots lose a Create registry entry (client and server); parallel mod
+# construction racing on Create's Registrate is the suspect.
+fml_threads() { # gamedir
+  [ -n "${FML_THREADS:-}" ] || return 0
+  local f="$1/config/fml.toml"
+  mkdir -p "$1/config"
+  grep -v '^maxThreads' "$f" 2>/dev/null > "$f.new" || true
+  echo "maxThreads = $FML_THREADS" >> "$f.new"
+  mv "$f.new" "$f"
+}
+fml_threads .
 echo "eula=true" > eula.txt   # also the "new crash report" reference time
 setprop() {
   grep -v "^$1=" server.properties > server.properties.new || true
@@ -334,13 +350,16 @@ EOF
     cp -L "$clientRes"/mods/* "$game/mods/"
     cp -r "$REPO/pack/config" "$game/"
     chmod -R u+w "$game"
+    fml_threads "$game"
     # Low render distance and no first-run prompts: less for software GL to
     # do before the join. Duplicate keys crash the client, so write once.
     printf 'onboardAccessibility:false\nnarrator:0\nrenderDistance:4\nsimulationDistance:5\ntutorialStep:none\nskipMultiplayerWarning:true\njoinedFirstServer:true\n' > "$game/options.txt"
 
-    for line in "${picked[@]}"; do
+    for line in "${picked[@]}"; do for _join in $(seq "$joins"); do
       read -r uuid name <<<"$line"
-      if [ "$uuid" = MISSING ]; then echo "player $name FAIL (no playerdata)" >> "$run/players.out"; continue; fi
+      if [ "$uuid" = MISSING ]; then echo "player $name FAIL (no playerdata)" >> "$run/players.out"; continue 2; fi
+      # File tag; the same player joins several times with --joins.
+      tag=$name; [ "$joins" -gt 1 ] && tag="$name-$_join"
       # Offline mode derives the UUID from the name, so copy the player's
       # online data there to join with their inventory and position.
       off=$(python3 -c 'import hashlib,sys,uuid; h=bytearray(hashlib.md5(b"OfflinePlayer:"+sys.argv[1].encode()).digest()); h[6]=h[6]&0x0f|0x30; h[8]=h[8]&0x3f|0x80; print(uuid.UUID(bytes=bytes(h)))' "$name")
@@ -355,7 +374,7 @@ EOF
       LIBGL_ALWAYS_SOFTWARE=1 xvfb-run -a -s "-screen 0 1280x720x24" \
         portablemc --main-dir "$cache" start --mc-dir "$game" --jvm "$(command -v java)" \
           --jvm-arg=-Xmx4G -u "$name" --join-server 127.0.0.1 --join-server-port $PORT \
-          "neoforge::$loader" >"$run/client-$name.out" 2>&1 &
+          "neoforge::$loader" >"$run/client-$tag.out" 2>&1 &
       cpid=$!
       set +m
       t0=$(date +%s); result=; why=
@@ -390,20 +409,22 @@ EOF
       # "Connection reset by peer" error that would read as a regression.
       rc kick "$name" >/dev/null; sleep 2
       stop_client
-      echo "player $name $result${why:+ ($why)}" >> "$run/players.out"
-      echo ">> player $name: $result${why:+ ($why)}"
+      echo "player $tag $result${why:+ ($why)}" >> "$run/players.out"
+      echo ">> player $tag: $result${why:+ ($why)}"
+      grep -aqE 'unused register callback|Trying to access unbound value' "$game/logs/latest.log" 2>/dev/null \
+        && echo "$tag" >> "$run/client-lost-registration.txt"
       if [ $result = FAIL ]; then
         # The client writes a full report for packet errors; it names the mod.
         report=$(ls -t "$game"/debug/disconnect-*-client.txt 2>/dev/null | head -1 || true)
-        { echo "### $name"; newlog | grep -aE "$name lost connection" | tail -1 || true
+        { echo "### $tag"; newlog | grep -aE "$name lost connection" | tail -1 || true
           if [ -n "$report" ]; then sed -n '1,60p' "$report"
-          else grep -aE '^(Exception|Caused by)|/ERROR\]' "$run/client-$name.out" | head -10 || true
+          else grep -aE '^(Exception|Caused by)|/ERROR\]' "$run/client-$tag.out" | head -10 || true
                grep -aE 'ERROR|Exception|Caused by|disconnect' "$game/logs/latest.log" 2>/dev/null | tail -20 || true; fi
         } >> "$run/player-failures.txt"
-        cp -r "$game/logs" "$run/client-logs-$name" 2>/dev/null || true
+        cp -r "$game/logs" "$run/client-logs-$tag" 2>/dev/null || true
       fi
       sleep 3   # let the server save and drop the player before the next
-    done
+    done; done
   fi
 
   rc spark health show --memory > "$run/health.txt" || true
@@ -507,6 +528,10 @@ newcrash=$(find crash-reports -newer eula.txt -type f 2>/dev/null | wc -l || tru
   echo "mixin-failures: $(count 'Mixin apply for mod .* failed|InvalidInjectionException|InvalidMixinException')"
   echo "missing-deps: $(count 'Missing or unsupported mandatory dependencies')"
   echo "missing-registry: $(count 'Missing registr|Unidentified mapping|missing mapping')"
+  # A boot that lost a registry entry: on the server it crashes later, on a
+  # client it gets refused with "registries with unknown keys".
+  echo "lost-registration: $(count 'unused register callback|Trying to access unbound value')"
+  echo "client-lost-registration: $(cat "$run/client-lost-registration.txt" 2>/dev/null | wc -l)"
   echo "cant-keep-up: $(count "Can't keep up")"
   # Block entities or entities the new jars can't read get silently dropped
   # on the next save, so these must be zero (or understood) before deploying.
@@ -537,7 +562,7 @@ newcrash=$(find crash-reports -newer eula.txt -type f 2>/dev/null | wc -l || tru
 fails=()
 [ $booted = 1 ] || fails+=("server did not boot")
 [ "$newcrash" = 0 ] || fails+=("$newcrash new crash report(s) in $run/server/crash-reports")
-for k in mixin-failures missing-deps missing-registry chunk-load-problems; do
+for k in mixin-failures missing-deps missing-registry lost-registration client-lost-registration chunk-load-problems; do
   v=$(grep -m1 "^$k: " "$run/summary.txt" | awk '{print $2}')
   [ "${v:-0}" = 0 ] || fails+=("$k: $v")
 done
