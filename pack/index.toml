@@ -93,6 +93,46 @@ hash = "97c1ad521ac48aaf6c07a54339dc94ba400df670ec5d98f3d81d14bd728586e4"
 metafile = true
 
 [[files]]
+file = "mods/cc-redstone-link-bridge.pw.toml"
+hash = "791a6138f2501b4e3d2695bc6f95d207da57872cb7a32074a6236a264e43cb7f"
+metafile = true
+
+[[files]]
+file = "mods/cc-sable.pw.toml"
+hash = "253a414e73f57c890ae5e03f49517191267b1bef0a89252ae1221748cd0de4f9"
+metafile = true
+
+[[files]]
+file = "mods/cc-tweaked.pw.toml"
+hash = "e42363c32c9b6323eea977283c928cec373bfc415534ec92e9c3367ee8c54256"
+metafile = true
+
+[[files]]
+file = "mods/cc-wireless-peripheral-sable.pw.toml"
+hash = "fbc1e55342278481ba098699eabaaf0e938788c03ce00bd4a5f1987d78c92a0c"
+metafile = true
+
+[[files]]
+file = "mods/cccbridge.pw.toml"
+hash = "0194091946d249681e33dd32a927122e844d4093c2f14165f2f99f92e028af11"
+metafile = true
+
+[[files]]
+file = "mods/ccccc_.pw.toml"
+hash = "34a77ec87aae2ae04990f079fb370ba57333a1e7a21071613728e368e6b7ac40"
+metafile = true
+
+[[files]]
+file = "mods/ccliftlink.pw.toml"
+hash = "e4c7bdbdeb648ccfd5e2d9819252b789d969d96e6bab95af679344f6750f2766"
+metafile = true
+
+[[files]]
+file = "mods/ccoptical.pw.toml"
+hash = "a684a280dfa13227ff556348872da0d7c0787703a68b65ac4fcf81953eb82c17"
+metafile = true
+
+[[files]]
 file = "mods/cerulean-advancements.pw.toml"
 hash = "a2947350bef0483c5ea9f059fc609d0d61ea5ec61c2cebccfd2ef05e95d51178"
 metafile = true
@@ -410,6 +450,11 @@ metafile = true
 [[files]]
 file = "mods/immersive-minimaps.pw.toml"
 hash = "0847dab7834be6fff5edf2c6e0e9f9d0d97c29c0c2da5f2803e930b69f6d8a9e"
+metafile = true
+
+[[files]]
+file = "mods/incendium.pw.toml"
+hash = "391f5b0b0fcae3ce77be6ab211435228faec79cb92c50d69471c52ba36b139d6"
 metafile = true
 
 [[files]]
@@ -735,6 +780,11 @@ metafile = true
 [[files]]
 file = "options.txt"
 hash = "0784deaa3aa224a10b97d8bc65785a9f339cad1df77a64c7f286e16a77c973af"
+
+[[files]]
+file = "resourcepacks/create-computercraft.pw.toml"
+hash = "5acf665b02f3a79024123c7824fd13bcb29b955c8d03c13806e13253352fb012"
+metafile = true
 
 [[files]]
 file = "resourcepacks/mt-ct-d.pw.toml"

@@ -1,5 +1,5 @@
 # Auto-generated from packwiz -- do not edit manually.
-# 141 mods, 1 shaderpacks, 1 resourcepacks
+# 150 mods, 1 shaderpacks, 2 resourcepacks
 
 { pkgs }:
 
@@ -157,6 +157,102 @@
       outputHashAlgo = "sha512";
       outputHash = "ad5675893a856663659b4d73285d154615e6c1924fef0f52513e3f07895ba474e3629778087aa8ec0edcfd802c21ee773f6483397bde858ff30a2b62887b208b";
       name = "c2me-neoforge-mc1.21.1-0.4.0-alpha.0.124.jar";
+    };
+  };
+
+  # CC: Redstone Link Bridge
+  "cc-redstone-link-bridge" = {
+    side = "both";
+    dest = "mods";
+    jar = pkgs.fetchurl {
+      url = "https://cdn.modrinth.com/data/k3y2uvYF/versions/gH50GtVz/ccredstonelinkbridge-neoforge-1.0.3.jar";
+      outputHashAlgo = "sha512";
+      outputHash = "d7a1cb8d4b02a25bdbebd6893e94cfb1d0702a534f9168886dcf82bec9cc6c4190dbcd0dbc11701fe0cff9b5a38fb9331874249dc7ced4fbc2e9b4dd1645e984";
+      name = "ccredstonelinkbridge-neoforge-1.0.3.jar";
+    };
+  };
+
+  # CC: Sable
+  "cc-sable" = {
+    side = "both";
+    dest = "mods";
+    jar = pkgs.fetchurl {
+      url = "https://cdn.modrinth.com/data/OPNBxiZD/versions/j0UWQoMG/cc_sable-neoforge-1.3.4.jar";
+      outputHashAlgo = "sha512";
+      outputHash = "70e7e09c8a4a566fe8bd67a8d53069083e8285a15cb680412b415f5104b5be3ad3b623c9ccd99f165996933ef5d81aa1966633796d7439f562b6e35ae59af717";
+      name = "cc_sable-neoforge-1.3.4.jar";
+    };
+  };
+
+  # CC: Tweaked
+  "cc-tweaked" = {
+    side = "both";
+    dest = "mods";
+    jar = pkgs.fetchurl {
+      url = "https://cdn.modrinth.com/data/gu7yAYhd/versions/1ewzHZYg/cc-tweaked-1.21.1-forge-1.120.2.jar";
+      outputHashAlgo = "sha512";
+      outputHash = "009fcf48b7d123018a61b2c55f0fede7dd1f6a6325226bf9cc926342185ca8a7e059e13662816d24595aac243abf622b682583631cfe42c3757505b2e864ff73";
+      name = "cc-tweaked-1.21.1-forge-1.120.2.jar";
+    };
+  };
+
+  # CC: Wireless Peripheral Sable
+  "cc-wireless-peripheral-sable" = {
+    side = "both";
+    dest = "mods";
+    jar = pkgs.fetchurl {
+      url = "https://cdn.modrinth.com/data/sasKnwwX/versions/CoKoPiq4/cc_wireless_peripheral_sable-0.1.0.jar";
+      outputHashAlgo = "sha512";
+      outputHash = "0cb9c9154579488f84ced6f57e188431e38c830d4a484b0bc9ad77f00a515be6b862c1dfac7f937b1c52e5b2a2ca71b6eb4573ca3ad8920af0ceef1807e3e76e";
+      name = "cc_wireless_peripheral_sable-0.1.0.jar";
+    };
+  };
+
+  # CC:C Bridge
+  "cccbridge" = {
+    side = "both";
+    dest = "mods";
+    jar = pkgs.fetchurl {
+      url = "https://cdn.modrinth.com/data/fXt291FO/versions/MKK6cYI5/cccbridge-mc1.21.1-v1.7.3-neoforge.jar";
+      outputHashAlgo = "sha512";
+      outputHash = "bcface30c088371b080ad998a521968d921b814a5d293492e9c5f37ed29630610bbaeb18f3aeaa93d48b2f2c54cd2a21a62130cfab97ce52031218ad7f415a45";
+      name = "cccbridge-mc1.21.1-v1.7.3-neoforge.jar";
+    };
+  };
+
+  # CCCCC
+  "ccccc-" = {
+    side = "both";
+    dest = "mods";
+    jar = pkgs.fetchurl {
+      url = "https://cdn.modrinth.com/data/B1tdnJ0n/versions/lUK2iSBD/ccccc-neoforge-1.1.0.jar";
+      outputHashAlgo = "sha512";
+      outputHash = "39fd8aea42a9a1336937c76d144960e558023c20732c9f2236dc981074c2dbdbbcd4049be5006d2629bd5de2b8df12a5013857339288c453472e5ff4cd1c895e";
+      name = "ccccc-neoforge-1.1.0.jar";
+    };
+  };
+
+  # CC:LiftLink
+  "ccliftlink" = {
+    side = "both";
+    dest = "mods";
+    jar = pkgs.fetchurl {
+      url = "https://cdn.modrinth.com/data/2u32IDgn/versions/6rBGiCHM/ccliftlink-1.0.4-neoforge.jar";
+      outputHashAlgo = "sha512";
+      outputHash = "698b4caa5e2bb1fa4e2b88e0dca1e83fde0260c60585d191cbc074786c8e79251ce04fbd527267c7242c13f74b0f34210df2e96791bebca4a5725593c491c858";
+      name = "ccliftlink-1.0.4-neoforge.jar";
+    };
+  };
+
+  # CC: Optical
+  "ccoptical" = {
+    side = "both";
+    dest = "mods";
+    jar = pkgs.fetchurl {
+      url = "https://cdn.modrinth.com/data/c7C6aO0y/versions/sPz1F2Cj/ccoptical-1.1.0.jar";
+      outputHashAlgo = "sha512";
+      outputHash = "2989c095b50a8f6d33de79d4aad1b757c5965145bfa97993006cfdb11ec4ecea4e3a4633b7abcf6de2019833c7d82b4f479f6063f4c10b379ae20cfdb0c60330";
+      name = "ccoptical-1.1.0.jar";
     };
   };
 
@@ -928,6 +1024,18 @@
     };
   };
 
+  # Incendium Legacy
+  "incendium" = {
+    side = "both";
+    dest = "mods";
+    jar = pkgs.fetchurl {
+      url = "https://cdn.modrinth.com/data/ZVzW5oNS/versions/7mVvV9Th/Incendium_1.21.x_v5.4.4.jar";
+      outputHashAlgo = "sha512";
+      outputHash = "ca897be9059ea691860715dac6c0ccd934720d7d42c8af45b95257e8f91a6c9470f506bfb9ef3c770e6a6c57e58885add2126150a35927848817433fd227ce0e";
+      name = "Incendium_1.21.x_v5.4.4.jar";
+    };
+  };
+
   # Create: Interiors
   "interiors" = {
     side = "both";
@@ -1693,6 +1801,18 @@
       outputHashAlgo = "sha512";
       outputHash = "23c50dc3d75da96d87b065381e32a979528017f872d056bf1cb012e085122734ab218ea8af7b5570403d83c88ebfb53296969af47198fdb637058753d3974278";
       name = "zfastnoise-1.0.13+1.21.1+neoforge.jar";
+    };
+  };
+
+  # Create: ComputerCraft
+  "create-computercraft" = {
+    side = "client";
+    dest = "resourcepacks";
+    jar = pkgs.fetchurl {
+      url = "https://cdn.modrinth.com/data/mh9nQqo4/versions/KGjoGhyf/Create%20Computers%201.2.1%20-%201.20.1%20Resource%20Pack%20Only.zip";
+      outputHashAlgo = "sha512";
+      outputHash = "61606ef330b2ed87282fc0139e0ee64ce9021d400bce7e82493a4c1821c434fa65ef04fb5ba2df701dec52a95976fc967dc4853d63f53100c5d6ad2eadc9c9f4";
+      name = "Create Computers 1.2.1 - 1.20.1 Resource Pack Only.zip";
     };
   };
 

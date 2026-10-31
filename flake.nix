@@ -113,6 +113,24 @@
     # Flat: nix-minecraft symlinks this straight in as the server's mods/.
     serverModsDir = pkgs.linkFarmFromDrvs "server-mods" (serverModJars ++ localModJars);
 
+    # No turtles: anything that moves should be built with Create. CC:Tweaked
+    # has no config switch for them, so every recipe it ships under
+    # recipe/turtle* is overridden with an always-false NeoForge load
+    # condition. Generated from the jar so a new turtle recipe in a CC update
+    # is covered without anyone noticing.
+    noTurtlesDatapack = pkgs.runCommand "no-turtles" {
+      nativeBuildInputs = [ pkgs.unzip ];
+    } ''
+      mkdir -p $out
+      echo '{"pack":{"pack_format":48,"description":"Disables CC:Tweaked turtle recipes"}}' > $out/pack.mcmeta
+      for r in $(unzip -Z1 ${mods."cc-tweaked".jar} 'data/computercraft/recipe/turtle*.json'); do
+        mkdir -p "$out/$(dirname "$r")"
+        echo '{"neoforge:conditions":[{"type":"neoforge:false"}]}' > "$out/$r"
+      done
+      n=$(find $out/data -name '*.json' | wc -l)
+      [ "$n" -gt 0 ] || { echo "no turtle recipes found in cc-tweaked jar" >&2; exit 1; }
+    '';
+
     # config/ defaults and the multiplayer server list, indexed by packwiz
     # out of pack/. Mostly marked `preserve` in pack/index.toml so
     # packwiz-installer writes them only when absent, never overwriting a
@@ -451,6 +469,7 @@
       # For scripts/test.sh: the exact mods dir and server launcher
       # the nixosModule deploys, so a test run exercises what prod would.
       serverMods = serverModsDir;
+      noTurtles = noTurtlesDatapack;
       server = serverPackage;
     };
 
@@ -497,6 +516,8 @@
               path = ./server-config/supplementaries-common.toml;
               name = "supplementaries-common.toml";
             };
+
+            "world/datapacks/no-turtles" = noTurtlesDatapack;
           };
 
           serverProperties = prodServerProperties;
