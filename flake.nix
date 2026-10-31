@@ -122,7 +122,7 @@
       nativeBuildInputs = [ pkgs.unzip ];
     } ''
       mkdir -p $out
-      echo '{"pack":{"pack_format":48,"description":"Disables CC:Tweaked turtle recipes and Create Additions seed oil"}}' > $out/pack.mcmeta
+      echo '{"pack":{"pack_format":48,"description":"Disables CC:Tweaked turtle recipes and duplicate seed oil / zinc sheet recipes"}}' > $out/pack.mcmeta
       for r in $(unzip -Z1 ${mods."cc-tweaked".jar} 'data/computercraft/recipe/turtle*.json'); do
         mkdir -p "$out/$(dirname "$r")"
         echo '{"neoforge:conditions":[{"type":"neoforge:false"}]}' > "$out/$r"
@@ -130,14 +130,19 @@
       n=$(find $out/data -name '*.json' | wc -l)
       [ "$n" -gt 0 ] || { echo "no turtle recipes found in cc-tweaked jar" >&2; exit 1; }
 
-      # Seeds compact into both createaddition:seed_oil and
-      # createdieselgenerators:plant_oil. Both are in #c:plantoil and every
-      # consumer takes the tag, but they don't mix in one tank -- keep only
-      # Diesel Generators' plant_oil.
-      r=data/createaddition/recipe/compacting/seed_oil.json
-      unzip -Z1 ${mods.createaddition.jar} $r >/dev/null || { echo "$r gone from createaddition" >&2; exit 1; }
-      mkdir -p "$out/$(dirname $r)"
-      echo '{"neoforge:conditions":[{"type":"neoforge:false"}]}' > "$out/$r"
+      # One input, several mods' versions of the same thing: they share a c:
+      # tag so consumers take any, but they don't stack or mix in a tank.
+      # Keep one each (scripts/recipe_conflicts.py finds these):
+      #   seeds -> Diesel Generators plant_oil, not createaddition seed_oil
+      #   zinc ingot -> createdeco zinc_sheet, not createaddition/fishery's
+      disable() {
+        unzip -Z1 "$1" "$2" >/dev/null || { echo "$2 gone from $1" >&2; exit 1; }
+        mkdir -p "$out/$(dirname "$2")"
+        echo '{"neoforge:conditions":[{"type":"neoforge:false"}]}' > "$out/$2"
+      }
+      disable ${mods.createaddition.jar} data/createaddition/recipe/compacting/seed_oil.json
+      disable ${mods.createaddition.jar} data/createaddition/recipe/pressing/zinc_ingot.json
+      disable ${mods."create-fishery-industry".jar} data/createfisheryindustry/recipe/pressing/zinc_plate.json
     '';
 
     # config/ defaults and the multiplayer server list, indexed by packwiz
