@@ -122,13 +122,22 @@
       nativeBuildInputs = [ pkgs.unzip ];
     } ''
       mkdir -p $out
-      echo '{"pack":{"pack_format":48,"description":"Disables CC:Tweaked turtle recipes"}}' > $out/pack.mcmeta
+      echo '{"pack":{"pack_format":48,"description":"Disables CC:Tweaked turtle recipes and Create Additions seed oil"}}' > $out/pack.mcmeta
       for r in $(unzip -Z1 ${mods."cc-tweaked".jar} 'data/computercraft/recipe/turtle*.json'); do
         mkdir -p "$out/$(dirname "$r")"
         echo '{"neoforge:conditions":[{"type":"neoforge:false"}]}' > "$out/$r"
       done
       n=$(find $out/data -name '*.json' | wc -l)
       [ "$n" -gt 0 ] || { echo "no turtle recipes found in cc-tweaked jar" >&2; exit 1; }
+
+      # Seeds compact into both createaddition:seed_oil and
+      # createdieselgenerators:plant_oil. Both are in #c:plantoil and every
+      # consumer takes the tag, but they don't mix in one tank -- keep only
+      # Diesel Generators' plant_oil.
+      r=data/createaddition/recipe/compacting/seed_oil.json
+      unzip -Z1 ${mods.createaddition.jar} $r >/dev/null || { echo "$r gone from createaddition" >&2; exit 1; }
+      mkdir -p "$out/$(dirname $r)"
+      echo '{"neoforge:conditions":[{"type":"neoforge:false"}]}' > "$out/$r"
     '';
 
     # config/ defaults and the multiplayer server list, indexed by packwiz
