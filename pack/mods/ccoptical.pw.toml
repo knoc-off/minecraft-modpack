@@ -1,0 +1,13 @@
+name = "CC: Optical"
+filename = "ccoptical-1.1.0.jar"
+side = "both"
+
+[download]
+url = "https://cdn.modrinth.com/data/c7C6aO0y/versions/sPz1F2Cj/ccoptical-1.1.0.jar"
+hash-format = "sha512"
+hash = "2989c095b50a8f6d33de79d4aad1b757c5965145bfa97993006cfdb11ec4ecea4e3a4633b7abcf6de2019833c7d82b4f479f6063f4c10b379ae20cfdb0c60330"
+
+[update]
+[update.modrinth]
+mod-id = "c7C6aO0y"
+version = "sPz1F2Cj"
