@@ -22,6 +22,14 @@
 #   --crash            last: kill -9 the server mid-save, reboot, re-read
 #                      every spot and player file; reports corruption
 #   --predeploy        = --spots --sprint 24000 --players active
+#   --fresh-nether     drop world/DIM-1 in the copy, so nether spots measure
+#                      fresh generation (rehearses a nether wipe)
+#   --empty-world      copy everything but world/ (a new one generates):
+#                      seconds instead of a 5 GiB copy, for boot-only loops
+#
+#   SKIP="glob ..."    jars to leave out of mods/, for bisecting a bad mod
+#   SPOTS=file         spot list other than test/spots.txt
+#   scripts/boots.sh   repeats a run N times, for failures that come and go
 #
 # Exit 0 only if: booted, no new crash reports, zero mixin failures / missing
 # deps / missing registry entries / chunk-load problems, every player stayed
@@ -41,7 +49,7 @@ set -euo pipefail
 export LC_ALL=C
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
-SPOTS="$REPO/test/spots.txt"
+SPOTS="${SPOTS:-$REPO/test/spots.txt}"
 BASELINE="$REPO/test/baseline/summary.txt"
 PORT=25566
 RCON_PORT=25576
@@ -50,11 +58,13 @@ RCON_PASS=testpass
 die() { echo "!! $*" >&2; exit 2; }
 
 src="${1:-}"; shift || true
-[ -d "$src/world" ] || die "usage: $0 <datadir with world/> [--spots] [--profile] [--sprint TICKS] [--players SEL] [--crash] [--predeploy]"
+[ -d "$src/world" ] || die "usage: $0 <datadir with world/> [--spots] [--profile] [--sprint TICKS] [--players SEL] [--crash] [--predeploy] [--fresh-nether] [--empty-world]"
 src="$(cd "$src" && pwd)"
-spots=0; profile=0; seconds=30; sprint=0; players=; hold=30; crash=0
+spots=0; profile=0; seconds=30; sprint=0; players=; hold=30; crash=0; freshNether=0; emptyWorld=0
 while [ $# -gt 0 ]; do
   case "$1" in
+    --fresh-nether) freshNether=1 ;;
+    --empty-world) emptyWorld=1 ;;
     --spots) spots=1 ;;
     --profile) spots=1; profile=1 ;;
     --seconds) seconds="$2"; shift ;;
@@ -95,6 +105,8 @@ echo ">> building server + mods"
 server=$(nix build --no-link --print-out-paths "$REPO#server")
 mods=$(nix build --no-link --print-out-paths "$REPO#serverMods")
 clientRes=$(nix build --no-link --print-out-paths "$REPO#clientResources")
+# Optional: older commits (e.g. testing main against a branch) don't have it.
+noTurtles=$(nix build --no-link --print-out-paths "$REPO#noTurtles" 2>/dev/null || true)
 loader=$(python3 -c 'import tomllib,sys; print(tomllib.load(open(sys.argv[1],"rb"))["versions"]["neoforge"])' "$REPO/pack/pack.toml")
 
 # The client-only half of the pack never loads headless without --players;
@@ -113,7 +125,16 @@ ls -d "$runs"/*/ 2>/dev/null | sort | while read -r d; do [ -f "$d/PASS" ] && ec
 mkdir -p "$run/spark"
 echo ">> copying $src -> $run/server"
 # Reflink makes this instant on btrfs; plain cp is the slow fallback.
-cp -a --reflink=auto "$src" "$run/server"
+if [ $emptyWorld = 1 ]; then
+  mkdir -p "$run/server"
+  for f in "$src"/* "$src"/.[!.]*; do
+    [ -e "$f" ] || continue
+    case "$(basename "$f")" in world|crash-reports|logs) continue ;; esac
+    cp -a --reflink=auto "$f" "$run/server/"
+  done
+else
+  cp -a --reflink=auto "$src" "$run/server"
+fi
 cd "$run/server"
 # nix-minecraft deploys some files as store symlinks; copied, they stay
 # read-only links that would block the edits below.
@@ -124,9 +145,21 @@ rm -rf mods logs/latest.log logs/debug.log world/session.lock
 # this run has nobody online.
 mkdir mods
 for jar in "$mods"/*; do
-  case "$(basename "$jar")" in readyplayerfun-*) continue ;; esac
+  base=$(basename "$jar")
+  case "$base" in readyplayerfun-*) continue ;; esac
+  for pat in ${SKIP:-}; do
+    # shellcheck disable=SC2254
+    case "$base" in $pat) continue 2 ;; esac
+  done
   ln -s "$jar" mods/
 done
+# Same as the deployed server's nix-minecraft `files` entry.
+rm -rf world/datapacks/no-turtles
+if [ -n "$noTurtles" ]; then
+  mkdir -p world/datapacks
+  cp -r --no-preserve=mode "$noTurtles" world/datapacks/no-turtles
+fi
+[ $freshNether = 1 ] && rm -rf world/DIM-1
 echo "eula=true" > eula.txt   # also the "new crash report" reference time
 setprop() {
   grep -v "^$1=" server.properties > server.properties.new || true
@@ -151,7 +184,7 @@ rc() { rcon-cli --port $RCON_PORT --password $RCON_PASS -- "$@" </dev/null 2>&1 
 # reaches us (its commands still run). `neoforge tps` is synchronous.
 tps() { rc neoforge tps | grep -iE 'overall|overworld|nether' | tr -s ' \n' ' ' || true; }
 ents() { rc execute if entity "@e[$1]" | grep -oE 'count: [0-9]+' | grep -oE '[0-9]+' || echo 0; }
-spot_lines() { grep -vE '^\s*(#|$)' "$SPOTS"; }
+spot_lines() { grep -vE '^\s*(#|$)' "$SPOTS" || true; }
 forceload() { # add|remove dim x z r
   local b=$(( $5 * 16 ))
   rc execute in "$2" run forceload "$1" $(($3 - b)) $(($4 - b)) $(($3 + b)) $(($4 + b)) >/dev/null
