@@ -187,6 +187,40 @@ log=logs/latest.log
 # -a: mod output puts non-UTF-8 bytes in the log, and grep then treats it as
 # binary and prints nothing for -o.
 count() { grep -acE "$1" "$log" 2>/dev/null || true; }
+error_fingerprints() { # log
+  awk '
+    function flush() {
+      if (head != "") {
+        gsub(/[a-z0-9_.-]+:[a-z0-9_.\/-]+/, "<id>", head); gsub(/[0-9]+/, "N", head)
+        print substr(head, 1, 140) (frame != "" ? " @ " frame : "")
+      }
+      head = ""; frame = ""; gotex = 0; inerr = 0; nframes = 0; lastmod = ""
+    }
+    /^\[[^]]*\] \[[^]]*\/ERROR\]/ {
+      flush()
+      msg = $0; sub(/^\[[^]]*\] \[[^]]*\] \[[^]]*\]: /, "", msg)
+      head = msg; inerr = 1; next
+    }
+    /^\[/ { flush(); next }
+    # The innermost exception line names the failure better than the log
+    # message ("Exception caught during firing event: ..."), so it replaces it.
+    inerr && !gotex && /^(Caused by: )?[a-zA-Z_.$]+(Exception|Error|Throwable)/ {
+      head = $0; sub(/^Caused by: /, "", head); gotex = 1; next
+    }
+    # First two frames from different mod jars (thrower <- caller), e.g.
+    # "chunky ChunkyProvider.get <- distanthorizons ChunkyAccessor...":
+    # TRANSFORMER/<modid>@<ver>/<class>.<method>(
+    inerr && nframes < 2 && match($0, /TRANSFORMER\/[a-z0-9_]+@[^\/]+\/[A-Za-z0-9_.$]+/) {
+      f = substr($0, RSTART + 12, RLENGTH - 12)
+      mod = f; sub(/@.*/, "", mod)
+      if (mod != "minecraft" && mod != "neoforge" && mod != lastmod) {
+        sub(/@[^\/]+\//, " ", f); sub(/^[^ ]+ ([a-z0-9_]+\.)+/, mod " ", f)
+        frame = frame (nframes ? " <- " : "") f; nframes++; lastmod = mod
+      }
+    }
+    END { flush() }
+  ' "$1" 2>/dev/null
+}
 # Deliberately terse: this is what gets diffed between runs and read by eye.
 # Every line is either a count or a short list, never raw log volume.
 {
@@ -208,6 +242,15 @@ count() { grep -acE "$1" "$log" 2>/dev/null || true; }
   echo
   echo "# error sources (logger -> count)"
   grep -aoE '/ERROR\] \[[^]]+\]' "$log" 2>/dev/null | sort | uniq -c | sort -rn | head -15 || true
+  echo
+  # The logger alone hides who failed: a mod exception thrown inside an event
+  # listener is logged by the event bus, so DH 3.3.3 calling into Chunky
+  # showed up only as "EventBus x1" and got baselined. Each ERROR line plus
+  # its stack trace is reduced to "exception: message @ first mod frame";
+  # resource ids and numbers are masked so 293 loot tables failing the same
+  # way collapse into one line and the same failure matches across runs.
+  echo "# error fingerprints (exception @ first mod frame -> count)"
+  error_fingerprints "$log" | sort | uniq -c | sort -rn | head -40 || true
   echo
   echo "# tps per spot (neoforge tps, after settling)"
   cat spots.out

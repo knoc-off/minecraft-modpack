@@ -13,9 +13,13 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     nix-minecraft.url = "github:Infinidoge/nix-minecraft";
+    # Test tooling only (portablemc 5.x, the Rust rewrite, for
+    # scripts/test-client.sh). Kept apart from `nixpkgs` so bumping it never
+    # rebuilds the server or the pack.
+    nixpkgs-tools.url = "github:NixOS/nixpkgs/nixos-unstable";
   };
 
-  outputs = { self, nixpkgs, nix-minecraft, ... }:
+  outputs = { self, nixpkgs, nix-minecraft, nixpkgs-tools, ... }:
   let
     system = "x86_64-linux";
     pkgs = import nixpkgs {
@@ -509,12 +513,24 @@
         pkgs.jq
         pkgs.curl
         pkgs.rcon-cli
+        # scripts/test-client.sh: real modded client, software GL, no display
+        nixpkgs-tools.legacyPackages.${system}.portablemc
+        pkgs.xvfb-run
         (pkgs.writeShellScriptBin "gen-nix-from-packwiz" ''
           exec ${pkgs.python3}/bin/python3 ${./scripts/gen_nix_from_packwiz.py} "$@"
         '')
       ];
 
       shellHook = ''
+        # LWJGL dlopens these at runtime; NixOS has no global lib dir for it
+        # to find them in. Mesa provides software GL for test-client.sh.
+        export LD_LIBRARY_PATH="${lib.makeLibraryPath [
+          pkgs.libGL pkgs.mesa pkgs.glfw pkgs.openal pkgs.libpulseaudio pkgs.flite
+          pkgs.xorg.libX11 pkgs.xorg.libXcursor pkgs.xorg.libXrandr pkgs.xorg.libXxf86vm pkgs.xorg.libXext pkgs.xorg.libXi
+          pkgs.udev
+        ]}''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+        export __EGL_VENDOR_LIBRARY_DIRS=${pkgs.mesa}/share/glvnd/egl_vendor.d
+        export LIBGL_DRIVERS_PATH=${pkgs.mesa}/lib/dri
         echo ""
         echo "  ${packMeta.name} -- MC ${packMeta.mcVersion} + NeoForge"
         echo ""
@@ -539,6 +555,7 @@
         echo "  Testing against a copy of the real world (never touches <dir>):"
         echo "    scripts/test-server.sh <server dir> [--profile]   boot, load test/spots.txt, summarise"
         echo "    scripts/test-diff.sh test/baseline/summary.txt <run dir>"
+        echo "    scripts/test-client.sh <server dir> [--as NAME] [--give ITEM]   real client joins, stays connected?"
         echo "    python3 scripts/spots.py <dir>/world > test/spots.txt   re-pick busy areas"
         echo "    python3 scripts/spark_top.py <run>/spark/*.sparkprofile per-mod tick cost"
         echo ""

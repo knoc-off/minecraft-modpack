@@ -1,9 +1,9 @@
-booted: 1 (48s)
-mods: 100
-client-deps: 385 required deps checked, 0 problems
+booted: 1 (22s)
+mods: 99
+client-deps: 384 required deps checked, 0 problems
 crash-reports: 6 total, new: 0
-errors: 317
-warns: 193
+errors: 315
+warns: 184
 mixin-failures: 0
 missing-deps: 0
 missing-registry: 0
@@ -15,30 +15,24 @@ chunk-load-problems: 0
      13 /ERROR] [net.minecraft.world.item.crafting.RecipeManager/]
       5 /ERROR] [dev.ryanhcode.sable.Sable/]
       2 /ERROR] [net.neoforged.fml.common.asm.RuntimeDistCleaner/DISTXFORM]
-      1 /ERROR] [net.neoforged.bus.EventBus/EVENTBUS]
       1 /ERROR] [net.minecraft.server.packs.AbstractPackResources/]
-      1 /ERROR] [com.ishland.c2me.rewrites.chunksystem.common.fapi.LifecycleEventInvoker/]
       1 /ERROR] [Moonlight/]
 
-# tps per spot (neoforge tps, after settling)
-idle Overworld: 20.000 TPS (2.340 ms/tick) The Nether: 20.000 TPS (0.343 ms/tick) Overall: 20.000 TPS (3.365 ms/tick) 
-spot-overworld-64-448 Overworld: 20.000 TPS (8.902 ms/tick) The Nether: 20.000 TPS (1.009 ms/tick) Overall: 20.000 TPS (10.269 ms/tick)  items=182 others=117
-spot-overworld-576-64 Overworld: 20.000 TPS (10.490 ms/tick) The Nether: 20.000 TPS (0.973 ms/tick) Overall: 20.000 TPS (11.814 ms/tick)  items=194 others=250
-spot-overworld-64-64 Overworld: 20.000 TPS (8.112 ms/tick) The Nether: 20.000 TPS (0.759 ms/tick) Overall: 20.000 TPS (9.134 ms/tick)  items=188 others=130
-spot-overworld--192-320 Overworld: 20.000 TPS (7.244 ms/tick) The Nether: 20.000 TPS (0.891 ms/tick) Overall: 20.000 TPS (8.356 ms/tick)  items=189 others=115
-spot-overworld-320-64 Overworld: 20.000 TPS (8.229 ms/tick) The Nether: 20.000 TPS (0.658 ms/tick) Overall: 20.000 TPS (9.118 ms/tick)  items=194 others=150
-spot-the_nether-64-64 Overworld: 20.000 TPS (7.856 ms/tick) The Nether: 20.000 TPS (4.109 ms/tick) Overall: 20.000 TPS (12.175 ms/tick)  items=176 others=154
+# error fingerprints (exception @ first mod frame -> count)
+    293 Couldn't parse element ResourceKey[<id> / <id>]:<id> - Unknown registry key in ResourceKey[<id> / <id>]: <id>
+     12 Parsing error loading recipe <id>: com.google.gson.JsonParseException: Map entry '#' : Failed to parse either. First: Not a json array: {"it
+      5 Failed to apply tag physics properties. Unknown block: <id>
+      1 com.google.gson.JsonParseException: Unknown resource condition key: <id>; Unknown resource condition key: <id>; Unknown resource condition k @ tectonic TectonicNeoforge.registerEnabledPacks
+      1 Parsing error loading recipe <id>: com.google.gson.JsonParseException: Failed to parse either. First: Not a json array: {"id":"<id>"}; Secon
+      1 Fabric API detected! This is not a Fabric mod, so please don't report related issues to MoonlightLib or its dependent(s). This can usually h
+      1 Attempted to load class net/minecraft/client/renderer/LevelRenderer for invalid dist DEDICATED_SERVER
+      1 Attempted to load class net/minecraft/client/Options for invalid dist DEDICATED_SERVER
 
-# server-thread cost per spot (scripts/spark_top.py)
-spot-overworld--192-320: create 42%, minecraft 33%, lithium 6%, c2me_base 5%, sable_rapier 4%
-  by phase: entities 47%, block-entities 22%, chunks 15%, other 12%, scheduled-ticks 5%
-spot-overworld-320-64: create 38%, minecraft 36%, lithium 7%, sable_rapier 5%, c2me_base 4%
-  by phase: entities 46%, block-entities 21%, other 15%, chunks 13%, scheduled-ticks 4%
-spot-overworld-576-64: create 37%, minecraft 37%, lithium 6%, sable 4%, sable_rapier 4%
-  by phase: entities 44%, block-entities 25%, other 15%, chunks 11%, scheduled-ticks 5%
-spot-overworld-64-448: create 37%, minecraft 36%, lithium 6%, sable 5%, sable_rapier 4%
-  by phase: entities 43%, block-entities 26%, other 15%, chunks 11%, scheduled-ticks 5%
-spot-overworld-64-64: minecraft 35%, create 35%, lithium 8%, sable_rapier 6%, sable 4%
-  by phase: entities 46%, block-entities 21%, other 17%, chunks 12%, scheduled-ticks 4%
-spot-the_nether-64-64: minecraft 45%, create 28%, lithium 8%, sable_rapier 5%, sable 4%
-  by phase: entities 57%, other 14%, block-entities 13%, chunks 11%, scheduled-ticks 5%
+# tps per spot (neoforge tps, after settling)
+idle Overworld: 20.000 TPS (0.783 ms/tick) The Nether: 20.000 TPS (0.277 ms/tick) Overall: 20.000 TPS (1.484 ms/tick) 
+spot-overworld-64-448 Overworld: 20.000 TPS (5.708 ms/tick) The Nether: 20.000 TPS (0.917 ms/tick) Overall: 20.000 TPS (6.878 ms/tick)  items=182 others=110
+spot-overworld-576-64 Overworld: 20.000 TPS (5.382 ms/tick) The Nether: 20.000 TPS (0.808 ms/tick) Overall: 20.000 TPS (6.418 ms/tick)  items=208 others=138
+spot-overworld-64-64 Overworld: 20.000 TPS (6.789 ms/tick) The Nether: 20.000 TPS (0.992 ms/tick) Overall: 20.000 TPS (8.098 ms/tick)  items=195 others=215
+spot-overworld--192-320 Overworld: 20.000 TPS (4.709 ms/tick) The Nether: 20.000 TPS (0.882 ms/tick) Overall: 20.000 TPS (5.859 ms/tick)  items=193 others=105
+spot-overworld-320-64 Overworld: 20.000 TPS (4.595 ms/tick) The Nether: 20.000 TPS (0.778 ms/tick) Overall: 20.000 TPS (5.648 ms/tick)  items=191 others=147
+spot-the_nether-64-64 Overworld: 20.000 TPS (5.033 ms/tick) The Nether: 20.000 TPS (4.160 ms/tick) Overall: 20.000 TPS (9.541 ms/tick)  items=183 others=149
