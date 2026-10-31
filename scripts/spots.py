@@ -4,7 +4,7 @@
 Every chunk stores InhabitedTime: ticks a player has been within range of it,
 cumulative. Summed over a cell of chunks, that is a decent proxy for "where
 the bases are" -- exactly the areas worth force-loading and profiling in
-scripts/test-server.sh.
+scripts/test.sh --spots.
 
 Prints spots.txt lines: `<dim> <block x> <block z> <radius chunks> <label>`.
 

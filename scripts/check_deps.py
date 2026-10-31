@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Static dependency check over a mods dir, nested jars included.
 
-test-server.sh proves the server side loads, but 40-odd client-only mods
+test.sh proves the server side loads, but 40-odd client-only mods
 (shaders, Connector-run Fabric mods, minimaps) never load headless. This
 catches the cheap half of what a client launch would: a required mod that is
 missing, or present at a version outside the declared range. It cannot catch

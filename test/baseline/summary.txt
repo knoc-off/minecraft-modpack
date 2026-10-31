@@ -1,9 +1,9 @@
-booted: 1 (22s)
+booted: 1
 mods: 99
 client-deps: 384 required deps checked, 0 problems
-crash-reports: 6 total, new: 0
-errors: 315
-warns: 184
+crash-reports-new: 0
+errors: 387
+warns: 187
 mixin-failures: 0
 missing-deps: 0
 missing-registry: 0
@@ -12,27 +12,49 @@ chunk-load-problems: 0
 
 # error sources (logger -> count)
     293 /ERROR] [net.minecraft.world.level.storage.loot.LootDataType/]
+     70 /ERROR] [net.minecraft.stats.ServerRecipeBook/]
      13 /ERROR] [net.minecraft.world.item.crafting.RecipeManager/]
       5 /ERROR] [dev.ryanhcode.sable.Sable/]
-      2 /ERROR] [net.neoforged.fml.common.asm.RuntimeDistCleaner/DISTXFORM]
+      3 /ERROR] [net.neoforged.fml.common.asm.RuntimeDistCleaner/DISTXFORM]
       1 /ERROR] [net.minecraft.server.packs.AbstractPackResources/]
+      1 /ERROR] [ShulkerBoxTooltip Plugins/]
       1 /ERROR] [Moonlight/]
 
 # error fingerprints (exception @ first mod frame -> count)
     293 Couldn't parse element ResourceKey[<id> / <id>]:<id> - Unknown registry key in ResourceKey[<id> / <id>]: <id>
+     70 Tried to load unrecognized recipe: <id> removed now.
      12 Parsing error loading recipe <id>: com.google.gson.JsonParseException: Map entry '#' : Failed to parse either. First: Not a json array: {"it
       5 Failed to apply tag physics properties. Unknown block: <id>
+      1 java.lang.RuntimeException: Attempted to load class com/misterpemodder/shulkerboxtooltip/api/renderer/PreviewRenderer for invalid dist DEDIC @ supplementaries ShulkerBoxTooltipCompat.registerProviders <- shulkerboxtooltip PluginManager.loadProviders
       1 com.google.gson.JsonParseException: Unknown resource condition key: <id>; Unknown resource condition key: <id>; Unknown resource condition k @ tectonic TectonicNeoforge.registerEnabledPacks
       1 Parsing error loading recipe <id>: com.google.gson.JsonParseException: Failed to parse either. First: Not a json array: {"id":"<id>"}; Secon
       1 Fabric API detected! This is not a Fabric mod, so please don't report related issues to MoonlightLib or its dependent(s). This can usually h
       1 Attempted to load class net/minecraft/client/renderer/LevelRenderer for invalid dist DEDICATED_SERVER
       1 Attempted to load class net/minecraft/client/Options for invalid dist DEDICATED_SERVER
+      1 Attempted to load class com/misterpemodder/shulkerboxtooltip/api/renderer/PreviewRenderer for invalid dist DEDICATED_SERVER
+
+# players
+player CeruleanBird PASS
+player fantomatiqe PASS
+player knoc_off PASS
+player MasterOck248 PASS
+player MinorPsychosis PASS
+player Qwersel_ PASS
+player Surfi2015 PASS
+player wimpali PASS
 
 # tps per spot (neoforge tps, after settling)
-idle Overworld: 20.000 TPS (0.783 ms/tick) The Nether: 20.000 TPS (0.277 ms/tick) Overall: 20.000 TPS (1.484 ms/tick) 
-spot-overworld-64-448 Overworld: 20.000 TPS (5.708 ms/tick) The Nether: 20.000 TPS (0.917 ms/tick) Overall: 20.000 TPS (6.878 ms/tick)  items=182 others=110
-spot-overworld-576-64 Overworld: 20.000 TPS (5.382 ms/tick) The Nether: 20.000 TPS (0.808 ms/tick) Overall: 20.000 TPS (6.418 ms/tick)  items=208 others=138
-spot-overworld-64-64 Overworld: 20.000 TPS (6.789 ms/tick) The Nether: 20.000 TPS (0.992 ms/tick) Overall: 20.000 TPS (8.098 ms/tick)  items=195 others=215
-spot-overworld--192-320 Overworld: 20.000 TPS (4.709 ms/tick) The Nether: 20.000 TPS (0.882 ms/tick) Overall: 20.000 TPS (5.859 ms/tick)  items=193 others=105
-spot-overworld-320-64 Overworld: 20.000 TPS (4.595 ms/tick) The Nether: 20.000 TPS (0.778 ms/tick) Overall: 20.000 TPS (5.648 ms/tick)  items=191 others=147
-spot-the_nether-64-64 Overworld: 20.000 TPS (5.033 ms/tick) The Nether: 20.000 TPS (4.160 ms/tick) Overall: 20.000 TPS (9.541 ms/tick)  items=183 others=149
+idle Overworld: 20.000 TPS (0.912 ms/tick) The Nether: 20.000 TPS (0.338 ms/tick) Overall: 20.000 TPS (1.763 ms/tick) 
+spot-overworld-64-448 Overworld: 20.000 TPS (6.397 ms/tick) The Nether: 20.000 TPS (0.945 ms/tick) Overall: 20.000 TPS (7.653 ms/tick)  items=184 others=110
+spot-overworld-576-64 Overworld: 20.000 TPS (5.229 ms/tick) The Nether: 20.000 TPS (0.782 ms/tick) Overall: 20.000 TPS (6.250 ms/tick)  items=207 others=137
+spot-overworld-64-64 Overworld: 20.000 TPS (6.936 ms/tick) The Nether: 20.000 TPS (0.841 ms/tick) Overall: 20.000 TPS (8.037 ms/tick)  items=194 others=218
+spot-overworld--192-320 Overworld: 20.000 TPS (4.237 ms/tick) The Nether: 20.000 TPS (0.777 ms/tick) Overall: 20.000 TPS (5.246 ms/tick)  items=189 others=105
+spot-overworld-320-64 Overworld: 20.000 TPS (4.492 ms/tick) The Nether: 20.000 TPS (0.714 ms/tick) Overall: 20.000 TPS (5.407 ms/tick)  items=183 others=143
+spot-the_nether-64-64 Overworld: 20.000 TPS (4.842 ms/tick) The Nether: 20.000 TPS (4.162 ms/tick) Overall: 20.000 TPS (9.292 ms/tick)  items=177 others=149
+
+# sprint (every spot loaded)
+ticks: 24000
+result: 125 ticks per second, or 8.00 ms per tick
+wall: 192.9s
+entities: before items=248 others=455 after items=229 others=456
+errors-during: 0
