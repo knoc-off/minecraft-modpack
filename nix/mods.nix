@@ -1,5 +1,5 @@
 # Auto-generated from packwiz -- do not edit manually.
-# 142 mods, 1 shaderpacks, 1 resourcepacks
+# 141 mods, 1 shaderpacks, 1 resourcepacks
 
 { pkgs }:
 
@@ -193,18 +193,6 @@
       outputHashAlgo = "sha512";
       outputHash = "f3083b01267e7c674c4b42f45a317c93ee7723443cba2051fe5bc593638b533b0fe90699e2101661c934dff458eab693cce4e188533bfe977778c249563a2fa5";
       name = "chipped-neoforge-1.21.1-4.0.2.jar";
-    };
-  };
-
-  # Chunky
-  "chunky" = {
-    side = "both";
-    dest = "mods";
-    jar = pkgs.fetchurl {
-      url = "https://cdn.modrinth.com/data/fALzjamp/versions/LuFhm4eU/Chunky-NeoForge-1.4.23.jar";
-      outputHashAlgo = "sha512";
-      outputHash = "2db769dd723f243a21e1881e7c9f825e9c193da6f2bed454b70cb6fa9e51c57f63fdcf017c0657bbd26f7bba30815413e27c74d3c7be0783390a96ee9baa4bf7";
-      name = "Chunky-NeoForge-1.4.23.jar";
     };
   };
 
