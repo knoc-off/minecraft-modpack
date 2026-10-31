@@ -51,9 +51,10 @@ cd ~/mcwork/jobs 2>/dev/null || { echo "no jobs"; exit; }
 for f in $(ls *.done *.running *.job 2>/dev/null | sort -n); do
   n=${f%.*}; st=${f##*.}; desc=$(head -1 "$f" | sed 's/^# //')
   tally=$(grep -aE '^(tally|PASS$|FAIL:)' "$n.log" 2>/dev/null | tail -1)
-  prog=$(grep -acE '^(boot [0-9]|client [0-9]|>> player .*: (PASS|FAIL))' "$n.log" 2>/dev/null)
-  bad=$(grep -acE '^(boot [0-9].* CRASH|client [0-9]+/[0-9]+ [A-Z]+ |>> player .*: FAIL)' "$n.log" 2>/dev/null | head -1)
-  bad=$(( bad - $(grep -acE '^client [0-9]+/[0-9]+ PASS' "$n.log" 2>/dev/null) ))
+  prog=$(grep -acE '^(boot [0-9]|client [0-9]|>> player .*: (PASS|FAIL))' "$n.log" 2>/dev/null || true)
+  bad=$(grep -acE '^(boot [0-9].* CRASH|client [0-9]+/[0-9]+ [A-Z]+ |>> player .*: FAIL)' "$n.log" 2>/dev/null || true)
+  ok=$(grep -acE '^client [0-9]+/[0-9]+ PASS' "$n.log" 2>/dev/null || true)
+  bad=$(( ${bad:-0} - ${ok:-0} ))
   case $st in running) tally="${tally:-$prog done, $bad bad so far}" ;; esac
   printf '%-3s %-8s %-60s %s\n' "$n" "$st" "${desc:0:60}" "$tally"
 done
