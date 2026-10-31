@@ -105,8 +105,10 @@ clientDeps=$(python3 -B "$REPO/scripts/check_deps.py" "$clientRes/mods" "$REPO/p
 runs="$(dirname "$src")/runs"
 run="$runs/$(date +%Y%m%dT%H%M%S)"
 mkdir -p "$runs"
-# Runs are ~5 GiB once the server rewrites chunks; keep the newest few.
-ls -d "$runs"/*/ 2>/dev/null | sort | head -n -$(( ${KEEP_RUNS:-3} - 1 )) \
+# Runs are ~5 GiB once the server rewrites chunks; keep the newest few
+# passing ones. Failed runs are evidence and stay until deleted by hand.
+ls -d "$runs"/*/ 2>/dev/null | sort | while read -r d; do [ -f "$d/PASS" ] && echo "$d"; done \
+  | head -n -$(( ${KEEP_RUNS:-3} - 1 )) \
   | while read -r old; do echo ">> pruning old run $old"; rm -rf "$old"; done || true
 mkdir -p "$run/spark"
 echo ">> copying $src -> $run/server"
@@ -528,6 +530,7 @@ cat "$run/summary.txt"
 echo
 echo ">> run: $run"
 if [ ${#fails[@]} = 0 ]; then
+  touch "$run/PASS"
   echo "PASS"
 else
   echo "FAIL:"; printf '  %s\n' "${fails[@]}"
