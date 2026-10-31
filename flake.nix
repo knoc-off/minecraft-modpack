@@ -122,7 +122,7 @@
       nativeBuildInputs = [ pkgs.unzip ];
     } ''
       mkdir -p $out
-      echo '{"pack":{"pack_format":48,"description":"Disables CC:Tweaked turtle recipes and duplicate seed oil / zinc sheet recipes"}}' > $out/pack.mcmeta
+      echo '{"pack":{"pack_format":48,"description":"Disables CC:Tweaked turtles; fixes duplicate and clashing recipes"}}' > $out/pack.mcmeta
       for r in $(unzip -Z1 ${mods."cc-tweaked".jar} 'data/computercraft/recipe/turtle*.json'); do
         mkdir -p "$out/$(dirname "$r")"
         echo '{"neoforge:conditions":[{"type":"neoforge:false"}]}' > "$out/$r"
@@ -135,14 +135,36 @@
       # Keep one each (scripts/recipe_conflicts.py finds these):
       #   seeds -> Diesel Generators plant_oil, not createaddition seed_oil
       #   zinc ingot -> createdeco zinc_sheet, not createaddition/fishery's
-      disable() {
+      override() {
         unzip -Z1 "$1" "$2" >/dev/null || { echo "$2 gone from $1" >&2; exit 1; }
         mkdir -p "$out/$(dirname "$2")"
-        echo '{"neoforge:conditions":[{"type":"neoforge:false"}]}' > "$out/$2"
+        echo "$3" > "$out/$2"
       }
+      disable() { override "$1" "$2" '{"neoforge:conditions":[{"type":"neoforge:false"}]}'; }
       disable ${mods.createaddition.jar} data/createaddition/recipe/compacting/seed_oil.json
       disable ${mods.createaddition.jar} data/createaddition/recipe/pressing/zinc_ingot.json
       disable ${mods."create-fishery-industry".jar} data/createfisheryindustry/recipe/pressing/zinc_plate.json
+
+      # Brass nugget pressed into both a createdeco coin and a pipeorgans
+      # reed. Chain them instead: nugget -> coin -> reed.
+      override ${mods."create-sound-of-steam".jar} data/pipeorgans/recipe/pressing/brass_reed.json \
+        '{"type":"create:pressing","ingredients":[{"item":"createdeco:brass_coin"}],"results":[{"id":"pipeorgans:brass_reed"}]}'
+
+      # Identical crafting grids: the table only ever gives one of each pair.
+      # Beetroot -> red dye over shredded beetroot (still pressed, milled
+      # or cut from beetroot).
+      disable ${mods."create-food".jar} data/createfood/recipe/minecraft/crafting/shredded_beetroot_from_crafting.json
+      # Oil barrel keeps sheet-barrel-sheet; the item silo still converts
+      # from an item vault (item_silo_from_conversion).
+      disable ${mods."create-connected".jar} data/create_connected/recipe/crafting/kinetics/item_silo.json
+      # TFMG brass pipe keeps sheet/ingot/sheet; brass chute moves to
+      # ingot/sheet/ingot.
+      override ${mods."create-connected".jar} data/create_connected/recipe/crafting/kinetics/brass_chute.json \
+        '{"neoforge:conditions":[{"type":"create_connected:feature_enabled","tag":"create_connected:brass_chute"}],"type":"minecraft:crafting_shaped","category":"misc","key":{"I":{"item":"create:brass_ingot"},"S":{"item":"create:brass_sheet"}},"pattern":["I","S","I"],"result":{"count":4,"id":"create_connected:brass_chute"}}'
+      # Supplementaries item shelf keeps 3 slabs in a row; wood plate moves
+      # to 2 slabs in a row (2 slabs over 1 is the wood cup).
+      override ${mods.handcrafted.jar} data/handcrafted/recipe/wood_plate.json \
+        '{"type":"minecraft:crafting_shaped","category":"misc","key":{"#":{"tag":"minecraft:wooden_slabs"}},"pattern":["##"],"result":{"count":2,"id":"handcrafted:wood_plate"}}'
     '';
 
     # config/ defaults and the multiplayer server list, indexed by packwiz
