@@ -343,11 +343,6 @@ hash = "67bb77eae0b644960be3b1074178ceb5d54facbb42f326981b9d94625238a54a"
 metafile = true
 
 [[files]]
-file = "mods/emixx.pw.toml"
-hash = "4a36c2ae2b91369b7c15b42c5090c36def29400a2917fdaefefdadbcfa31f9f2"
-metafile = true
-
-[[files]]
 file = "mods/ends-delight.pw.toml"
 hash = "03a2f273597c1d2bef87eaa60af9287d7d54ec68cc0a0d4b5b79e1497b16ad3e"
 metafile = true

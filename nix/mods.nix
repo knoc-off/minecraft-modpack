@@ -1,5 +1,5 @@
 # Auto-generated from packwiz -- do not edit manually.
-# 150 mods, 1 shaderpacks, 2 resourcepacks
+# 149 mods, 1 shaderpacks, 2 resourcepacks
 
 { pkgs }:
 
@@ -757,18 +757,6 @@
       outputHashAlgo = "sha512";
       outputHash = "9c67ff502da7a94ef7707c144deb4ec6472f445e99cc8eab30b77f22d886a86b8793338452fe394296f3132ed4d37271d475af184e3a9519ddebdad1a82eecf7";
       name = "emi_loot-0.7.9+1.21+neoforge.jar";
-    };
-  };
-
-  # EMI++
-  "emixx" = {
-    side = "client";
-    dest = "mods";
-    jar = pkgs.fetchurl {
-      url = "https://cdn.modrinth.com/data/AWMWYMwC/versions/AwvnugPB/emixx-2.1.0.jar";
-      outputHashAlgo = "sha512";
-      outputHash = "a44d9a9f3fd6a3112cafd84facbed8fc330ac7498f8be102d0ea1e12bb669b04728c8f89396d9225369bfe9141253429094c2bb23d548a0f7d79da0f24fd463a";
-      name = "emixx-2.1.0.jar";
     };
   };
 
