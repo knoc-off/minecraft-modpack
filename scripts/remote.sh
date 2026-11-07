@@ -36,7 +36,7 @@ done'
 
 case "$cmd" in
   snap)
-    snap=$(ssh root@optiplex 'ls -d /srv/minecraft/.snapshots/* | tail -1')
+    snap=$(ssh root@optiplex 'ls -d /srv/minecraft/.snapshots/minecraft.* | tail -1')
     echo ">> $snap -> $host:mcwork/inkwell"
     # Streamed through here: the two hosts don't trust each other's keys.
     ssh root@optiplex "tar -C $snap -cf - inkwell | zstd -T0 -3" \

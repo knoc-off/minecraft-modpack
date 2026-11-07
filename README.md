@@ -24,7 +24,7 @@ gen-nix-from-packwiz                 # regenerate nix/mods.nix
 Test the change against a fresh copy of the live world. On the host:
 
 ```
-snap=$(ssh root@optiplex 'ls -d /srv/minecraft/.snapshots/* | tail -1')
+snap=$(ssh root@optiplex 'ls -d /srv/minecraft/.snapshots/minecraft.* | tail -1')
 rsync -a --delete root@optiplex:$snap/inkwell/ ~/workspaces/inkwell-test/srv/
 ```
 

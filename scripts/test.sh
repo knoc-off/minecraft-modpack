@@ -102,7 +102,7 @@ avail_kb=$(awk '/MemAvailable/ {print $2}' /proc/meminfo)
 age_h=$(( ($(date +%s) - $(stat -c %Y "$src/world/level.dat")) / 3600 ))
 if [ $age_h -ge 24 ]; then
   echo "!! $src is ${age_h}h old. Fresh copy, on the host:"
-  echo "!!   snap=\$(ssh root@optiplex 'ls -d /srv/minecraft/.snapshots/* | tail -1')"
+  echo "!!   snap=\$(ssh root@optiplex 'ls -d /srv/minecraft/.snapshots/minecraft.* | tail -1')"
   echo "!!   rsync -a --delete root@optiplex:\$snap/inkwell/ $src/"
 fi
 
