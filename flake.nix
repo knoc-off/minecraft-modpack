@@ -165,6 +165,21 @@
       # to 2 slabs in a row (2 slabs over 1 is the wood cup).
       override ${mods.handcrafted.jar} data/handcrafted/recipe/wood_plate.json \
         '{"type":"minecraft:crafting_shaped","category":"misc","key":{"#":{"tag":"minecraft:wooden_slabs"}},"pattern":["##"],"result":{"count":2,"id":"handcrafted:wood_plate"}}'
+
+      # CBC and TFMG both add steel and cast iron, all c:-tagged. CBC's
+      # block/ingot/nugget grids take only its own items, TFMG's take the
+      # tag, so the same grid had two results. Keep TFMG's: CBC consumes
+      # these by tag, and they turn CBC metal into TFMG metal.
+      for r in cast_iron_block cast_iron_ingot_from_block cast_iron_ingot_from_nuggets cast_iron_nugget \
+               steel_block steel_ingot_from_block steel_ingot_from_nuggets steel_scrap; do
+        disable ${mods."create-big-cannons".jar} data/createbigcannons/recipe/$r.json
+      done
+      # 2x2 brass/copper sheets stay createdeco sheet metal; CBC's big
+      # cartridge sheet moves to the four corners of the grid.
+      override ${mods."create-big-cannons".jar} data/createbigcannons/recipe/big_cartridge_sheet.json \
+        '{"type":"minecraft:crafting_shaped","category":"misc","key":{"S":{"tag":"c:plates/brass"}},"pattern":["S S","   ","S S"],"result":{"count":4,"id":"createbigcannons:big_cartridge_sheet"}}'
+      override ${mods."create-big-cannons".jar} data/minecraft/recipe/big_cannon_sheet_inexpensive.json \
+        '{"type":"minecraft:crafting_shaped","category":"misc","key":{"S":{"tag":"createbigcannons:inexpensive_big_cartridge_sheet"}},"pattern":["S S","   ","S S"],"result":{"count":1,"id":"createbigcannons:big_cartridge_sheet"}}'
     '';
 
     # config/ defaults and the multiplayer server list, indexed by packwiz

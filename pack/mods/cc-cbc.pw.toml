@@ -1,0 +1,13 @@
+name = "CC:CBC"
+filename = "cc-cbc-v1.1.1-1.21.1-neoforge.jar"
+side = "both"
+
+[download]
+url = "https://cdn.modrinth.com/data/zA9Klldw/versions/naLCoIB4/cc-cbc-v1.1.1-1.21.1-neoforge.jar"
+hash-format = "sha512"
+hash = "0bb9959fc21c940e307430225bcf8f3878092dbacb073b16f6e47c06057ea5b67bb2ce4a2f9bc8d4acd5784061e7212267c7eeb3b02eaecbded1234b4cc284a5"
+
+[update]
+[update.modrinth]
+mod-id = "zA9Klldw"
+version = "naLCoIB4"

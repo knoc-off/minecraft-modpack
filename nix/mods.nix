@@ -1,5 +1,5 @@
 # Auto-generated from packwiz -- do not edit manually.
-# 149 mods, 1 shaderpacks, 2 resourcepacks
+# 153 mods, 1 shaderpacks, 2 resourcepacks
 
 { pkgs }:
 
@@ -157,6 +157,18 @@
       outputHashAlgo = "sha512";
       outputHash = "ad5675893a856663659b4d73285d154615e6c1924fef0f52513e3f07895ba474e3629778087aa8ec0edcfd802c21ee773f6483397bde858ff30a2b62887b208b";
       name = "c2me-neoforge-mc1.21.1-0.4.0-alpha.0.124.jar";
+    };
+  };
+
+  # CC:CBC
+  "cc-cbc" = {
+    side = "both";
+    dest = "mods";
+    jar = pkgs.fetchurl {
+      url = "https://cdn.modrinth.com/data/zA9Klldw/versions/naLCoIB4/cc-cbc-v1.1.1-1.21.1-neoforge.jar";
+      outputHashAlgo = "sha512";
+      outputHash = "0bb9959fc21c940e307430225bcf8f3878092dbacb073b16f6e47c06057ea5b67bb2ce4a2f9bc8d4acd5784061e7212267c7eeb3b02eaecbded1234b4cc284a5";
+      name = "cc-cbc-v1.1.1-1.21.1-neoforge.jar";
     };
   };
 
@@ -421,6 +433,18 @@
       outputHashAlgo = "sha512";
       outputHash = "dc7e8e1148fa442243889ba29412207137e1bb86206e6c92bc0a589f1374a466e93de22bdbf14f753984d86c29308fbbdc0f14a4b9618b14c0ac1666a36b46f5";
       name = "create-aeronautics-bundled-1.21.1-1.3.2.jar";
+    };
+  };
+
+  # Create Big Cannons
+  "create-big-cannons" = {
+    side = "both";
+    dest = "mods";
+    jar = pkgs.fetchurl {
+      url = "https://cdn.modrinth.com/data/GWp4jCJj/versions/bOiDu0LS/createbigcannons-5.11.7%2Bmc.1.21.1.jar";
+      outputHashAlgo = "sha512";
+      outputHash = "24f414dfbb973a0f4d9c9b2aa059edc7bed4d23b4f39eb1f7d23a1d6b437e3b5d64cca6e4b85ff7eb2815743fa711d54ad652bffe96d1eb1234544716006440d";
+      name = "createbigcannons-5.11.7+mc.1.21.1.jar";
     };
   };
 
@@ -757,6 +781,18 @@
       outputHashAlgo = "sha512";
       outputHash = "9c67ff502da7a94ef7707c144deb4ec6472f445e99cc8eab30b77f22d886a86b8793338452fe394296f3132ed4d37271d475af184e3a9519ddebdad1a82eecf7";
       name = "emi_loot-0.7.9+1.21+neoforge.jar";
+    };
+  };
+
+  # Enchanting Infuser
+  "enchanting-infuser" = {
+    side = "both";
+    dest = "mods";
+    jar = pkgs.fetchurl {
+      url = "https://cdn.modrinth.com/data/ePv85y52/versions/AoOYPAOZ/EnchantingInfuser-v21.1.4-1.21.1-NeoForge.jar";
+      outputHashAlgo = "sha512";
+      outputHash = "2f99f87e8ebfbbb19aeb3e92844e24cb0d6f88c5aadc146779963a1a3276f1212debfd7461c740f313991ee2fcfc5046f1199fc7611976d618c5b204ce60e295";
+      name = "EnchantingInfuser-v21.1.4-1.21.1-NeoForge.jar";
     };
   };
 
@@ -1345,6 +1381,18 @@
       outputHashAlgo = "sha512";
       outputHash = "a9d20e345faa9bcb297bd95ac9524205834804d1bb13518397dd4f7f62b352b08c3339ee7f7870d3669078ceeb33d5c31ea527aecce4b31d62ec1ff7d8b562c8";
       name = "resourcefullib-neoforge-1.21-3.0.12.jar";
+    };
+  };
+
+  # Ritchie's Projectile Library
+  "rpl" = {
+    side = "both";
+    dest = "mods";
+    jar = pkgs.fetchurl {
+      url = "https://cdn.modrinth.com/data/B3pb093D/versions/hZ6B2Z0x/ritchiesprojectilelib-2.1.2%2Bmc.1.21.1-neoforge.jar";
+      outputHashAlgo = "sha512";
+      outputHash = "6d64c84505a5a8fbb96d106603065465c5a2314ec09636900c5c1a31014c12fa68f1a41e758313cbf0d6f95d9a1f53bd67339020f7d8db0e184c23f66aee0330";
+      name = "ritchiesprojectilelib-2.1.2+mc.1.21.1-neoforge.jar";
     };
   };
 
