@@ -2,3 +2,10 @@
 	maxGenerationRequestDistance = 1024
 	generationRequestRateLimit = 10
 	realTimeUpdateDistanceRadiusInChunks = 96
+	# Default 4096 queues a huge LOD sync per join that keeps running after the player leaves.
+	maxSyncOnLoadRequestDistance = 1024
+
+[common.multiThreading]
+	# Defaults (6 threads at 1.0) let DH pin 6 cores with nobody online.
+	numberOfThreads = 2
+	threadRunTimeRatio = "0.5"
