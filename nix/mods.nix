@@ -1,5 +1,5 @@
 # Auto-generated from packwiz -- do not edit manually.
-# 153 mods, 1 shaderpacks, 2 resourcepacks
+# 155 mods, 1 shaderpacks, 2 resourcepacks
 
 { pkgs }:
 
@@ -673,6 +673,18 @@
       outputHashAlgo = "sha512";
       outputHash = "563f1077e87f505909e6f7a7d1c50321367c11b0abf9fe6d9ba36b63cd4dc87dd38880836932617cd7672adfed4eb538ecb17741ab2166301f4c56e915ce58c1";
       name = "dead_reckoning-1.6.3+1.21.1.jar";
+    };
+  };
+
+  # Default Options
+  "default-options" = {
+    side = "client";
+    dest = "mods";
+    jar = pkgs.fetchurl {
+      url = "https://cdn.modrinth.com/data/WEg59z5b/versions/1zt17WsC/defaultoptions-neoforge-1.21.1-21.1.8.jar";
+      outputHashAlgo = "sha512";
+      outputHash = "29f66777068d92b1e149630d569441e5176ac40ec5cb4ee6c63c565aa7d475587a5097f59c433d69a39fd238b64902e2ba742b30c26419de901c86a3300b848e";
+      name = "defaultoptions-neoforge-1.21.1-21.1.8.jar";
     };
   };
 
@@ -1369,6 +1381,18 @@
       outputHashAlgo = "sha512";
       outputHash = "de5eb83f11b0cda318ac65c36394cd3cb14540387a6a5bd33441617295dd890df061519e1baecc92ef92c06bed5578dbfbc1eb872fa726d7d8015dd9be92219c";
       name = "readyplayerfun-1.21.1-neoforge-3.0.1.5-NEOFORGE.jar";
+    };
+  };
+
+  # Resource Pack Overrides
+  "resource-pack-overrides" = {
+    side = "client";
+    dest = "mods";
+    jar = pkgs.fetchurl {
+      url = "https://cdn.modrinth.com/data/YsFycamt/versions/xf3H2eJV/ResourcePackOverrides-v21.1.0-1.21.1-NeoForge.jar";
+      outputHashAlgo = "sha512";
+      outputHash = "9a15db96ffc86bc93624392c22c2aaea4ad4a7267c20ff528ff2dd61d8d84b9db611fc24673fba5b5d0bac318b4ce1e9d1725085ce2fad68f4231afa6bbb43c4";
+      name = "ResourcePackOverrides-v21.1.0-1.21.1-NeoForge.jar";
     };
   };
 

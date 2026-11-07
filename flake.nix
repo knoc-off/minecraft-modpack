@@ -188,11 +188,14 @@
     # player's edits. config/inventory_tabs.toml is the exception: it is
     # pack-owned tuning, not player state, so it is left unpreserved and gets
     # pushed over the client's copy whenever its hash changes.
-    # options.txt ships only the resource pack selection -- Minecraft fills in
-    # every other key with its default on first launch and rewrites the file
-    # whole on exit. It is listed here (rather than shipped as a mod config)
-    # because enabling a resourcepack is a client *selection*, not mod state:
-    # dropping the zip into resourcepacks/ leaves it inactive until listed.
+    # options.txt is legacy: resource packs are now enabled by Resource Pack
+    # Overrides (config/resourcepackoverrides.json, `required` reaches
+    # existing players too) and keybinds by Default Options
+    # (config/defaultoptions/keybindings.txt, new defaults only). It stays
+    # indexed but `preserve`d, because it is the player's whole settings file:
+    # unpreserved, any edit would overwrite it, and dropping it from the index
+    # would have packwiz-installer delete it. The json lists each pack under
+    # both its packwiz filename and its sanitized Nix store name.
     # Overlays land on fresh instances only -- installPrism's update branch
     # deliberately skips them -- so an existing instance keeps its own options.
     packOverlayPaths = [ "config" "servers.dat" "options.txt" ];

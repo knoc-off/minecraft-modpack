@@ -6,12 +6,20 @@ hash = "a1f0f39c1ecd937dacdaf4405100ab711cb7086bb45558bd58f75e237ec33ca1"
 preserve = true
 
 [[files]]
+file = "config/defaultoptions/keybindings.txt"
+hash = "ac0c844373d4ac5829f66e2f21269f36057b65cdb3312d4f6a6f4cfaeb182138"
+
+[[files]]
 file = "config/freecam.json5"
 hash = "5a845c9eb962d8a186e1b62ec10e7e48f3887d026ec7c01698220079bc4f7b5c"
 
 [[files]]
 file = "config/inventory_tabs.toml"
 hash = "2a8ca610474201c4bb3894ecce0a02935db26015e4a9dc7e9c2ff22097733e8d"
+
+[[files]]
+file = "config/resourcepackoverrides.json"
+hash = "89da713d6dc0fde8292ebc09af95868482e6cd29581fef9f2c23e26f6b634675"
 
 [[files]]
 file = "config/supplementaries-common.toml"
@@ -308,6 +316,11 @@ hash = "47d31e68115e60b33c56a138a098b07af4602c89e84137cce727fa043dc366df"
 metafile = true
 
 [[files]]
+file = "mods/default-options.pw.toml"
+hash = "a6967d761dde867ccc1af53dc9f4e530eb9917a9cb21d0fc15708e8cd2c0f2ba"
+metafile = true
+
+[[files]]
 file = "mods/diagonal-fences.pw.toml"
 hash = "632743d54d410c8b78fb92c94d8f3bb6a7a3faed45171f91e554877f94f82163"
 metafile = true
@@ -598,6 +611,11 @@ hash = "7913508fee049340d77039a85c84851d9079fac630400215fd6e878dbe181fbc"
 metafile = true
 
 [[files]]
+file = "mods/resource-pack-overrides.pw.toml"
+hash = "b8101dca20d054277d99e75b43dd8db44dea64a761d2ab69fdda9f6d59d9e6f1"
+metafile = true
+
+[[files]]
 file = "mods/resourceful-lib.pw.toml"
 hash = "c0b066684294c33972d562e0cb08ea17b2d31bcf86cd1d6c63b8e968f0eac7a2"
 metafile = true
@@ -795,6 +813,7 @@ metafile = true
 [[files]]
 file = "options.txt"
 hash = "0784deaa3aa224a10b97d8bc65785a9f339cad1df77a64c7f286e16a77c973af"
+preserve = true
 
 [[files]]
 file = "resourcepacks/create-computercraft.pw.toml"
